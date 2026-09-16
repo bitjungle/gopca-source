@@ -65,10 +65,7 @@ func applyOrdinal(data [][]string, columnTypes map[string]string, catCols map[st
 			codes[value] = i
 		}
 
-		newColName := colName + "_code"
-		for findColumn(*headers, newColName) != -1 {
-			newColName += "_"
-		}
+		newColName := uniqueColumnName(*headers, derivedColumnBase(colName)+"_code")
 
 		*headers = append(*headers, newColName)
 		columnTypes[newColName] = "numeric"

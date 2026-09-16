@@ -102,7 +102,7 @@ func applySplit(data [][]string, columnTypes map[string]string, catCols map[stri
 
 		newColumns := make([]string, 0, widest)
 		for part := 0; part < widest; part++ {
-			newColName := uniqueColumnName(*headers, fmt.Sprintf("%s_%d", colName, part+1))
+			newColName := uniqueColumnName(*headers, fmt.Sprintf("%s_%d", derivedColumnBase(colName), part+1))
 			*headers = append(*headers, newColName)
 			newColumns = append(newColumns, newColName)
 
@@ -213,6 +213,29 @@ func applyCombine(data [][]string, columnTypes map[string]string, catCols map[st
 		"Combined %s into '%s'", strings.Join(opts.Columns, ", "), newColName))
 
 	return nil
+}
+
+// derivedColumnBase returns the stem that a derived column name is built on:
+// the source column's name with any marker removed.
+//
+// A marker describes the column it is attached to. "#category" says that this
+// column's numbers are labels rather than quantities, which is true of the
+// source and false of anything derived from it -- the indicators one-hot
+// encoding produces are genuine 0/1 features and are meant to enter the
+// analysis. Carrying the marker across gave columns named
+// "proc_num#category_7", which reads as a category column and is not one (#947).
+//
+// The source keeps its own marker, which is what lets a plot still be coloured
+// by the category after it has been encoded.
+func derivedColumnBase(name string) string {
+	trimmed := strings.TrimSpace(name)
+	for _, marker := range []string{"#category", "# category", "#target", "# target"} {
+		if len(trimmed) >= len(marker) &&
+			strings.EqualFold(trimmed[len(trimmed)-len(marker):], marker) {
+			return strings.TrimSpace(trimmed[:len(trimmed)-len(marker)])
+		}
+	}
+	return trimmed
 }
 
 // uniqueColumnName suffixes name until nothing in headers uses it.
