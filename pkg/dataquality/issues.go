@@ -156,22 +156,49 @@ func generateQualityIssues(report *DataQualityReport, correlations map[string]ma
 	// about -1.20 and is flagged. Calling these columns heavy-tailed would
 	// therefore repeat, in miniature, the overclaim this issue exists to
 	// correct: the measurement establishes unusual tail weight, not a long tail.
-	skewedCount := 0
+	//
+	// Affected carries the column names because a count alone cannot be acted
+	// on: a reader told that 24 columns are skewed has no way to find out which
+	// (#951). Every other finding here names its columns or its rows, and the
+	// Issues tab renders both.
+	//
+	// The Recommendations tab has a Transform skewed distributions entry that
+	// names columns too, but this finding deliberately does not point at it:
+	// that recommendation fires on |skewness| > 1.0 while this fires on
+	// !IsNormal, so the two disagree about which columns qualify and a
+	// cross-reference would sometimes name something that is not on screen.
+	skewedCols := []string{}
 	for _, col := range report.ColumnAnalysis {
-		if col.Type == "numeric" && !col.Distribution.IsNormal {
-			skewedCount++
+		if col.Type == "numeric" && shapeWasMeasured(col.Distribution) && !col.Distribution.IsNormal {
+			skewedCols = append(skewedCols, col.Name)
 		}
 	}
-	if skewedCount > 0 {
+	if len(skewedCols) > 0 {
 		issues = append(issues, QualityIssue{
 			Severity:    "info",
 			Category:    "distribution",
-			Description: fmt.Sprintf("%d numeric columns are skewed or have unusual tail weight", skewedCount),
-			Impact:      "PCA assumes no particular distribution; the case worth acting on is a long tail, where a few extreme values can steer a component",
+			Description: fmt.Sprintf("%d numeric columns are skewed or have unusual tail weight", len(skewedCols)),
+			Affected:    skewedCols,
+			Impact:      "PCA assumes no particular distribution, so this needs no action on its own. A long tail is the case that matters, because a few extreme values can steer a component: standardising in GoPCA stops a wide-ranging column dominating on scale alone, and Transform Data can reshape one that still does",
 		})
 	}
 
 	return issues
+}
+
+// shapeWasMeasured reports whether a distribution shape was actually computed
+// for a column.
+//
+// analyzeDistribution gives up below ten non-missing numeric values and returns
+// a zero DistributionInfo. Its IsNormal is then false, which is indistinguishable
+// from a measured verdict of "this column is not normally shaped" -- so a column
+// with five readings was counted among the skewed ones and, once the finding
+// began naming columns, put that unmeasured claim in front of the user by name.
+//
+// DistType is the discriminator: every branch that runs after the shape is
+// computed sets it, and it is left empty in exactly the case where nothing was.
+func shapeWasMeasured(dist DistributionInfo) bool {
+	return dist.DistType != ""
 }
 
 // repeatedRowsPhrase describes how many rows repeat an earlier one, with both
