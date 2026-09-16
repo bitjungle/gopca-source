@@ -26,7 +26,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridReadyEvent, CellValueChangedEvent, GridApi, ColumnApi, ColumnResizedEvent } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import { useTheme, isCategoryColumn } from '@gopca/ui-components';
+import { useTheme, isCategoryColumn, isTargetColumn, isLabelColumn } from '@gopca/ui-components';
 import { ExecuteDeleteRows, ExecuteDeleteColumns, ExecuteInsertRow, ExecuteInsertColumn, ExecuteToggleTargetColumn, ExecuteToggleCategoryColumn, ExecuteAddRowNumbers, ExecuteDuplicateRows, ExecuteSetRowNames, ExecuteMoveRowNamesIntoTable, CanUseAsRowNames, ExecuteReorderColumns } from '../../wailsjs/go/main/App';
 import { RenameDialog } from './RenameDialog';
 import { ConfirmDialog } from '@gopca/ui-components';
@@ -186,13 +186,15 @@ export const CSVGrid = forwardRef<any, CSVGridProps>(({
     // Detect column types
     // Note: All hooks are declared before the validation check below to comply with React Hooks rules
     const detectColumnType = useCallback((colIndex: number): 'numeric' | 'text' | 'mixed' => {
-        // A #category marker settles the question before the values are read.
-        // The whole claim of that marker is that the numbers are labels rather
-        // than quantities, so deciding from the values would contradict it --
-        // and did, rendering a row identifier as "1.0000" (#945). #target is
-        // deliberately not included: a target is a measurement held out of the
-        // analysis, so it keeps its numeric formatting.
-        if (isCategoryColumn(headers[colIndex] ?? '')) {
+        // A label column settles the question before the values are read. The
+        // whole claim of a label column is that its numbers name something
+        // rather than measure it, so deciding from the values contradicts it --
+        // and did twice: a row identifier rendered as "1.0000" (#945), and a
+        // column of alloy designations was painted as a mixed measurement while
+        // its own tooltip called it categorical (#950). #target is deliberately
+        // not a label -- a target is a measurement held out of the analysis, so it
+        // keeps its numeric formatting.
+        if (isLabelColumn(headers[colIndex] ?? '', fileData?.categoricalColumns)) {
             return 'text';
         }
 
@@ -217,17 +219,18 @@ return 'numeric';
 return 'text';
 }
         return 'mixed';
-    }, [data, headers]);
+    }, [data, headers, fileData]);
 
     // Declare context menu handlers early
     const handleHeaderContextMenu = useCallback(async (event: React.MouseEvent, colIndex: number) => {
         event.preventDefault();
 
         const header = headers[colIndex];
-        const isTargetColumn = header.toLowerCase().endsWith('#target') ||
-                              header.toLowerCase().endsWith('# target');
-        const isCategoryColumn = header.toLowerCase().endsWith('#category') ||
-                              header.toLowerCase().endsWith('# category');
+        // Named so they do not shadow the shared helpers they call: one file
+        // holding two different things under one name is how the inline copies
+        // drifted from the parser's spelling in the first place.
+        const isTarget = isTargetColumn(header);
+        const isCategory = isCategoryColumn(header);
 
         // Whether this column can serve as row names is a property of its
         // values, so ask the backend rather than guessing here. The same check
@@ -298,7 +301,7 @@ return 'text';
                 : []),
             { separator: true },
             {
-                label: isTargetColumn ? 'Remove Target Flag' : 'Mark as Target Column',
+                label: isTarget ? 'Remove Target Flag' : 'Mark as Target Column',
                 action: async () => {
                     if (fileData) {
                         try {
@@ -315,7 +318,7 @@ return 'text';
                 // For a column of numbers that are really labels -- a processing
                 // code, a site number. Without this they enter the PCA as
                 // measurements, where their variance is arbitrary (#914).
-                label: isCategoryColumn ? 'Remove Category Flag' : 'Mark as Category Column',
+                label: isCategory ? 'Remove Category Flag' : 'Mark as Category Column',
                 action: async () => {
                     if (fileData) {
                         try {

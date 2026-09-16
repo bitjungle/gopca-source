@@ -189,10 +189,21 @@ if (!helperFound) {
 
 const GRID = 'cmd/gocsv/frontend/src/components/CSVGrid.tsx';
 const grid = readFileSync(GRID, 'utf8');
-if (!/isCategoryColumn\s*\(/.test(grid)) {
+if (!/isLabelColumn\s*\(/.test(grid)) {
     failures.push(
-        `${GRID} no longer calls isCategoryColumn, so a #category column would be ` +
-        `typed from its values and formatted as a measurement (#945)`);
+        `${GRID} no longer calls isLabelColumn, so a label column would be typed ` +
+        `from its values: a #category column formatted as a measurement (#945), ` +
+        `or a categorical column painted as a mixed measurement (#950)`);
+}
+
+// The map is the half of isLabelColumn that only the grid can supply, and
+// dropping it is silent -- the call still compiles, and only columns whose
+// values happen to parse as numbers change appearance (#950).
+if (!/isLabelColumn\s*\([^)]*categoricalColumns/.test(grid)) {
+    failures.push(
+        `${GRID} calls isLabelColumn without passing categoricalColumns, so a ` +
+        `column categorical by parse rather than by marker is typed from its ` +
+        `values (#950)`);
 }
 
 if (failures.length > 0) {
@@ -203,4 +214,4 @@ if (failures.length > 0) {
 }
 
 console.log(`Frontend invariants hold: ${labels.length} menu entries all with icons, ` +
-            `one sample-label helper, and a grid that honours #category.`);
+            `one sample-label helper, and a grid that honours label columns.`);
