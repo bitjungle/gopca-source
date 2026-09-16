@@ -177,6 +177,24 @@ if (!helperFound) {
     failures.push(`${LABEL_HELPER} is missing -- this check has gone stale`);
 }
 
+
+// --- 3. the grid does not re-derive what a marker already says ---------------
+//
+// detectColumnType decided a column's type by reading its values, which
+// contradicted the one marker whose whole claim is that its values should not be
+// read that way: a column marked #category rendered its labels to four decimal
+// places, so a row identifier appeared as "1.0000" (#945). The rule belongs to
+// isCategoryColumn, shared with the Go parser's spelling, and the grid must ask
+// it rather than guess.
+
+const GRID = 'cmd/gocsv/frontend/src/components/CSVGrid.tsx';
+const grid = readFileSync(GRID, 'utf8');
+if (!/isCategoryColumn\s*\(/.test(grid)) {
+    failures.push(
+        `${GRID} no longer calls isCategoryColumn, so a #category column would be ` +
+        `typed from its values and formatted as a measurement (#945)`);
+}
+
 if (failures.length > 0) {
     console.error('\nFrontend invariant checks FAILED:\n');
     for (const f of failures) console.error(`  - ${f}`);
@@ -185,4 +203,4 @@ if (failures.length > 0) {
 }
 
 console.log(`Frontend invariants hold: ${labels.length} menu entries all with icons, ` +
-            `and one sample-label helper.`);
+            `one sample-label helper, and a grid that honours #category.`);

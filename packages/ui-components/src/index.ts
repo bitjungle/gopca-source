@@ -36,6 +36,7 @@ export { DocumentationViewer } from './components/DocumentationViewer';
 export { MarkdownRenderer } from './components/MarkdownRenderer';
 export { TableOfContents } from './components/TableOfContents';
 export { toSlug, extractTextContent, extractHeadings } from './utils/tocUtils';
+export { isCategoryColumn, isTargetColumn } from './utils/columnMarkers';
 export { FontSizeControl } from './components/FontSizeControl';
 export { LoadingSpinner } from './components/LoadingSpinner';
 export { ErrorBoundary } from './components/ErrorBoundary';

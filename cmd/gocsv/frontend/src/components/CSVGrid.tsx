@@ -26,7 +26,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridReadyEvent, CellValueChangedEvent, GridApi, ColumnApi, ColumnResizedEvent } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import { useTheme } from '@gopca/ui-components';
+import { useTheme, isCategoryColumn } from '@gopca/ui-components';
 import { ExecuteDeleteRows, ExecuteDeleteColumns, ExecuteInsertRow, ExecuteInsertColumn, ExecuteToggleTargetColumn, ExecuteToggleCategoryColumn, ExecuteAddRowNumbers, ExecuteDuplicateRows, ExecuteSetRowNames, ExecuteMoveRowNamesIntoTable, CanUseAsRowNames, ExecuteReorderColumns } from '../../wailsjs/go/main/App';
 import { RenameDialog } from './RenameDialog';
 import { ConfirmDialog } from '@gopca/ui-components';
@@ -186,6 +186,16 @@ export const CSVGrid = forwardRef<any, CSVGridProps>(({
     // Detect column types
     // Note: All hooks are declared before the validation check below to comply with React Hooks rules
     const detectColumnType = useCallback((colIndex: number): 'numeric' | 'text' | 'mixed' => {
+        // A #category marker settles the question before the values are read.
+        // The whole claim of that marker is that the numbers are labels rather
+        // than quantities, so deciding from the values would contradict it --
+        // and did, rendering a row identifier as "1.0000" (#945). #target is
+        // deliberately not included: a target is a measurement held out of the
+        // analysis, so it keeps its numeric formatting.
+        if (isCategoryColumn(headers[colIndex] ?? '')) {
+            return 'text';
+        }
+
         let hasNumeric = false;
         let hasText = false;
 
@@ -207,7 +217,7 @@ return 'numeric';
 return 'text';
 }
         return 'mixed';
-    }, [data]);
+    }, [data, headers]);
 
     // Declare context menu handlers early
     const handleHeaderContextMenu = useCallback(async (event: React.MouseEvent, colIndex: number) => {
