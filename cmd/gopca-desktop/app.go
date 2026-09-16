@@ -1426,7 +1426,10 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 			// 10000 -> 100 -- so the warning fires on exactly the datasets it
 			// fired on before. Only the number shown changes.
 			if minVar > 0 && minVar < math.MaxFloat64 {
-				scaleRatio = math.Sqrt(maxVar / minVar)
+				// Divided after the square roots, not before: maxVar/minVar can
+				// overflow to +Inf while the ratio of standard deviations is
+				// still finite and representable.
+				scaleRatio = math.Sqrt(maxVar) / math.Sqrt(minVar)
 
 				// Generate warning if scales are heterogeneous and not standardized
 				if scaleRatio > 10 && !request.StandardScale && !request.RobustScale {

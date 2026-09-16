@@ -10,7 +10,9 @@ import (
 // by exactly wantRatio, so the reported figure can be checked against a known
 // answer rather than against whatever the code happens to produce.
 func scaleRequest(wantRatio float64) ModelMetricsRequest {
-	// Column A: -1, +1 -> stddev 1. Column B: -r, +r -> stddev r.
+	// Column A is -1, +1 and column B is -r, +r, so B's standard deviation is
+	// exactly r times A's whatever divisor is used. The absolute value is not
+	// 1: CalculateModelMetrics uses the sample divisor, making it sqrt(2).
 	data := [][]float64{{-1, -wantRatio}, {1, wantRatio}}
 	return ModelMetricsRequest{
 		Loadings:          [][]float64{{0.5}, {0.5}},
@@ -81,5 +83,36 @@ func TestScaleWarningIsSilentWhenDataIsScaled(t *testing.T) {
 	req.StandardScale = true
 	if got := (&App{}).CalculateModelMetrics(req); got.ScaleWarning != "" {
 		t.Errorf("warned about scale on standardized data: %q", got.ScaleWarning)
+	}
+}
+
+// The ratio must survive variances whose quotient is not representable.
+//
+// maxVar/minVar overflows to +Inf well before the ratio of standard deviations
+// does, because the quotient is the square of the quantity actually wanted.
+// Taking the square roots first keeps the result finite (review on #959).
+func TestScaleRatioSurvivesVariancesWhoseQuotientOverflows(t *testing.T) {
+	// Column A varies by ~1e150, column B by ~1e-150. The variances are then
+	// ~2e300 and ~2e-300, whose quotient is ~1e600 -- beyond float64 -- while
+	// the standard-deviation ratio, 1e300, is representable.
+	data := [][]float64{{-1e150, -1e-150}, {1e150, 1e-150}}
+	got := (&App{}).CalculateModelMetrics(ModelMetricsRequest{
+		Loadings:          [][]float64{{0.5}, {0.5}},
+		VariableLabels:    []string{"A", "B"},
+		ExplainedVariance: []float64{90.0, 10.0},
+		OriginalData:      data,
+	})
+
+	if !got.Success {
+		t.Fatalf("metrics failed: %s", got.Error)
+	}
+	if math.IsInf(got.ScaleRatio, 0) || math.IsNaN(got.ScaleRatio) {
+		t.Fatalf("ScaleRatio = %v; dividing before the square roots overflowed", got.ScaleRatio)
+	}
+	if got.ScaleRatio < 1e299 || got.ScaleRatio > 1e301 {
+		t.Errorf("ScaleRatio = %g, want about 1e300", got.ScaleRatio)
+	}
+	if got.ScaleWarning == "" {
+		t.Error("no scale warning for a 1e300x difference in standard deviation")
 	}
 }
