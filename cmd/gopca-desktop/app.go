@@ -1439,13 +1439,26 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 				}
 			}
 
-			// Calculate scale ratio
+			// Calculate scale ratio.
+			//
+			// Reported as a ratio of standard deviations, not of variances. The
+			// sentence below says "scales", and a scale is a magnitude, so
+			// quoting the squared quantity overstated it by the ratio itself:
+			// 24 element columns whose standard deviations span 21,494x were
+			// described as differing by 462,008,282x (#957).
+			//
+			// The thresholds are square-rooted alongside it -- 100 -> 10 and
+			// 10000 -> 100 -- so the warning fires on exactly the datasets it
+			// fired on before. Only the number shown changes.
 			if minVar > 0 && minVar < math.MaxFloat64 {
-				scaleRatio = maxVar / minVar
+				// Divided after the square roots, not before: maxVar/minVar can
+				// overflow to +Inf while the ratio of standard deviations is
+				// still finite and representable.
+				scaleRatio = math.Sqrt(maxVar) / math.Sqrt(minVar)
 
 				// Generate warning if scales are heterogeneous and not standardized
-				if scaleRatio > 100 && !request.StandardScale && !request.RobustScale {
-					if scaleRatio > 10000 {
+				if scaleRatio > 10 && !request.StandardScale && !request.RobustScale {
+					if scaleRatio > 100 {
 						scaleWarning = fmt.Sprintf("Variables have very different scales (%.0fx difference). Consider standardization unless this is intentional.", scaleRatio)
 					} else {
 						scaleWarning = fmt.Sprintf("Variables have different scales (%.0fx difference). Consider if standardization is needed.", scaleRatio)
