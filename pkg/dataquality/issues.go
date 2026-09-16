@@ -416,11 +416,32 @@ func generateRecommendations(report *DataQualityReport) []Recommendation {
 		})
 	}
 
+	// Columns worth proposing a transform for.
+	//
+	// A column with two distinct values is excluded, because no transform on
+	// offer can do anything to it. For a two-valued column with proportion p at
+	// the upper value, skewness is (1-2p)/sqrt(p(1-p)) -- an expression with no
+	// term for the values themselves. Box-Cox and Yeo-Johnson are monotone, so
+	// they only relabel the two values and leave that quantity exactly where it
+	// was.
+	//
+	// One-hot encoding creates such columns in quantity, so after encoding a
+	// categorical column the report recommended reshaping ten indicator columns
+	// that cannot be reshaped (#954).
+	//
+	// This does not exclude them from the distribution finding, which is right
+	// to mention them: autoscaling a dummy with 4 ones in 1057 rows puts those
+	// four samples at z = 16.2, which is the leverage that finding is about.
+	// Only the remedy was wrong.
 	skewedCols := []string{}
 	for _, col := range report.ColumnAnalysis {
-		if col.Type == "numeric" && col.Stats.Skewness != nil && math.Abs(*col.Stats.Skewness) > 1.0 {
-			skewedCols = append(skewedCols, col.Name)
+		if col.Type != "numeric" || col.Stats.Skewness == nil {
+			continue
 		}
+		if math.Abs(*col.Stats.Skewness) <= 1.0 || col.Stats.Unique <= 2 {
+			continue
+		}
+		skewedCols = append(skewedCols, col.Name)
 	}
 	if len(skewedCols) > 0 {
 		recs = append(recs, Recommendation{

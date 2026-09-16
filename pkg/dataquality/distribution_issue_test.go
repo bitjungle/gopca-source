@@ -25,6 +25,7 @@ package dataquality
 
 import (
 	"math"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -269,5 +270,61 @@ func TestSparseColumnIsNotCalledSkewed(t *testing.T) {
 					name, issue.Description)
 			}
 		}
+	}
+}
+
+// A one-hot indicator column must not be offered a transform.
+//
+// Box-Cox and Yeo-Johnson are monotone, and skewness of a two-valued column is
+// (1-2p)/sqrt(p(1-p)) -- fixed by the split alone. Relabelling the two values
+// cannot move it, so the recommendation proposed an action that could not work
+// on ten columns at once after a one-hot encode (#954).
+//
+// Driven through AnalyzeDataQuality so the column really is built by the same
+// statistics path the report uses, including Stats.Unique.
+func TestTransformIsNotRecommendedForIndicatorColumns(t *testing.T) {
+	// 200 rows: a genuinely skewed continuous column, and a rare 0/1 dummy.
+	rows := make([][]string, 200)
+	for i := range rows {
+		dummy := "0"
+		if i < 3 {
+			dummy = "1"
+		}
+		// Heavily right-skewed: one large value, the rest small and varied.
+		value := strconv.Itoa(i % 7)
+		if i == 0 {
+			value = "100000"
+		}
+		rows[i] = []string{value, dummy}
+	}
+
+	report, err := AnalyzeDataQuality(AnalysisInput{
+		Data:        rows,
+		Headers:     []string{"skewed", "proc_num_2"},
+		ColumnTypes: map[string]string{"skewed": "numeric", "proc_num_2": "numeric"},
+		Rows:        len(rows),
+		Columns:     2,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var transform *Recommendation
+	for i := range report.Recommendations {
+		if report.Recommendations[i].Category == "distribution" {
+			transform = &report.Recommendations[i]
+		}
+	}
+	if transform == nil {
+		t.Fatal("no transform recommendation was produced, so this test proves nothing")
+	}
+	for _, name := range transform.Columns {
+		if name == "proc_num_2" {
+			t.Errorf("transform recommended for a two-valued column, which no monotone transform can reshape: %v", transform.Columns)
+		}
+	}
+	// The check must not have passed by suppressing the recommendation wholesale.
+	if len(transform.Columns) == 0 {
+		t.Errorf("recommendation names no columns at all, so the exclusion is too broad")
 	}
 }
