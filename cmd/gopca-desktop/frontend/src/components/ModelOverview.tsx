@@ -80,7 +80,8 @@ export const ModelOverview: React.FC<ModelOverviewProps> = ({ pcaResult, selecte
           standardScale: standardScale,
           robustScale: robustScale,
           originalData: originalData || [],
-          allEigenvalues: pcaResult.all_eigenvalues || []
+          allEigenvalues: pcaResult.all_eigenvalues,
+          method: pcaResult.method
         });
 
         if (response.success) {

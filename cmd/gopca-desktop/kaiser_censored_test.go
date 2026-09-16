@@ -126,6 +126,7 @@ func TestKaiserIsCensoredWhenComponentsRemainUncomputed(t *testing.T) {
 func TestKaiserUsesTheFullSpectrumWhenGiven(t *testing.T) {
 	ev := []float64{10.17, 8.62, 8.31, 7.64, 6.77, 5.56, 5.08, 4.71, 4.42, 4.26}
 	req := metricsFor(24, ev)
+	req.Method = "svd"
 	req.AllEigenvalues = []float64{
 		2.440, 2.069, 1.994, 1.834, 1.625, 1.333, 1.218, 1.131, 1.060, 1.023,
 		0.994, 0.986, 0.937, 0.893, 0.850, 0.800, 0.760, 0.700, 0.650, 0.600,
@@ -146,6 +147,7 @@ func TestKaiserUsesTheFullSpectrumWhenGiven(t *testing.T) {
 // counting over the retained ones alone would stop at 5 and call it censored.
 func TestFullSpectrumBeatsTheRetainedComponents(t *testing.T) {
 	req := metricsFor(24, []float64{10.17, 8.62, 8.31, 7.64, 6.77})
+	req.Method = "svd"
 	req.AllEigenvalues = []float64{2.440, 2.069, 1.994, 1.834, 1.625, 1.333, 0.900, 0.500}
 
 	got := (&App{}).CalculateModelMetrics(req)
@@ -158,10 +160,48 @@ func TestFullSpectrumBeatsTheRetainedComponents(t *testing.T) {
 	}
 }
 
-// Kernel PCA supplies no spectrum, so the censoring fallback must still work.
+// With no usable spectrum the censoring fallback must still work.
 func TestCensoringStillAppliesWithoutASpectrum(t *testing.T) {
 	req := metricsFor(24, []float64{10.17, 8.62, 8.31, 7.64, 6.77})
 	if got := (&App{}).CalculateModelMetrics(req); !got.KaiserCensored {
 		t.Errorf("KaiserCensored = false with no spectrum and 5 of 24 components computed")
+	}
+}
+
+// NIPALS does not produce a spectrum that can be thresholded.
+//
+// It deflates one component at a time and pads the rest of the array by
+// spreading the residual variance evenly across them, so the tail is one
+// repeated average. Trusting it would have Kaiser accept the whole remainder or
+// none of it: on al_alloy_data.csv fitted with 5 components the padding works
+// out at 0.739, so Kaiser would report 5 -- as a verdict -- where the truth is
+// 10, which is worse than the censored "5+" it replaced.
+func TestNipalsPaddingIsNotUsedAsASpectrum(t *testing.T) {
+	req := metricsFor(24, []float64{10.17, 8.62, 8.31, 7.64, 6.77})
+	req.Method = "nipals"
+	req.AllEigenvalues = []float64{2.440, 2.069, 1.994, 1.834, 1.625}
+	for i := 5; i < 24; i++ { // the flat padded tail
+		req.AllEigenvalues = append(req.AllEigenvalues, 0.739)
+	}
+
+	got := (&App{}).CalculateModelMetrics(req)
+
+	if !got.KaiserCensored {
+		t.Errorf("KaiserCensored = false; NIPALS padding was treated as a real spectrum")
+	}
+	if got.KaiserComponents != 5 {
+		t.Errorf("KaiserComponents = %d, want 5 as a floor", got.KaiserComponents)
+	}
+}
+
+// An array no longer than the retained components settles nothing either, so it
+// must not switch off censoring.
+func TestASpectrumNoLongerThanTheModelStillCensors(t *testing.T) {
+	req := metricsFor(24, []float64{10.17, 8.62, 8.31, 7.64, 6.77})
+	req.Method = "svd"
+	req.AllEigenvalues = []float64{2.440, 2.069, 1.994, 1.834, 1.625}
+
+	if got := (&App{}).CalculateModelMetrics(req); !got.KaiserCensored {
+		t.Errorf("KaiserCensored = false although the array stops where the model does")
 	}
 }

@@ -1272,8 +1272,16 @@ type ModelMetricsRequest struct {
 	OriginalData      [][]float64 `json:"originalData,omitempty"` // For scale detection
 	// AllEigenvalues is the complete spectrum, not just the components kept.
 	// With it the Kaiser criterion sees every eigenvalue and returns a verdict;
-	// without it the count can only ever be a floor. Absent for kernel PCA.
+	// without it the count can only ever be a floor.
+	//
+	// Only trustworthy from SVD, which diagonalises the whole matrix. NIPALS
+	// deflates one component at a time and fills the rest of the array by
+	// spreading the residual variance evenly over them (internal/core/pca.go),
+	// so its tail is one repeated average rather than eigenvalues -- thresholding
+	// that at 1 accepts all of the remainder or none. Method says which it is.
 	AllEigenvalues []float64 `json:"allEigenvalues,omitempty"`
+	// Method is the decomposition that produced AllEigenvalues.
+	Method string `json:"method,omitempty"`
 }
 
 // ModelMetricsResponse contains calculated model metrics
@@ -1361,10 +1369,11 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 		numVariables := len(request.Loadings)
 
 		switch {
-		case len(request.AllEigenvalues) > 0:
-			// The whole spectrum is available, so the criterion can finish. It
-			// is never censored on this path: an eigenvalue at or below 1 either
-			// appears, or genuinely does not exist.
+		case request.Method == "svd" && len(request.AllEigenvalues) > len(request.ExplainedVariance):
+			// A real spectrum that reaches past the retained components, so the
+			// criterion can finish. It is never censored on this path: an
+			// eigenvalue at or below 1 either appears, or genuinely does not
+			// exist.
 			for _, eigenvalue := range request.AllEigenvalues {
 				if eigenvalue <= 1.0 {
 					break // Eigenvalues are ordered, so we can stop here
@@ -1372,7 +1381,7 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 				kaiserComponents++
 			}
 		default:
-			// Only the retained components are known. If the criterion reaches
+			// Only the retained components can be trusted. If the criterion reaches
 			// the end of them still counting, it has not chosen a number -- it
 			// has run out of candidates, and the count is a floor.
 			//
