@@ -119,7 +119,7 @@ func TestOutlierIssueRowsAreOneBased(t *testing.T) {
 // they would pass against a function that attached rows to everything.
 func TestColumnOnlyIssuesCarryNoRows(t *testing.T) {
 	report := &DataQualityReport{ColumnAnalysis: []ColumnAnalysis{
-		{Name: "a", Type: "numeric", Distribution: DistributionInfo{IsNormal: false}},
+		{Name: "a", Type: "numeric", Distribution: DistributionInfo{IsNormal: false, DistType: "right-skewed"}},
 	}}
 	issue, found := issueOfCategory(generateQualityIssues(report, nil, nil, nil), "distribution")
 	if !found {

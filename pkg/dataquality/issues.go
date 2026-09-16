@@ -169,7 +169,7 @@ func generateQualityIssues(report *DataQualityReport, correlations map[string]ma
 	// cross-reference would sometimes name something that is not on screen.
 	skewedCols := []string{}
 	for _, col := range report.ColumnAnalysis {
-		if col.Type == "numeric" && !col.Distribution.IsNormal {
+		if col.Type == "numeric" && shapeWasMeasured(col.Distribution) && !col.Distribution.IsNormal {
 			skewedCols = append(skewedCols, col.Name)
 		}
 	}
@@ -184,6 +184,21 @@ func generateQualityIssues(report *DataQualityReport, correlations map[string]ma
 	}
 
 	return issues
+}
+
+// shapeWasMeasured reports whether a distribution shape was actually computed
+// for a column.
+//
+// analyzeDistribution gives up below ten non-missing numeric values and returns
+// a zero DistributionInfo. Its IsNormal is then false, which is indistinguishable
+// from a measured verdict of "this column is not normally shaped" -- so a column
+// with five readings was counted among the skewed ones and, once the finding
+// began naming columns, put that unmeasured claim in front of the user by name.
+//
+// DistType is the discriminator: every branch that runs after the shape is
+// computed sets it, and it is left empty in exactly the case where nothing was.
+func shapeWasMeasured(dist DistributionInfo) bool {
+	return dist.DistType != ""
 }
 
 // repeatedRowsPhrase describes how many rows repeat an earlier one, with both

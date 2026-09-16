@@ -29,12 +29,18 @@ import (
 	"testing"
 )
 
-// skewedCol returns a numeric column the shape heuristic will not call normal.
+// skewedCol returns a numeric column the shape heuristic measured and did not
+// call normal.
+//
+// DistType has to be set for this to be a faithful fixture. A zero
+// DistributionInfo also has IsNormal false, but it means "too few values to
+// measure" rather than "measured, and skewed" -- the two were once
+// indistinguishable, so a column with five readings was reported as skewed.
 func skewedCol(name string) ColumnAnalysis {
 	return ColumnAnalysis{
 		Name:         name,
 		Type:         "numeric",
-		Distribution: DistributionInfo{IsNormal: false},
+		Distribution: DistributionInfo{IsNormal: false, DistType: "right-skewed"},
 	}
 }
 
@@ -172,7 +178,7 @@ func TestDistributionIssueNamesItsColumns(t *testing.T) {
 		skewedCol("Be"),
 		{Name: "Zn", Type: "numeric", Distribution: DistributionInfo{IsNormal: true}},
 		skewedCol("Cr"),
-		{Name: "Source", Type: "categorical", Distribution: DistributionInfo{IsNormal: false}},
+		{Name: "Source", Type: "categorical", Distribution: DistributionInfo{IsNormal: false, DistType: "right-skewed"}},
 	}}
 
 	issue := findDistributionIssue(t, generateQualityIssues(report, nil, nil, nil))
@@ -221,4 +227,47 @@ func findDistributionIssue(t *testing.T, issues []QualityIssue) QualityIssue {
 	}
 	t.Fatal("no distribution issue was generated")
 	return QualityIssue{}
+}
+
+// A column with too few values to measure must not be reported as skewed.
+//
+// analyzeDistribution returns a zero DistributionInfo below ten non-missing
+// numeric values, and its IsNormal is false. While the finding was a bare count
+// that inflated a number nobody could check; once it names columns, it puts an
+// unmeasured claim in front of the user by name.
+//
+// Driven through AnalyzeDataQuality rather than a fixture, because the defect
+// lives in the join between what analyzeDistribution leaves unset and what
+// generateQualityIssues reads.
+func TestSparseColumnIsNotCalledSkewed(t *testing.T) {
+	rows := make([][]string, 20)
+	for i := range rows {
+		rows[i] = []string{"1.0", ""}
+	}
+	for i := 0; i < 5; i++ {
+		rows[i][1] = "3.0"
+	}
+
+	report, err := AnalyzeDataQuality(AnalysisInput{
+		Data:        rows,
+		Headers:     []string{"dense", "sparse"},
+		ColumnTypes: map[string]string{"dense": "numeric", "sparse": "numeric"},
+		Rows:        len(rows),
+		Columns:     2,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, issue := range report.Issues {
+		if issue.Category != "distribution" {
+			continue
+		}
+		for _, name := range issue.Affected {
+			if name == "sparse" {
+				t.Errorf("column %q is named as skewed, but only 5 values were present so no shape was computed: %q",
+					name, issue.Description)
+			}
+		}
+	}
 }
