@@ -178,14 +178,22 @@ if (!helperFound) {
 }
 
 
-// --- 3. the grid does not re-derive what a marker already says ---------------
+// --- 3. the grid does not re-derive what it has already been told ------------
 //
 // detectColumnType decided a column's type by reading its values, which
-// contradicted the one marker whose whole claim is that its values should not be
-// read that way: a column marked #category rendered its labels to four decimal
-// places, so a row identifier appeared as "1.0000" (#945). The rule belongs to
-// isCategoryColumn, shared with the Go parser's spelling, and the grid must ask
-// it rather than guess.
+// contradicts anything already known to be a label column -- a label column's
+// whole claim is that its values must not be read that way. It went wrong twice.
+// A column marked #category rendered its labels to four decimal places, so a row
+// identifier appeared as "1.0000" (#945). A column the parser had classified as
+// categorical was painted as a mixed measurement, because aluminium alloy
+// designations such as "6101" parse as numbers, while the same header's icon and
+// tooltip called it categorical (#950).
+//
+// Two independent signals say a column is a label: the #category marker in the
+// header, and the parser's categoricalColumns map. The rule for combining them
+// belongs to isLabelColumn, which shares the Go parser's spelling of the marker,
+// and the grid must ask it rather than guess -- passing both signals, since the
+// map is the half only the grid can supply.
 
 const GRID = 'cmd/gocsv/frontend/src/components/CSVGrid.tsx';
 const grid = readFileSync(GRID, 'utf8');
