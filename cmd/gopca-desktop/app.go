@@ -1359,7 +1359,20 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 		// The criterion is only ever shown the components that were computed. If
 		// it reaches the end of them still counting, it has not chosen a number
 		// -- it has run out of candidates, and the count is a floor.
-		kaiserCensored = len(request.ExplainedVariance) > 0
+		//
+		// Unless there was nothing more to compute. A decomposition yields at
+		// most min(variables, samples-1) components, and when every one of those
+		// exists the criterion has seen the whole spectrum: its count is then a
+		// verdict, and telling the user to ask for more would send them after
+		// components that do not exist. That case is not hypothetical -- it is
+		// ordinary for spectroscopic data, where variables outnumber samples and
+		// the entire spectrum can sit above 1.
+		maxComponents := numVariables
+		if rows := len(request.OriginalData); rows > 1 && rows-1 < maxComponents {
+			maxComponents = rows - 1
+		}
+		kaiserCensored = len(request.ExplainedVariance) > 0 &&
+			len(request.ExplainedVariance) < maxComponents
 		for _, variance := range request.ExplainedVariance {
 			// Convert percentage to eigenvalue approximation
 			// For standardized data, total variance = number of variables

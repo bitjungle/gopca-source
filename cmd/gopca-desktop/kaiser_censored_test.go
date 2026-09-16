@@ -73,3 +73,48 @@ func TestKaiserIsNotCensoredWhenNotApplicable(t *testing.T) {
 		t.Errorf("KaiserCensored = true where the criterion does not apply")
 	}
 }
+
+// When the whole spectrum has been computed there is nothing left to censor,
+// even though every eigenvalue exceeds 1.
+//
+// A decomposition yields at most min(variables, samples-1) components. Where
+// variables outnumber samples -- routine for spectroscopy, and the shape of
+// testdata/corn -- the full spectrum is short and can sit entirely above 1.
+// Advising "try more components" there sends the user after components that do
+// not exist (review on #958).
+func TestKaiserIsNotCensoredWhenTheWholeSpectrumWasComputed(t *testing.T) {
+	// 100 variables, 20 samples: rank is 19, so 19 components is everything.
+	const numVariables, numSamples, computed = 100, 20, 19
+
+	ev := make([]float64, computed)
+	for i := range ev {
+		ev[i] = 100.0 / computed // each eigenvalue = 100/19 = 5.26, all above 1
+	}
+	req := metricsFor(numVariables, ev)
+	req.OriginalData = make([][]float64, numSamples)
+	for i := range req.OriginalData {
+		req.OriginalData[i] = make([]float64, numVariables)
+	}
+
+	got := (&App{}).CalculateModelMetrics(req)
+
+	if got.KaiserCensored {
+		t.Errorf("KaiserCensored = true, but all %d available components were computed -- there are no more to ask for", computed)
+	}
+	if got.KaiserComponents != computed {
+		t.Errorf("KaiserComponents = %d, want %d", got.KaiserComponents, computed)
+	}
+}
+
+// The ordinary case still censors: far fewer components computed than exist.
+func TestKaiserIsCensoredWhenComponentsRemainUncomputed(t *testing.T) {
+	req := metricsFor(24, []float64{10.17, 8.62, 8.31, 7.64, 6.77})
+	req.OriginalData = make([][]float64, 1057)
+	for i := range req.OriginalData {
+		req.OriginalData[i] = make([]float64, 24)
+	}
+
+	if got := (&App{}).CalculateModelMetrics(req); !got.KaiserCensored {
+		t.Errorf("KaiserCensored = false, but only 5 of 24 possible components were computed")
+	}
+}
