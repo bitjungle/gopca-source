@@ -70,7 +70,11 @@ func applyOneHot(data [][]string, columnTypes map[string]string, catCols map[str
 		// Append one new column per unique value.
 		newColumns := make([]string, 0, len(sortedValues))
 		for _, val := range sortedValues {
-			newColName := fmt.Sprintf("%s_%s", colName, val)
+			// uniqueColumnName as well as the stripped stem: unlike split and
+			// ordinal, this appended its header unchecked, so a file already
+			// holding the composed name ended up with two columns of it (#947).
+			newColName := uniqueColumnName(*headers,
+				fmt.Sprintf("%s_%s", derivedColumnBase(colName), val))
 			*headers = append(*headers, newColName)
 			columnTypes[newColName] = "numeric"
 			newColumns = append(newColumns, newColName)
