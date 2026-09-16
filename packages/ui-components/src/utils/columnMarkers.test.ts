@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCategoryColumn, isTargetColumn } from './columnMarkers';
+import { isCategoryColumn, isLabelColumn, isTargetColumn } from './columnMarkers';
 
 describe('isCategoryColumn', () => {
     it('accepts both spellings, as the Go parser does', () => {
@@ -42,5 +42,38 @@ describe('isTargetColumn', () => {
         // A target is a measurement held out of the analysis, so it keeps its
         // numeric formatting; a category is a label and must not.
         expect(isTargetColumn('proc_num#category')).toBe(false);
+    });
+});
+
+describe('isLabelColumn', () => {
+    it('accepts a column marked by its header, with no map at all', () => {
+        expect(isLabelColumn('proc_num#category')).toBe(true);
+        expect(isLabelColumn('site # category', {})).toBe(true);
+    });
+
+    it('accepts a column the parser classified, with no marker in the header', () => {
+        // #950: "Name" holds alloy designations such as 6101, which parse as
+        // numbers. Only the parser's verdict says it is a label column.
+        expect(isLabelColumn('Name', { Name: ['6101', 'AA7055'] })).toBe(true);
+    });
+
+    it('rejects a measurement column', () => {
+        expect(isLabelColumn('Zn', { Name: [] })).toBe(false);
+        expect(isLabelColumn('Zn')).toBe(false);
+        expect(isLabelColumn('Zn', null)).toBe(false);
+    });
+
+    it('does not treat a target as a label', () => {
+        // A target is held out of the analysis but is still a measurement, so
+        // it keeps numeric formatting.
+        expect(isLabelColumn('Moisture#target', {})).toBe(false);
+    });
+
+    it('does not mistake an inherited property for a column', () => {
+        // `'toString' in {}` is true. A column may legitimately be named
+        // toString, and it is not categorical unless the map really says so.
+        expect(isLabelColumn('toString', {})).toBe(false);
+        expect(isLabelColumn('constructor', {})).toBe(false);
+        expect(isLabelColumn('toString', { toString: ['a'] })).toBe(true);
     });
 });
