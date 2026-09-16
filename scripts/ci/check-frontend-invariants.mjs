@@ -115,15 +115,24 @@ function guarded(guard, label) {
     if (end === -1) {
         return `the ${guard} guard is unterminated`;
     }
-    const at = src.indexOf(`'${label}'`, start);
-    if (at === -1 || at > end) {
-        return `"${label}" is not inside the ${guard} guard (#923)`;
+    // Prefix, not the whole label: these carry an explanatory tail after an
+    // em-dash, and the guard is about which branch the entry sits in.
+    const at = src.indexOf(`'${label}`, start);
+    if (at === -1) {
+        // Distinguished from the wrong-branch case because the fix differs: a
+        // renamed entry needs this check updating, a moved one needs the code
+        // putting back.
+        return `no entry labelled "${label}..." anywhere -- if it was renamed, ` +
+               `update this check; if it was removed, ${guard} no longer guards it`;
+    }
+    if (at > end) {
+        return `"${label}..." exists but is not inside the ${guard} guard (#923)`;
     }
     return null;
 }
 
 for (const f of [
-    guarded('!hasRowNames', 'Number the Rows'),
+    guarded('!hasRowNames', 'Number the Rows —'),
     guarded('hasRowNames', 'Move Row Names into Table'),
 ]) {
     if (f) failures.push(f);

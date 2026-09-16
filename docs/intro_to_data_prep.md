@@ -128,7 +128,9 @@ Two commands, both on the right-click menu of any column header:
 >
 > **Build one from what you have.** **Combine Columns** will join a site and a date into something unique, and **Split Column** will pull an identifier out of a code that has one buried in it. Prefer this when the pieces are there — a label that says *what* a point is beats one that says only *which*.
 >
-> **Number the rows.** Right-click any column header and choose **Number the Rows**. Every row gets `1`, `2`, `3` …, which is unique by construction, so it satisfies the rule immediately. The numbers are not a column — they go straight into the row-name gutter — so nothing new enters the analysis. Use this when the file genuinely has nothing to build from.
+> **Number the rows.** Right-click any column header and choose **Number the Rows — adds Sample_ID, saved as the first column**. Every row gets `1`, `2`, `3` …, unique by construction, so the rule is satisfied immediately.
+>
+> One click is the whole step. Inside GoCSV the numbers are row names rather than a column, so nothing new enters the analysis and the column count does not change — and **when you save, they are written as the first column of the file**, which is where GoPCA reads row names from. There is no second step to "put them into the table"; saving does it. Use this when the file genuinely has nothing to build an identifier from.
 >
 > **Analyse without row names.** GoPCA numbers the points itself, from 1, matching the `#` gutter down the left of the GoCSV grid — so the fourth row of your file is `Sample 4` in a scores plot. Nothing is lost except the ability to identify a point by anything more meaningful than its position.
 
