@@ -164,3 +164,61 @@ func TestLightTailedColumnIsFlaggedToo(t *testing.T) {
 		t.Fatal("a uniform column is not flagged, so the heuristic no longer fails on light tails")
 	}
 }
+
+// A count the reader cannot resolve to columns is not actionable: a tester shown
+// "24 numeric columns are skewed" had no way to find out which 24 (#951).
+func TestDistributionIssueNamesItsColumns(t *testing.T) {
+	report := &DataQualityReport{ColumnAnalysis: []ColumnAnalysis{
+		skewedCol("Be"),
+		{Name: "Zn", Type: "numeric", Distribution: DistributionInfo{IsNormal: true}},
+		skewedCol("Cr"),
+		{Name: "Source", Type: "categorical", Distribution: DistributionInfo{IsNormal: false}},
+	}}
+
+	issue := findDistributionIssue(t, generateQualityIssues(report, nil, nil, nil))
+
+	if len(issue.Affected) == 0 {
+		t.Fatalf("distribution issue names no columns, so the count cannot be acted on: %q", issue.Description)
+	}
+	want := []string{"Be", "Cr"}
+	if len(issue.Affected) != len(want) {
+		t.Fatalf("Affected = %v, want %v", issue.Affected, want)
+	}
+	for i, name := range want {
+		if issue.Affected[i] != name {
+			t.Errorf("Affected[%d] = %q, want %q", i, issue.Affected[i], name)
+		}
+	}
+	// The named columns must be the ones counted, or the text and the list
+	// describe different sets.
+	if !strings.Contains(issue.Description, "2 numeric columns") {
+		t.Errorf("description counts a different set than it names: %q vs %v", issue.Description, issue.Affected)
+	}
+}
+
+// The impact line answers "what do I do with this", which was the question the
+// bare count provoked. It must not send the reader to the Recommendations tab:
+// that entry fires on |skewness| > 1.0 while this issue fires on !IsNormal, so
+// it can be absent when this is present.
+func TestDistributionIssueStatesItsOwnAction(t *testing.T) {
+	report := &DataQualityReport{ColumnAnalysis: []ColumnAnalysis{skewedCol("Be")}}
+	issue := findDistributionIssue(t, generateQualityIssues(report, nil, nil, nil))
+
+	if !strings.Contains(issue.Impact, "no action on its own") {
+		t.Errorf("impact does not say whether action is needed: %q", issue.Impact)
+	}
+	if strings.Contains(issue.Impact, "Recommendations") {
+		t.Errorf("impact points at a tab whose matching entry may not exist: %q", issue.Impact)
+	}
+}
+
+func findDistributionIssue(t *testing.T, issues []QualityIssue) QualityIssue {
+	t.Helper()
+	for _, issue := range issues {
+		if issue.Category == "distribution" {
+			return issue
+		}
+	}
+	t.Fatal("no distribution issue was generated")
+	return QualityIssue{}
+}
