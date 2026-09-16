@@ -269,7 +269,16 @@ return 'text';
                     // Offered only when the file has none. The command refuses when
                     // row names already exist, so gating this on hasRowNames would
                     // hide it in exactly the situation it is for (#923).
-                    label: 'Number the Rows',
+                    //
+                    // The label says what the user ends up with rather than what
+                    // the command does internally. "Number the Rows" describes a
+                    // mechanism, and a tester who already had 1, 2, 3 in the
+                    // position gutter read it as doing nothing -- then looked for
+                    // a second command to get the identifiers into the file,
+                    // which is not needed because saving writes them as column 1
+                    // (#949). The em-dash form matches the explanatory label on
+                    // Use as Row Names directly above.
+                    label: 'Number the Rows — adds Sample_ID, saved as the first column',
                     action: async () => {
                         if (fileData) {
                             try {

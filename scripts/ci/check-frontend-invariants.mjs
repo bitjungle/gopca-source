@@ -115,15 +115,27 @@ function guarded(guard, label) {
     if (end === -1) {
         return `the ${guard} guard is unterminated`;
     }
-    const at = src.indexOf(`'${label}'`, start);
+    // Prefix, not the whole label: these carry an explanatory tail after an
+    // em-dash, and the guard is about which branch the entry sits in.
+    //
+    // Existence is checked across the whole file before position is, because the
+    // two cases need different fixes: a renamed entry needs this check updating,
+    // a moved one needs the code putting back. Searching only from the guard
+    // conflated them in one direction -- an entry moved to anywhere *earlier*
+    // than the guard was reported as not existing at all.
+    if (src.indexOf(`'${label}`) === -1) {
+        return `no entry labelled "${label}..." anywhere -- if it was renamed, ` +
+               `update this check; if it was removed, ${guard} no longer guards it`;
+    }
+    const at = src.indexOf(`'${label}`, start);
     if (at === -1 || at > end) {
-        return `"${label}" is not inside the ${guard} guard (#923)`;
+        return `"${label}..." exists but is not inside the ${guard} guard (#923)`;
     }
     return null;
 }
 
 for (const f of [
-    guarded('!hasRowNames', 'Number the Rows'),
+    guarded('!hasRowNames', 'Number the Rows —'),
     guarded('hasRowNames', 'Move Row Names into Table'),
 ]) {
     if (f) failures.push(f);
