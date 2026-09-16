@@ -80,6 +80,20 @@ export interface PCAResult {
   variable_correlations?: number[][];
   explained_variance: number[];
   explained_variance_ratio: number[];
+  /**
+   * The eigenvalue array, which may reach past the components kept.
+   *
+   * Lets the Kaiser criterion reach a verdict rather than a floor: counting
+   * over the retained components alone cannot tell "the 10th is the last
+   * above 1" from "the 10th is where we stopped looking" (#956).
+   *
+   * Only SVD fills it with actual eigenvalues throughout. NIPALS pads the tail
+   * with the residual variance spread evenly across the remaining components,
+   * and kernel PCA's eigenvalues belong to the kernel matrix rather than to the
+   * variables, so neither tail can be thresholded at 1. Consumers must check
+   * `method` before using anything past `components_computed`.
+   */
+  all_eigenvalues?: number[];
   cumulative_variance: number[];
   component_labels: string[];
   variable_labels?: string[];

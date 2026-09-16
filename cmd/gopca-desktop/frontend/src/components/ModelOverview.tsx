@@ -79,7 +79,9 @@ export const ModelOverview: React.FC<ModelOverviewProps> = ({ pcaResult, selecte
           selectedPC: selectedPC,
           standardScale: standardScale,
           robustScale: robustScale,
-          originalData: originalData || []
+          originalData: originalData || [],
+          allEigenvalues: pcaResult.all_eigenvalues,
+          method: pcaResult.method
         });
 
         if (response.success) {
