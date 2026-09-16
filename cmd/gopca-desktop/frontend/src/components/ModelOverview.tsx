@@ -40,6 +40,7 @@ interface ModelMetrics {
   recommendedComponents: number;
   varianceCaptured: number;
   kaiserComponents: number;
+  kaiserCensored: boolean;
   scaleRatio: number;
   scaleWarning?: string;
 }
@@ -88,6 +89,7 @@ export const ModelOverview: React.FC<ModelOverviewProps> = ({ pcaResult, selecte
             recommendedComponents: response.recommendedComponents,
             varianceCaptured: response.varianceCaptured,
             kaiserComponents: response.kaiserComponents,
+            kaiserCensored: response.kaiserCensored,
             scaleRatio: response.scaleRatio,
             scaleWarning: response.scaleWarning
           });
@@ -247,6 +249,14 @@ return '';
 
     const varianceText = `${metrics.varianceCaptured.toFixed(1)}% variance`;
 
+    // A censored count is not a verdict. Every computed eigenvalue exceeded 1,
+    // so the criterion was still selecting when the components ran out -- and
+    // because recommendedComponents falls back to that same count when the
+    // variance target is never met, the two matched and the panel announced
+    // agreement with a recommendation Kaiser was arguing against (#956).
+    if (standardScale && metrics.kaiserCensored) {
+      return `${varianceText} (Kaiser: ${metrics.kaiserComponents}+, try more components)`;
+    }
     // If standardized and Kaiser is available and matches, show it
     if (standardScale && metrics.kaiserComponents > 0 && metrics.kaiserComponents === metrics.recommendedComponents) {
       return `${varianceText} (Kaiser agrees)`;

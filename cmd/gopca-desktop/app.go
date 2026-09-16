@@ -1279,10 +1279,16 @@ type ModelMetricsResponse struct {
 	RecommendedComponents   int     `json:"recommendedComponents"`
 	VarianceCaptured        float64 `json:"varianceCaptured"`
 	KaiserComponents        int     `json:"kaiserComponents"` // -1 if not applicable
-	ScaleRatio              float64 `json:"scaleRatio"`
-	ScaleWarning            string  `json:"scaleWarning,omitempty"`
-	Success                 bool    `json:"success"`
-	Error                   string  `json:"error,omitempty"`
+	// KaiserCensored reports that the criterion had not finished selecting when
+	// the computed components ran out: every eigenvalue available to it exceeded
+	// 1, so KaiserComponents is a floor set by the model size rather than a
+	// verdict. Treating the two alike let the UI announce agreement with a
+	// recommendation the criterion was in fact arguing against (#956).
+	KaiserCensored bool    `json:"kaiserCensored"`
+	ScaleRatio     float64 `json:"scaleRatio"`
+	ScaleWarning   string  `json:"scaleWarning,omitempty"`
+	Success        bool    `json:"success"`
+	Error          string  `json:"error,omitempty"`
 }
 
 // CalculateModelMetrics calculates key model metrics for the Model Overview
@@ -1345,10 +1351,15 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 
 	// Calculate Kaiser criterion only if data is standardized
 	kaiserComponents := -1 // -1 indicates not applicable
+	kaiserCensored := false
 	if request.StandardScale {
 		kaiserComponents = 0
 		numVariables := len(request.Loadings)
 
+		// The criterion is only ever shown the components that were computed. If
+		// it reaches the end of them still counting, it has not chosen a number
+		// -- it has run out of candidates, and the count is a floor.
+		kaiserCensored = len(request.ExplainedVariance) > 0
 		for _, variance := range request.ExplainedVariance {
 			// Convert percentage to eigenvalue approximation
 			// For standardized data, total variance = number of variables
@@ -1356,6 +1367,7 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 			if eigenvalue > 1.0 {
 				kaiserComponents++
 			} else {
+				kaiserCensored = false
 				break // Eigenvalues are ordered, so we can stop here
 			}
 		}
@@ -1436,6 +1448,7 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 		RecommendedComponents:   recommendedComponents,
 		VarianceCaptured:        varianceCaptured,
 		KaiserComponents:        kaiserComponents,
+		KaiserCensored:          kaiserCensored,
 		ScaleRatio:              scaleRatio,
 		ScaleWarning:            scaleWarning,
 		Success:                 true,
