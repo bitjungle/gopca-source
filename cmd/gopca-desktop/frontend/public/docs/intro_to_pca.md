@@ -405,6 +405,17 @@ Not all principal components are created equal. The **Scree Plot** helps you dec
 
 3. **Kaiser Criterion:** For standardized data, keep PCs with eigenvalues > 1 (explaining more variance than a single original variable).
 
+**When the strategies disagree.** They very often do, and that is normal rather than a sign that something has gone wrong. On a dataset of 1057 aluminium alloys measured on 24 elements, the three answers come out as 6, 10 and 14 components depending on which rule you apply. None of them is the "right" one; they are asking slightly different questions.
+
+A few things worth knowing when you have to choose:
+
+- **The Kaiser criterion tends to keep too many.** It is a convenient rule of thumb, not a test, and with many variables it will happily retain components that are indistinguishable from noise. Treat its answer as an upper bound rather than a target.
+- **A flat scree plot is itself a result.** If the bars decline gently with no clear elbow, your data genuinely has no small set of dominant patterns. That is worth reporting, not something to fix by keeping more components.
+- **Interpretability is a legitimate tiebreaker.** A component you can explain in terms of your variables is more useful than one that merely clears a numerical threshold. Look at the loadings before you decide.
+- **You can keep more for computation than for interpretation.** Retaining extra components costs little if you are reconstructing data or feeding a later model, but every component you try to *interpret* is one you have to justify.
+
+When the rules disagree, the honest report says so: "six components by the scree elbow, ten by the Kaiser criterion; we interpret six and note the rest."
+
 ---
 
 ## 6. The Geometry of PCA: Visualizing Data in Fewer Dimensions

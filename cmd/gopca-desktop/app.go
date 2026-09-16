@@ -1270,6 +1270,10 @@ type ModelMetricsRequest struct {
 	StandardScale     bool        `json:"standardScale"`
 	RobustScale       bool        `json:"robustScale"`
 	OriginalData      [][]float64 `json:"originalData,omitempty"` // For scale detection
+	// AllEigenvalues is the complete spectrum, not just the components kept.
+	// With it the Kaiser criterion sees every eigenvalue and returns a verdict;
+	// without it the count can only ever be a floor. Absent for kernel PCA.
+	AllEigenvalues []float64 `json:"allEigenvalues,omitempty"`
 }
 
 // ModelMetricsResponse contains calculated model metrics
@@ -1356,32 +1360,45 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 		kaiserComponents = 0
 		numVariables := len(request.Loadings)
 
-		// The criterion is only ever shown the components that were computed. If
-		// it reaches the end of them still counting, it has not chosen a number
-		// -- it has run out of candidates, and the count is a floor.
-		//
-		// Unless there was nothing more to compute. A decomposition yields at
-		// most min(variables, samples-1) components, and when every one of those
-		// exists the criterion has seen the whole spectrum: its count is then a
-		// verdict, and telling the user to ask for more would send them after
-		// components that do not exist. That case is not hypothetical -- it is
-		// ordinary for spectroscopic data, where variables outnumber samples and
-		// the entire spectrum can sit above 1.
-		maxComponents := numVariables
-		if rows := len(request.OriginalData); rows > 1 && rows-1 < maxComponents {
-			maxComponents = rows - 1
-		}
-		kaiserCensored = len(request.ExplainedVariance) > 0 &&
-			len(request.ExplainedVariance) < maxComponents
-		for _, variance := range request.ExplainedVariance {
-			// Convert percentage to eigenvalue approximation
-			// For standardized data, total variance = number of variables
-			eigenvalue := (variance / 100.0) * float64(numVariables)
-			if eigenvalue > 1.0 {
+		switch {
+		case len(request.AllEigenvalues) > 0:
+			// The whole spectrum is available, so the criterion can finish. It
+			// is never censored on this path: an eigenvalue at or below 1 either
+			// appears, or genuinely does not exist.
+			for _, eigenvalue := range request.AllEigenvalues {
+				if eigenvalue <= 1.0 {
+					break // Eigenvalues are ordered, so we can stop here
+				}
 				kaiserComponents++
-			} else {
-				kaiserCensored = false
-				break // Eigenvalues are ordered, so we can stop here
+			}
+		default:
+			// Only the retained components are known. If the criterion reaches
+			// the end of them still counting, it has not chosen a number -- it
+			// has run out of candidates, and the count is a floor.
+			//
+			// Unless there was nothing more to compute. A decomposition yields
+			// at most min(variables, samples-1) components, and when every one
+			// of those exists the criterion has seen everything there is: its
+			// count is then a verdict, and telling the user to ask for more
+			// would send them after components that do not exist. That case is
+			// ordinary for spectroscopic data, where variables outnumber samples
+			// and the entire spectrum can sit above 1.
+			maxComponents := numVariables
+			if rows := len(request.OriginalData); rows > 1 && rows-1 < maxComponents {
+				maxComponents = rows - 1
+			}
+			kaiserCensored = len(request.ExplainedVariance) > 0 &&
+				len(request.ExplainedVariance) < maxComponents
+			for _, variance := range request.ExplainedVariance {
+				// Convert percentage to eigenvalue approximation
+				// For standardized data, total variance = number of variables
+				eigenvalue := (variance / 100.0) * float64(numVariables)
+				if eigenvalue > 1.0 {
+					kaiserComponents++
+				} else {
+					kaiserCensored = false
+					break // Eigenvalues are ordered, so we can stop here
+				}
 			}
 		}
 

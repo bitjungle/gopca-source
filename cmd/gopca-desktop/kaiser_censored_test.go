@@ -118,3 +118,50 @@ func TestKaiserIsCensoredWhenComponentsRemainUncomputed(t *testing.T) {
 		t.Errorf("KaiserCensored = false, but only 5 of 24 possible components were computed")
 	}
 }
+
+// With the full spectrum the criterion reaches a verdict, and the case that
+// prompted this is the one that was previously impossible to get right:
+// al_alloy_data.csv standardized with 10 components, where the 10th eigenvalue
+// is 1.023 and the 11th is 0.994. Ten is Kaiser's answer, not a floor.
+func TestKaiserUsesTheFullSpectrumWhenGiven(t *testing.T) {
+	ev := []float64{10.17, 8.62, 8.31, 7.64, 6.77, 5.56, 5.08, 4.71, 4.42, 4.26}
+	req := metricsFor(24, ev)
+	req.AllEigenvalues = []float64{
+		2.440, 2.069, 1.994, 1.834, 1.625, 1.333, 1.218, 1.131, 1.060, 1.023,
+		0.994, 0.986, 0.937, 0.893, 0.850, 0.800, 0.760, 0.700, 0.650, 0.600,
+		0.500, 0.400, 0.300, 0.200,
+	}
+
+	got := (&App{}).CalculateModelMetrics(req)
+
+	if got.KaiserCensored {
+		t.Errorf("KaiserCensored = true although the whole spectrum was supplied")
+	}
+	if got.KaiserComponents != 10 {
+		t.Errorf("KaiserComponents = %d, want 10 (the 11th eigenvalue is 0.994)", got.KaiserComponents)
+	}
+}
+
+// The spectrum overrides the retained components, which is the whole point:
+// counting over the retained ones alone would stop at 5 and call it censored.
+func TestFullSpectrumBeatsTheRetainedComponents(t *testing.T) {
+	req := metricsFor(24, []float64{10.17, 8.62, 8.31, 7.64, 6.77})
+	req.AllEigenvalues = []float64{2.440, 2.069, 1.994, 1.834, 1.625, 1.333, 0.900, 0.500}
+
+	got := (&App{}).CalculateModelMetrics(req)
+
+	if got.KaiserCensored {
+		t.Errorf("KaiserCensored = true although the whole spectrum was supplied")
+	}
+	if got.KaiserComponents != 6 {
+		t.Errorf("KaiserComponents = %d, want 6 -- counting the 5 retained components would give 5", got.KaiserComponents)
+	}
+}
+
+// Kernel PCA supplies no spectrum, so the censoring fallback must still work.
+func TestCensoringStillAppliesWithoutASpectrum(t *testing.T) {
+	req := metricsFor(24, []float64{10.17, 8.62, 8.31, 7.64, 6.77})
+	if got := (&App{}).CalculateModelMetrics(req); !got.KaiserCensored {
+		t.Errorf("KaiserCensored = false with no spectrum and 5 of 24 components computed")
+	}
+}

@@ -80,6 +80,15 @@ export interface PCAResult {
   variable_correlations?: number[][];
   explained_variance: number[];
   explained_variance_ratio: number[];
+  /**
+   * The complete eigenvalue spectrum, not only the components kept.
+   *
+   * Lets the Kaiser criterion reach a verdict rather than a floor: counting
+   * over the retained components alone cannot tell "the 10th is the last
+   * above 1" from "the 10th is where we stopped looking" (#956).
+   * Absent for kernel PCA.
+   */
+  all_eigenvalues?: number[];
   cumulative_variance: number[];
   component_labels: string[];
   variable_labels?: string[];
