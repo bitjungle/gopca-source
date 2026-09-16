@@ -117,15 +117,18 @@ function guarded(guard, label) {
     }
     // Prefix, not the whole label: these carry an explanatory tail after an
     // em-dash, and the guard is about which branch the entry sits in.
-    const at = src.indexOf(`'${label}`, start);
-    if (at === -1) {
-        // Distinguished from the wrong-branch case because the fix differs: a
-        // renamed entry needs this check updating, a moved one needs the code
-        // putting back.
+    //
+    // Existence is checked across the whole file before position is, because the
+    // two cases need different fixes: a renamed entry needs this check updating,
+    // a moved one needs the code putting back. Searching only from the guard
+    // conflated them in one direction -- an entry moved to anywhere *earlier*
+    // than the guard was reported as not existing at all.
+    if (src.indexOf(`'${label}`) === -1) {
         return `no entry labelled "${label}..." anywhere -- if it was renamed, ` +
                `update this check; if it was removed, ${guard} no longer guards it`;
     }
-    if (at > end) {
+    const at = src.indexOf(`'${label}`, start);
+    if (at === -1 || at > end) {
         return `"${label}..." exists but is not inside the ${guard} guard (#923)`;
     }
     return null;
