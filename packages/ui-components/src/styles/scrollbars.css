@@ -24,6 +24,13 @@
  * The 3px transparent border with background-clip: content-box keeps the thumb
  * visually around 6px inside a 12px track, which reads closer to the platform
  * overlay bar than a solid 12px block would.
+ *
+ * Track colours are deliberately a step away from the panel colours rather than
+ * matching them. The first attempt used gray-100 and gray-800, which are the
+ * panel backgrounds themselves: the track then disappeared and only the thumb
+ * was drawn, so a horizontal bar read as a stray divider line rather than a
+ * control. Recessing the track one step makes it a visible channel, which is
+ * what tells you a scrollbar is there before you touch it.
  */
 
 ::-webkit-scrollbar {
@@ -34,7 +41,7 @@
 
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-corner {
-    background-color: #f3f4f6;
+    background-color: #e5e7eb; /* gray-200, against white / gray-50 panels */
 }
 
 ::-webkit-scrollbar-thumb {
@@ -51,7 +58,7 @@
 /* ThemeContext puts .dark on documentElement, so these reach every descendant. */
 .dark ::-webkit-scrollbar-track,
 .dark ::-webkit-scrollbar-corner {
-    background-color: #1f2937;
+    background-color: #111827; /* gray-900, against gray-800 panels */
 }
 
 .dark ::-webkit-scrollbar-thumb {
