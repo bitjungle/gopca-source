@@ -1,0 +1,63 @@
+/*
+ * Permanent scrollbars, for both applications.
+ *
+ * macOS draws scrollbars as overlays: the track is transparent and the thumb
+ * appears only while scrolling. A GoCSV grid of 1057 rows and 29 columns
+ * therefore looked like a finished table, with nothing on screen to say the
+ * remaining 1044 rows and 24 columns were reachable (#961). GoPCA's data
+ * preview has the same shape -- an overflow-auto container in DataTable --
+ * and the same problem.
+ *
+ * These rules are deliberately global rather than scoped to a component, which
+ * is unusual for this package and worth explaining.
+ *
+ * ag-grid chooses between native scrollbars and its own fake ones by measuring:
+ * it appends a 100x100 overflow:scroll probe to document.body and sets
+ * `invisibleScrollbar = width === 0`. Rules scoped to the grid never reach that
+ * probe, so it still measures zero, still selects the fake scrollbar, and still
+ * runs that scrollbar's hideTimeout -- bars that appear while scrolling and
+ * then vanish. Only a document-wide rule makes the probe measure 12.
+ *
+ * (ag-grid's `scrollbarWidth` option does not help. isInvisibleScrollbar()
+ * calls the probe directly and never consults it.)
+ *
+ * The 3px transparent border with background-clip: content-box keeps the thumb
+ * visually around 6px inside a 12px track, which reads closer to the platform
+ * overlay bar than a solid 12px block would.
+ */
+
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background-color: #f3f4f6;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    background-color: #9ca3af;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #6b7280;
+}
+
+/* ThemeContext puts .dark on documentElement, so these reach every descendant. */
+.dark ::-webkit-scrollbar-track,
+.dark ::-webkit-scrollbar-corner {
+    background-color: #1f2937;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background-color: #6b7280;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
+}

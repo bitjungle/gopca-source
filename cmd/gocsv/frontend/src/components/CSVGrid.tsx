@@ -814,6 +814,21 @@ return;
         paginationPageSize: 1000,
         paginationPageSizeSelector: [100, 500, 1000, 5000],
 
+        // Reserve the scrollbar gutter even when the content fits, so adding
+        // rows or columns does not reflow the grid the moment it starts to
+        // overflow. A short file shows an empty track, which also distinguishes
+        // "you are seeing everything" from "there is more".
+        //
+        // These do NOT make the scrollbars visible, which is worth stating
+        // because it was the first thing tried for #961 and changed nothing:
+        // they decide whether the grid suppresses the scrollbar element, not
+        // whether the OS paints it. With 1057 rows the content already
+        // overflowed, so the element existed either way and macOS drew a
+        // transparent overlay over it. Visibility comes from the global rules
+        // in packages/ui-components/src/styles/scrollbars.css.
+        alwaysShowVerticalScroll: true,
+        alwaysShowHorizontalScroll: true,
+
         // Other options
         enableCellTextSelection: true,
         ensureDomOrder: true
