@@ -1,0 +1,80 @@
+/*
+ * Permanent scrollbars, for both applications.
+ *
+ * macOS draws scrollbars as overlays: the track is transparent and the thumb
+ * appears only while scrolling. A GoCSV grid of 1057 rows and 29 columns
+ * therefore looked like a finished table, with nothing on screen to say the
+ * remaining 1044 rows and 24 columns were reachable (#961). GoPCA's data
+ * preview has the same shape -- an overflow-auto container in DataTable --
+ * and the same problem.
+ *
+ * These rules are deliberately global rather than scoped to a component, which
+ * is unusual for this package and worth explaining.
+ *
+ * ag-grid chooses between native scrollbars and its own fake ones by measuring:
+ * it appends a 100x100 overflow:scroll probe to document.body and sets
+ * `invisibleScrollbar = width === 0`. Rules scoped to the grid never reach that
+ * probe, so it still measures zero, still selects the fake scrollbar, and still
+ * runs that scrollbar's hideTimeout -- bars that appear while scrolling and
+ * then vanish. Only a document-wide rule makes the probe measure 12.
+ *
+ * (ag-grid's `scrollbarWidth` option does not help. isInvisibleScrollbar()
+ * calls the probe directly and never consults it.)
+ *
+ * The 3px transparent border with background-clip: content-box keeps the thumb
+ * visually around 6px inside a 12px track, which reads closer to the platform
+ * overlay bar than a solid 12px block would.
+ *
+ * Track colours are deliberately a step away from the panel colours rather than
+ * matching them. The first attempt used gray-100 and gray-800, which are the
+ * panel backgrounds themselves: the track then disappeared and only the thumb
+ * was drawn, so a horizontal bar read as a stray divider line rather than a
+ * control. Recessing the track one step makes it a visible channel, which is
+ * what tells you a scrollbar is there before you touch it.
+ */
+
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background-color: #e5e7eb; /* gray-200, against white / gray-50 panels */
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    background-color: #9ca3af;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #6b7280;
+}
+
+/*
+ * ThemeContext puts .dark on documentElement. Each rule is written twice, with
+ * and without the space, because the two are different selectors: `.dark x`
+ * matches scrollbars on descendants of <html>, while `.dark::x` matches the
+ * scrollbar of <html> itself. Only the descendant form was written at first,
+ * which would have left the page scrollbar with the light palette in dark mode.
+ */
+.dark::-webkit-scrollbar-track,
+.dark::-webkit-scrollbar-corner,
+.dark ::-webkit-scrollbar-track,
+.dark ::-webkit-scrollbar-corner {
+    background-color: #111827; /* gray-900, against gray-800 panels */
+}
+
+.dark::-webkit-scrollbar-thumb,
+.dark ::-webkit-scrollbar-thumb {
+    background-color: #6b7280;
+}
+
+.dark::-webkit-scrollbar-thumb:hover,
+.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
+}

@@ -1,3 +1,7 @@
+// Global styles. Unusual for a component package -- see the file for why the
+// scrollbar rules cannot be scoped to a component.
+import './styles/scrollbars.css';
+
 // GoPCA Suite
 //
 // Copyright © 2025-2026 Rune Mathisen <devel@bitjungle.com>
