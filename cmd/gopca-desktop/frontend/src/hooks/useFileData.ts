@@ -25,6 +25,7 @@ import { useState, useCallback } from 'react';
 import { LoadDatasetFile, SelectCSVFile, ReloadCSVFile } from '../../wailsjs/go/main/App';
 import { FileData } from '../types';
 import { logger } from '../utils/logger';
+import { describeError } from '../utils/describeError';
 
 export interface FileDataResult {
     fileData: FileData | null;
@@ -76,7 +77,7 @@ export function useFileData(): FileDataResult {
             bumpDatasetId();
             return { data: result, defaultGroupColumn };
         } catch (err) {
-            setFileError(`Failed to load ${filename}: ${err}`);
+            setFileError(`Failed to load ${filename}: ${describeError(err)}`);
             return null;
         } finally {
             setLoading(false);
@@ -109,7 +110,7 @@ export function useFileData(): FileDataResult {
             return data;
         } catch (err) {
             logger.error('File selection failed:', err);
-            setFileError(`Failed to load file: ${err}`);
+            setFileError(`Failed to load file: ${describeError(err)}`);
             setFileData(null);
             return null;
         } finally {
@@ -151,7 +152,7 @@ export function useFileData(): FileDataResult {
                 return data;
             } catch (err) {
                 logger.error('Re-reading the file failed:', err);
-                setFileError(`Failed to re-read file: ${err}`);
+                setFileError(`Failed to re-read file: ${describeError(err)}`);
                 return null;
             } finally {
                 setLoading(false);

@@ -165,16 +165,22 @@ func (r *Reader) parseAsNumeric(records [][]string, nullMap map[string]bool) (*D
 		startCol := 0
 		if r.opts.HasRowNames {
 			startCol = 1
-			// Keep the name of the column being consumed. It was discarded
-			// here, which left nothing downstream able to say which column
-			// became row names -- and the first column is taken whatever it
-			// holds, so a file with no identifier column silently loses its
-			// first variable and nothing could report it (#969).
-			data.RowNamesHeader = headerRow[0]
 		}
 
 		if startCol >= len(headerRow) {
 			return nil, fmt.Errorf("no data columns found")
+		}
+
+		// Keep the name of the column being consumed. It was discarded here,
+		// which left nothing downstream able to say which column became row
+		// names -- and the first column is taken whatever it holds, so a file
+		// with no identifier column silently loses its first variable and
+		// nothing could report it (#969).
+		//
+		// After the bounds check, not before: the check above is what stands
+		// between this index and a header row too short to have a column 0.
+		if r.opts.HasRowNames {
+			data.RowNamesHeader = headerRow[0]
 		}
 
 		data.Headers = make([]string, len(headerRow)-startCol)
@@ -310,16 +316,21 @@ func (r *Reader) parseAsString(records [][]string, nullMap map[string]bool) (*Da
 		headerRow := records[currentRow]
 		currentRow++
 
-		// Extract column names. The row-name column's own header is kept for
-		// the same reason as in readNumeric above (#969).
+		// Extract column names
 		startCol := 0
 		if r.opts.HasRowNames {
 			startCol = 1
-			data.RowNamesHeader = headerRow[0]
 		}
 
 		if startCol >= len(headerRow) {
 			return nil, fmt.Errorf("no data columns found")
+		}
+
+		// The row-name column's own header is kept for the same reason as in
+		// parseAsNumeric above, and after the bounds check for the same reason
+		// (#969).
+		if r.opts.HasRowNames {
+			data.RowNamesHeader = headerRow[0]
 		}
 
 		data.Headers = make([]string, len(headerRow)-startCol)
