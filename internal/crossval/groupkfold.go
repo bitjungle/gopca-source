@@ -136,6 +136,51 @@ func (g *GroupKFold) Split(indices []int) ([]Fold, error) {
 	return folds, nil
 }
 
+// TooManyFolds reports a fold count larger than the number of units available to
+// split. It states the constraint and deliberately proposes no remedy.
+//
+// Writing the way out here would mean picking one interface's vocabulary and
+// being wrong in every other. Leave-one-out is spelled three ways in this
+// project: the engine takes K = 0, the CLI refuses 0 and wants --cv loo, and
+// GoPCA Desktop offers a menu entry reading "Leave one out" whose value happens
+// to be 0. The message used to advise "use 0", which the CLI rejects outright
+// and which names nothing a desktop user can see (#973).
+//
+// The numbers are exported so each caller can phrase the remedy itself.
+type TooManyFolds struct {
+	// Requested is the fold count that was asked for.
+	Requested int
+	// Available is the largest fold count that can be honoured: the number of
+	// groups, or the number of rows when no grouping column was supplied.
+	Available int
+	// Grouped reports whether an explicit grouping column was in use. It decides
+	// whether a fold is made of groups or of rows, and therefore whether the
+	// distinction between the two is worth explaining at all.
+	Grouped bool
+}
+
+// Unit names what the folds are made of, for callers assembling their own advice.
+func (e *TooManyFolds) Unit() string {
+	if e.Grouped {
+		return "groups"
+	}
+	return "rows"
+}
+
+func (e *TooManyFolds) Error() string {
+	if !e.Grouped {
+		// Ungrouped, "cannot make 300 folds from 240 rows" is the whole of it.
+		// The clause below used to be appended here too, where it read "the
+		// effective sample size is the number of rows, not the number of rows"
+		// -- a tautology, because the unit was substituted into both halves of a
+		// sentence that only says something when the two differ (#973).
+		return fmt.Sprintf("cannot make %d folds from %d rows", e.Requested, e.Available)
+	}
+	return fmt.Sprintf("cannot make %d folds from %d groups: the effective sample "+
+		"size is the number of groups, not the number of rows",
+		e.Requested, e.Available)
+}
+
 // resolveK turns the requested fold count into a concrete one, refusing the
 // requests that cannot be honoured rather than clamping them.
 //
@@ -158,14 +203,11 @@ func (g *GroupKFold) resolveK(nGroups int) (int, error) {
 			"a single fold leaves no data to train on")
 	}
 	if g.K > nGroups {
-		unit := "rows"
-		if g.Groups != nil {
-			unit = "groups"
+		return 0, &TooManyFolds{
+			Requested: g.K,
+			Available: nGroups,
+			Grouped:   g.Groups != nil,
 		}
-		return 0, fmt.Errorf("cannot make %d folds from %d %s: "+
-			"the effective sample size is the number of %s, not the number of rows. "+
-			"Use at most %d folds, or 0 for leave-one-out",
-			g.K, nGroups, unit, unit, nGroups)
 	}
 	return g.K, nil
 }

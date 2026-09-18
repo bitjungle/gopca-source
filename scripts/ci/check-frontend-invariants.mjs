@@ -230,6 +230,62 @@ if (!/isLabelColumn\s*\([^)]*categoricalColumns/.test(grid)) {
         `values (#950)`);
 }
 
+// --- 4. the Folds menu and the Go copy of it agree ----------------------------
+//
+// GoPCA Desktop's regression panel offers a fixed list of fold counts, and
+// cmd/gopca-desktop/pcr.go keeps a copy so it can advise a setting the menu can
+// actually express when a grouped cross-validation asks for too many folds.
+//
+// That copy is hand-maintained, which is the hazard #973 was about: one concept
+// spelled in two places, drifting until an error message recommends something no
+// interface accepts. Adding an option to the menu without adding it here would
+// make the advice recommend fewer folds than are available; removing one would
+// make it recommend a setting nobody can select.
+
+const REGRESSION_CONFIG = 'cmd/gopca-desktop/frontend/src/components/sections/RegressionConfigSection.tsx';
+const PCR_GO = 'cmd/gopca-desktop/pcr.go';
+
+const regressionConfig = readFileSync(REGRESSION_CONFIG, 'utf8');
+const pcrGo = readFileSync(PCR_GO, 'utf8');
+
+// The <select> bound to cvFolds, isolated so that options of other menus on the
+// same panel cannot be mistaken for fold counts.
+const foldsSelect = /updateConfig\('cvFolds'[\s\S]*?<\/select>/.exec(regressionConfig);
+if (!foldsSelect) {
+    failures.push(
+        `${REGRESSION_CONFIG} has no <select> bound to cvFolds, so the Folds menu ` +
+        `cannot be compared with the Go copy in ${PCR_GO} (#973)`);
+} else {
+    // value={0} is "Leave one out" rather than a count, so it is not in the Go list.
+    const menuCounts = [...foldsSelect[0].matchAll(/<option value=\{(\d+)\}>/g)]
+        .map(m => Number(m[1]))
+        .filter(n => n > 0);
+
+    const goList = /var desktopFoldOptions = \[\]int\{([^}]*)\}/.exec(pcrGo);
+    if (!goList) {
+        failures.push(
+            `${PCR_GO} no longer declares desktopFoldOptions, so the fold advice ` +
+            `cannot name a setting the menu offers (#973)`);
+    } else {
+        const goCounts = goList[1].split(',')
+            .map(part => part.trim())
+            .filter(part => part.length > 0)
+            .map(Number);
+
+        if (menuCounts.length === 0) {
+            failures.push(`${REGRESSION_CONFIG} lists no numeric fold options`);
+        }
+        const same = menuCounts.length === goCounts.length &&
+            menuCounts.every((n, i) => n === goCounts[i]);
+        if (!same) {
+            failures.push(
+                `the Folds menu offers [${menuCounts}] but ${PCR_GO} declares ` +
+                `desktopFoldOptions = [${goCounts}]: the fold advice would name a ` +
+                `setting the menu cannot select, or miss one it can (#973)`);
+        }
+    }
+}
+
 if (failures.length > 0) {
     console.error('\nFrontend invariant checks FAILED:\n');
     for (const f of failures) console.error(`  - ${f}`);
@@ -238,4 +294,5 @@ if (failures.length > 0) {
 }
 
 console.log(`Frontend invariants hold: ${labels.length} menu entries all with icons, ` +
-            `one sample-label helper, and a grid that honours label columns.`);
+            `one sample-label helper, a grid that honours label columns, and a Folds ` +
+            `menu matching its Go copy.`);

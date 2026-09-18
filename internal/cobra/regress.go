@@ -24,6 +24,7 @@
 package cobra
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -32,6 +33,7 @@ import (
 	"strings"
 
 	"github.com/bitjungle/gopca/internal/core"
+	"github.com/bitjungle/gopca/internal/crossval"
 	pkgcsv "github.com/bitjungle/gopca/pkg/csv"
 	"github.com/bitjungle/gopca/pkg/types"
 	"github.com/spf13/cobra"
@@ -263,7 +265,7 @@ func runRegress(opts *RegressOptions, inputFile string) error {
 	engine := core.NewPCREngine()
 	result, err := engine.Fit(data.Matrix, y, config)
 	if err != nil {
-		return err
+		return withFoldAdvice(err)
 	}
 
 	// The fitted preprocessing parameters are needed to export a model a consumer
@@ -628,6 +630,25 @@ func buildPCRConfig(opts *RegressOptions, data *pkgcsv.Data,
 		CV:        cv,
 	}
 	return config, nil
+}
+
+// withFoldAdvice adds the way out of a too-many-folds error, in this command's
+// own vocabulary.
+//
+// The engine states the constraint and names no remedy on purpose: leave-one-out
+// is spelled K = 0 inside the engine, "Leave one out" in GoPCA Desktop's menu,
+// and --cv loo here -- with 0 refused outright by parseFolds below. A remedy
+// written in the engine had to be wrong for somebody, and it was: the message
+// advised "use 0", and a user who followed it hit "invalid --cv 0" (#973).
+//
+// Any other error passes through untouched.
+func withFoldAdvice(err error) error {
+	var tooMany *crossval.TooManyFolds
+	if !errors.As(err, &tooMany) {
+		return err
+	}
+	return fmt.Errorf("%w. Use --cv %d or fewer, or --cv loo for leave-one-out",
+		err, tooMany.Available)
 }
 
 // parseFolds accepts a fold count or the word "loo".

@@ -24,12 +24,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sort"
 	"strings"
 
 	"github.com/bitjungle/gopca/internal/core"
+	"github.com/bitjungle/gopca/internal/crossval"
 	"github.com/bitjungle/gopca/internal/utils"
 	"github.com/bitjungle/gopca/pkg/types"
 )
@@ -174,7 +176,7 @@ func (a *App) RunPCR(request PCRRequest) (response PCRResponse) {
 	engine := core.NewPCREngine()
 	result, err := engine.Fit(data, y, config)
 	if err != nil {
-		return PCRResponse{Success: false, Error: err.Error()}
+		return PCRResponse{Success: false, Error: foldAdvice(err)}
 	}
 
 	return PCRResponse{
@@ -540,4 +542,57 @@ func describePCRFit(result *types.PCRResult, missingInfo string) string {
 		}
 	}
 	return summary
+}
+
+// desktopFoldOptions are the numeric entries of the Folds menu, in the order
+// RegressionConfigSection.tsx lists them. The menu also carries "Leave one out",
+// which is not a count and so is not here.
+//
+// Mirroring the menu in Go is a hand-maintained copy, which is the hazard this
+// whole change is about. scripts/ci/check-frontend-invariants.mjs compares the
+// two and fails if they drift.
+var desktopFoldOptions = []int{5, 10, 20}
+
+// largestSelectableFolds returns the biggest menu entry that does not exceed
+// available, or 0 when every numeric entry is too large.
+//
+// Zero is a real answer rather than an error: with four groups, no number on the
+// menu can be honoured and "Leave one out" is the only way through.
+func largestSelectableFolds(available int) int {
+	largest := 0
+	for _, option := range desktopFoldOptions {
+		if option <= available && option > largest {
+			largest = option
+		}
+	}
+	return largest
+}
+
+// foldAdvice renders an engine error for this interface, adding the way out of a
+// too-many-folds error in the words the Folds menu actually uses.
+//
+// The engine names no remedy on purpose. Leave-one-out is K = 0 to the engine
+// and "--cv loo" to the CLI, which refuses 0 outright; here it is a menu entry
+// reading "Leave one out" whose value happens to be 0. The old engine message
+// advised "use 0", which named nothing a user of this window can see, since the
+// menu never shows the number (#973).
+//
+// The advice names a count the menu actually offers, not merely one the engine
+// would accept. A first version of this said "choose N folds or fewer" with N
+// taken straight from the engine; with three groups that recommends 3, and the
+// smallest number on the menu is 5. Telling a user to pick something the
+// interface cannot express is the same defect as #973 in a new place.
+//
+// Any other error is rendered unchanged.
+func foldAdvice(err error) string {
+	var tooMany *crossval.TooManyFolds
+	if !errors.As(err, &tooMany) {
+		return err.Error()
+	}
+	if selectable := largestSelectableFolds(tooMany.Available); selectable > 0 {
+		return fmt.Sprintf("%s. Choose %d folds, or \"Leave one out\".",
+			err.Error(), selectable)
+	}
+	return fmt.Sprintf("%s. With only %d %s, \"Leave one out\" is the only "+
+		"available setting.", err.Error(), tooMany.Available, tooMany.Unit())
 }
