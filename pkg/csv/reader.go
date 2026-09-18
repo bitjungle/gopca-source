@@ -171,6 +171,18 @@ func (r *Reader) parseAsNumeric(records [][]string, nullMap map[string]bool) (*D
 			return nil, fmt.Errorf("no data columns found")
 		}
 
+		// Keep the name of the column being consumed. It was discarded here,
+		// which left nothing downstream able to say which column became row
+		// names -- and the first column is taken whatever it holds, so a file
+		// with no identifier column silently loses its first variable and
+		// nothing could report it (#969).
+		//
+		// After the bounds check, not before: the check above is what stands
+		// between this index and a header row too short to have a column 0.
+		if r.opts.HasRowNames {
+			data.RowNamesHeader = headerRow[0]
+		}
+
 		data.Headers = make([]string, len(headerRow)-startCol)
 		copy(data.Headers, headerRow[startCol:])
 	}
@@ -314,6 +326,13 @@ func (r *Reader) parseAsString(records [][]string, nullMap map[string]bool) (*Da
 			return nil, fmt.Errorf("no data columns found")
 		}
 
+		// The row-name column's own header is kept for the same reason as in
+		// parseAsNumeric above, and after the bounds check for the same reason
+		// (#969).
+		if r.opts.HasRowNames {
+			data.RowNamesHeader = headerRow[0]
+		}
+
 		data.Headers = make([]string, len(headerRow)-startCol)
 		copy(data.Headers, headerRow[startCol:])
 	}
@@ -391,6 +410,7 @@ func (r *Reader) parseAsMixed(records [][]string, nullMap map[string]bool) (*Dat
 		Matrix:             csvData.Matrix,
 		Headers:            csvData.Headers,
 		RowNames:           csvData.RowNames,
+		RowNamesHeader:     csvData.RowNamesHeader,
 		MissingMask:        csvData.MissingMask,
 		Rows:               csvData.Rows,
 		Columns:            csvData.Columns,
@@ -423,9 +443,14 @@ func (r *Reader) parseAsMixedWithTargets(records [][]string, nullMap map[string]
 
 	// Convert to unified Data structure
 	data := &Data{
-		Matrix:               csvData.Matrix,
-		Headers:              csvData.Headers,
-		RowNames:             csvData.RowNames,
+		Matrix:   csvData.Matrix,
+		Headers:  csvData.Headers,
+		RowNames: csvData.RowNames,
+		// types.ParseCSVMixedWithTargets populates this and the conversion used
+		// to drop it, which is the same defect as #969 one layer down: a field
+		// maintained on one side of a hand-written struct copy and silently not
+		// carried across it.
+		RowNamesHeader:       csvData.RowNamesHeader,
 		MissingMask:          csvData.MissingMask,
 		Rows:                 csvData.Rows,
 		Columns:              csvData.Columns,

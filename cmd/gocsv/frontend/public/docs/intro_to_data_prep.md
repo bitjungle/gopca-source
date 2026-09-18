@@ -138,7 +138,7 @@ Two commands, both on the right-click menu of any column header:
 
 **A file never leaves GoCSV without something that tells its rows apart.** Whatever the loader found, whatever you assigned, or numbers written at the door — one of the three is always there.
 
-That guarantee is about GoCSV's exports and nothing else. A file you open in GoPCA **directly**, having never passed through GoCSV, can still have no row names, and GoPCA then numbers the points itself, from 1 — so the fourth row of your file is `Sample 4` in a scores plot. Nothing is lost except the ability to identify a point by anything more meaningful than its position.
+That guarantee is about GoCSV's exports and nothing else. A file you open in GoPCA **directly**, having never passed through GoCSV, may have nothing to serve as row names — and GoPCA takes its first column regardless, because nothing in a column's contents says whether it is an identifier or a measurement. Its Loaded Data panel names the column it took and offers a checkbox, **First column contains data, not row names**, to say it was wrong. With that ticked, GoPCA numbers the points itself, from 1 — so the fourth row of your file is `Sample 4` in a scores plot. Nothing is lost except the ability to identify a point by anything more meaningful than its position.
 
 ### What part does each column play?
 

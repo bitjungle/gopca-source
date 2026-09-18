@@ -24,6 +24,10 @@
 export interface FileData {
   headers: string[];
   rowNames: string[];
+  // Names the column the row names were taken from. The first column is always
+  // taken, whatever it holds, so this is how the UI can say which variable was
+  // consumed (#969). Empty when the file used the blank-header convention.
+  rowNamesHeader?: string;
   data: number[][];
   missingMask?: boolean[][];
   categoricalColumns?: {

@@ -23,7 +23,7 @@
 
 import React from 'react';
 import { ErrorBoundary, ErrorAlert } from '@gopca/ui-components';
-import { DataTable, SelectionTable, MatrixIllustration, HelpWrapper } from '../index';
+import { DataTable, SelectionTable, MatrixIllustration, HelpWrapper, RowNameColumnNotice } from '../index';
 import { ColumnRangeSelector } from '../ColumnRangeSelector';
 import { useFileDataContext } from '../../contexts/FileDataContext';
 import { usePCAContext } from '../../contexts/PCAContext';
@@ -51,7 +51,8 @@ const MIN_PROFILE_COLUMNS = 2;
 
 export function DataLoadSection() {
     const {
-        fileData, fileError, datasetId, loading: fileLoading, clearFileError
+        fileData, fileError, datasetId, loading: fileLoading, clearFileError,
+        filePath, reloadWithFirstColumnAsData
     } = useFileDataContext();
     const {
         loading, excludedRows, excludedColumns,
@@ -205,6 +206,18 @@ export function DataLoadSection() {
             {fileData && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700">
                     <h2 className="text-xl font-semibold mb-4">Loaded Data</h2>
+                    <RowNameColumnNotice
+                        rowNamesHeader={fileData.rowNamesHeader}
+                        hasRowNames={fileData.rowNames.length > 0}
+                        variableCount={fileData.headers.length}
+                        canSwitch={Boolean(filePath)}
+                        busy={fileLoading}
+                        onSwitch={(firstColumnIsData) => {
+                            reloadWithFirstColumnAsData(firstColumnIsData).catch((err: unknown) => {
+                                logger.error('Failed to re-read the file:', err);
+                            });
+                        }}
+                    />
                     {fileData.headers.length >= MIN_PROFILE_COLUMNS && (
                         <div className="mb-4">
                             <ColumnRangeSelector

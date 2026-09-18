@@ -30,8 +30,25 @@ import (
 	pkgcsv "github.com/bitjungle/gopca/pkg/csv"
 )
 
-// ParseCSV parses CSV content and returns data matrix and headers
-func (a *App) ParseCSV(content string) (result *FileDataJSON, err error) {
+// ParseCSV parses CSV content and returns data matrix and headers.
+//
+// The first column is taken as row names, which is what every caller wants for
+// a file that has an identifier column and what the CLI does by default. For a
+// file that does not, see parseCSVContent and the --no-index equivalent it
+// serves (#969).
+func (a *App) ParseCSV(content string) (*FileDataJSON, error) {
+	return a.parseCSVContent(content, true)
+}
+
+// parseCSVContent parses CSV content, taking the first column as row names only
+// when hasRowNames says to.
+//
+// Nothing about a column's contents distinguishes an identifier from a
+// measurement: a measurement can be unique, and Sample_ID is 1, 2, 3. So the
+// reader does not guess -- it takes the first column, reports which one it took,
+// and this parameter is how the user says otherwise. The CLI has said it with
+// --no-index all along; GoPCA Desktop had no way to (#969).
+func (a *App) parseCSVContent(content string, hasRowNames bool) (result *FileDataJSON, err error) {
 	// Recover from any panic to prevent app crash
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,6 +75,7 @@ func (a *App) ParseCSV(content string) (result *FileDataJSON, err error) {
 	for _, opts := range formats {
 		// Use ParseMixedWithTargets mode to detect all column types
 		opts.ParseMode = pkgcsv.ParseMixedWithTargets
+		opts.HasRowNames = hasRowNames
 
 		reader := pkgcsv.NewReader(opts)
 		data, err := reader.Read(strings.NewReader(content))
@@ -78,10 +96,11 @@ func (a *App) ParseCSV(content string) (result *FileDataJSON, err error) {
 	}
 
 	fileResult := &FileData{
-		Headers:     csvData.Headers,
-		RowNames:    csvData.RowNames,
-		Data:        csvData.Matrix,
-		MissingMask: csvData.MissingMask,
+		Headers:        csvData.Headers,
+		RowNames:       csvData.RowNames,
+		RowNamesHeader: csvData.RowNamesHeader,
+		Data:           csvData.Matrix,
+		MissingMask:    csvData.MissingMask,
 	}
 
 	// Add categorical columns if there are any

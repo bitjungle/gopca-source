@@ -21,15 +21,28 @@
 //
 // See LICENSE for the full license terms.
 
-export { DataTable } from './DataTable';
-export { RowNameColumnNotice } from './RowNameColumnNotice';
-export { SelectionTable } from './SelectionTable';
-export { ExportButton } from './ExportButton';
-export { PlotControls } from './PlotControls';
-export { MatrixIllustration } from './MatrixIllustration';
-export { HelpWrapper, HelpDisplay } from '@gopca/ui-components';
-export { DocumentationViewer } from './DocumentationViewer';
-export { TutorialViewer } from './TutorialViewer';
-export { ModelOverview } from './ModelOverview';
-export { AboutDialog } from './AboutDialog';
-export * from './visualizations';
+/**
+ * Renders a caught value as something a user can read.
+ *
+ * Interpolating a rejection straight into a template literal gives
+ * "[object Object]" for anything that is not an Error or a string — which is
+ * most of what a Wails binding rejects with. The message then tells the user
+ * only that something failed, which they already knew from the failure.
+ */
+export function describeError(err: unknown): string {
+    if (err instanceof Error) {
+        return err.message;
+    }
+    if (typeof err === 'string') {
+        return err;
+    }
+    try {
+        const described = JSON.stringify(err);
+        if (described && described !== '{}') {
+            return described;
+        }
+    } catch {
+        // Circular or otherwise unserialisable; fall through.
+    }
+    return String(err);
+}

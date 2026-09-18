@@ -22,9 +22,10 @@
 // See LICENSE for the full license terms.
 
 import { useState, useCallback } from 'react';
-import { LoadDatasetFile, SelectCSVFile } from '../../wailsjs/go/main/App';
+import { LoadDatasetFile, SelectCSVFile, ReloadCSVFile } from '../../wailsjs/go/main/App';
 import { FileData } from '../types';
 import { logger } from '../utils/logger';
+import { describeError } from '../utils/describeError';
 
 export interface FileDataResult {
     fileData: FileData | null;
@@ -37,6 +38,7 @@ export interface FileDataResult {
     loadDataset: (filename: string, defaultGroupColumn?: string) => Promise<{ data: FileData; defaultGroupColumn?: string } | null>;
     handleNativeFileSelect: () => Promise<FileData | null>;
     setFileDataDirect: (data: FileData, name: string, path: string) => void;
+    reloadWithFirstColumnAsData: (firstColumnIsData: boolean) => Promise<FileData | null>;
     clearFileError: () => void;
 }
 
@@ -75,7 +77,7 @@ export function useFileData(): FileDataResult {
             bumpDatasetId();
             return { data: result, defaultGroupColumn };
         } catch (err) {
-            setFileError(`Failed to load ${filename}: ${err}`);
+            setFileError(`Failed to load ${filename}: ${describeError(err)}`);
             return null;
         } finally {
             setLoading(false);
@@ -108,7 +110,7 @@ export function useFileData(): FileDataResult {
             return data;
         } catch (err) {
             logger.error('File selection failed:', err);
-            setFileError(`Failed to load file: ${err}`);
+            setFileError(`Failed to load file: ${describeError(err)}`);
             setFileData(null);
             return null;
         } finally {
@@ -125,6 +127,40 @@ export function useFileData(): FileDataResult {
         bumpDatasetId();
     }, []);
 
+    /**
+     * Re-read the current file, saying whether its first column is data rather
+     * than row names — GoPCA Desktop's equivalent of the CLI's --no-index.
+     *
+     * Only available for a file loaded from disk, since it re-reads by path.
+     * The built-in sample datasets all ship with an identifier column, so there
+     * is nothing for the switch to correct there (#969).
+     */
+    const reloadWithFirstColumnAsData = useCallback(
+        async (firstColumnIsData: boolean): Promise<FileData | null> => {
+            if (!filePath) {
+                return null;
+            }
+            setLoading(true);
+            setFileError(null);
+            try {
+                const data = await ReloadCSVFile(filePath, firstColumnIsData);
+                if (!data) {
+                    throw new Error('No data returned when re-reading the file');
+                }
+                setFileData(data);
+                bumpDatasetId();
+                return data;
+            } catch (err) {
+                logger.error('Re-reading the file failed:', err);
+                setFileError(`Failed to re-read file: ${describeError(err)}`);
+                return null;
+            } finally {
+                setLoading(false);
+            }
+        },
+        [filePath]
+    );
+
     const clearFileError = useCallback(() => setFileError(null), []);
 
     return {
@@ -138,6 +174,7 @@ export function useFileData(): FileDataResult {
         loadDataset,
         handleNativeFileSelect,
         setFileDataDirect,
+        reloadWithFirstColumnAsData,
         clearFileError
     };
 }

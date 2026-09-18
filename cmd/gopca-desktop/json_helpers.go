@@ -33,6 +33,7 @@ import (
 type FileDataJSON struct {
 	Headers              []string                       `json:"headers"`
 	RowNames             []string                       `json:"rowNames"`
+	RowNamesHeader       string                         `json:"rowNamesHeader,omitempty"`
 	Data                 [][]types.JSONFloat64          `json:"data"`
 	MissingMask          [][]bool                       `json:"missingMask,omitempty"`
 	CategoricalColumns   map[string][]string            `json:"categoricalColumns,omitempty"`
@@ -98,6 +99,7 @@ func (fd *FileData) ToJSONSafe() *FileDataJSON {
 	result := &FileDataJSON{
 		Headers:            fd.Headers,
 		RowNames:           fd.RowNames,
+		RowNamesHeader:     fd.RowNamesHeader,
 		Data:               jsonData,
 		CategoricalColumns: fd.CategoricalColumns,
 	}
