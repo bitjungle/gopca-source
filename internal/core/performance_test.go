@@ -318,12 +318,27 @@ const minimumScalingSample = time.Millisecond
 // mixes noise back in.
 //
 // This matters more than it looks because the caller divides consecutive
-// measurements. Noise in the *denominator* is as fatal as in the numerator: an
-// unusually fast baseline inflates the next ratio even when every absolute time
-// is reasonable. That is how #971 failed on an unrelated pull request -- 500x50
-// came in at 7.09ms against a typical 2.8ms, and the 1000x50 ratio blew past a
-// threshold that allows cubic growth. The measurements refuted themselves in the
-// same log: 2000x50 finished faster than 1000x50.
+// measurements, so one disturbed reading corrupts every ratio it appears in,
+// whether as numerator or as denominator.
+//
+// #971 failed twice in an afternoon, on pull requests that changed nothing in
+// this package -- one touched cmd/gocsv and the frontends, the other added only
+// data files. Both logs refute themselves the same way:
+//
+//	          first failure   second failure
+//	500x50      7.089791ms       5.894250ms
+//	1000x50    91.940750ms      50.740333ms
+//	2000x50    64.714334ms      31.458541ms
+//
+// The 2000-row case finished faster than the 1000-row case both times, which no
+// scaling property produces. That inconsistency is the proof of noise, and it
+// needs no reference timing to read -- which matters, because the typical cost
+// on a CI runner is not something measured here.
+//
+// In both runs the middle measurement is the one out of line, and it is the
+// numerator of the ratio that failed. Taking the fastest of several runs attacks
+// that directly: a disturbance now has to land on every run of a size rather
+// than on one of them.
 func fastestFit(t *testing.T, rows, cols int) time.Duration {
 	t.Helper()
 
