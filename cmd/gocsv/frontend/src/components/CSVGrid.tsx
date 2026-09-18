@@ -523,6 +523,8 @@ return 'text';
                 // leave it empty by convention.
                 headerName: rowNamesHeader || '',
                 editable: true,
+                // The exception to defaultColDef: no custom header here, so
+                // ag-grid's own handles the click and this column really sorts.
                 sortable: true,
                 // Cells are strings, so the default comparison is lexicographic
                 // and identifiers ran 1, 10, 100, 1000 rather than 1, 2, 3 (#963).
@@ -564,12 +566,6 @@ return 'text';
                     onContextMenu: handleHeaderContextMenu
                 },
                 editable: true,
-                sortable: true,
-                // Every cell is a string, so without this a measurement column
-                // sorts as text: "7e-05" outranks "0.12" because '7' outranks
-                // '0', and sorting Zn descending to find the highest-zinc alloys
-                // put values 1,714x too small at the top (#963).
-                comparator: compareCellValues,
                 filter: true,
                 resizable: true,
                 minWidth: 80,
@@ -734,7 +730,18 @@ classes.push('target-header');
         minWidth: 80,
         maxWidth: 400,
         editable: true,
-        sortable: true,
+        // Not sortable by default. Data columns render through CustomHeader,
+        // which draws a label and icons and never calls progressSort, so a click
+        // on one of those headers does nothing -- ag-grid's own header is what
+        // handles sorting, and supplying headerComponent replaces it. Declaring
+        // sortable there promised behaviour the grid could not deliver (#963).
+        //
+        // The row-name column opts back in explicitly: it has no custom header,
+        // so it sorts, and it is the one column where order helps -- finding a
+        // sample by identifier. Row order does not affect a PCA model in any
+        // case, since the mean, covariance and eigenvectors are all invariant
+        // to it.
+        sortable: false,
         filter: true,
         resizable: true
     }), []);
