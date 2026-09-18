@@ -1025,7 +1025,6 @@ return;
                 />
             )}
 
-            {/* Rename dialog */}
             <NumberRowsDialog
                 isOpen={numberRowsDialogOpen}
                 onClose={() => setNumberRowsDialogOpen(false)}
@@ -1042,6 +1041,7 @@ return;
                 }}
             />
 
+            {/* Rename dialog */}
             <RenameDialog
                 isOpen={renameDialog.isOpen}
                 onClose={() => setRenameDialog({ isOpen: false, colIndex: -1, currentName: '' })}

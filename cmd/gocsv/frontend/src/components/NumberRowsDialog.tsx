@@ -109,10 +109,16 @@ export const NumberRowsDialog: React.FC<NumberRowsDialogProps> = ({
     return (
         <Dialog isOpen={isOpen} onClose={onClose} title="Number the Rows" width="w-96">
             <form onSubmit={handleSubmit}>
+                {/* These are row names, not a column, and saying otherwise would
+                    undo the thing the design is for: the table keeps its shape, so
+                    the identifiers cannot be dragged into the analysis by accident.
+                    An earlier menu label made the same slip in the other direction
+                    and had to be reworded (#949). */}
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Gives each row an identifier in a column called Sample_ID, which is
-                    written as the first column on export and labels the points in a
-                    GoPCA scores plot.
+                    Gives each row an identifier. The table keeps its shape — these are
+                    row names, not a new column. On export they are written as the first
+                    column, named Sample_ID, which is where GoPCA reads the labels for a
+                    scores plot.
                 </p>
 
                 <div className="flex gap-3">
