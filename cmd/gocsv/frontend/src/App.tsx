@@ -33,6 +33,22 @@ import { main, dataquality } from '../wailsjs/go/models';
 
 type FileData = main.FileData;
 
+// rowIdentifierNotice turns an export's report into something worth reading, or
+// null when the export invented nothing and there is nothing to say.
+//
+// Row names label the points in a GoPCA scores plot. A file that carries no
+// column able to tell its rows apart gets one at export time (#966), and the
+// user should hear about a column being added to their file rather than
+// discover it later in a spreadsheet.
+function rowIdentifierNotice(header: string | undefined): string | null {
+    if (!header) {
+        return null;
+    }
+    return `This file had no column that could tell its rows apart, so '${header}' `
+        + 'was written as the first column, numbering the rows from 1. '
+        + 'Without identifiers the points in a scores plot have no labels.';
+}
+
 function AppContent() {
     const { currentHelp, currentHelpKey } = useHelp();
     const [fileLoaded, setFileLoaded] = useState(false);
@@ -68,6 +84,10 @@ function AppContent() {
     const [version, setVersion] = useState<string>('');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    // Set when an export had to invent a row-identifier column because the file
+    // carried none (#966). Adding a column to someone's file is not something to
+    // do quietly, so the export reports what it added and we say so here.
+    const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
     // Ref for scrolling to Step 2
     const step2Ref = useRef<HTMLDivElement>(null);
@@ -424,6 +444,17 @@ return;
                         />
                     )}
 
+                    {/* Notices that are not failures, such as a row-identifier
+                        column added on export (#966). */}
+                    {noticeMessage && (
+                        <ErrorAlert
+                            type="info"
+                            title="Exported"
+                            message={noticeMessage}
+                            onDismiss={() => setNoticeMessage(null)}
+                        />
+                    )}
+
                     {/* Step 1: Load Data - matching GoPCA's card style */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-fadeIn">
                         <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
@@ -765,7 +796,8 @@ return;
                                                 onClick={async () => {
                                                     if (fileData) {
                                                         try {
-                                                            await SaveCSV(fileData);
+                                                            const result = await SaveCSV(fileData);
+                                                            setNoticeMessage(rowIdentifierNotice(result?.syntheticRowIDHeader));
                                                         } catch (error) {
                                                             console.error('Error saving file:', error);
                                                             setErrorMessage('Could not save file — ' + (error instanceof Error ? error.message : String(error)));
@@ -782,7 +814,8 @@ return;
                                                 onClick={async () => {
                                                     if (fileData) {
                                                         try {
-                                                            await SaveExcel(fileData);
+                                                            const result = await SaveExcel(fileData);
+                                                            setNoticeMessage(rowIdentifierNotice(result?.syntheticRowIDHeader));
                                                         } catch (error) {
                                                             console.error('Error saving Excel file:', error);
                                                             setErrorMessage('Could not save Excel file — ' + (error instanceof Error ? error.message : String(error)));

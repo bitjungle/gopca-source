@@ -42,10 +42,14 @@ When using the CLI, specify the delimiter with `--delimiter` and decimal separat
 
 ### Row Names (Sample Identifiers)
 
-The first column is automatically detected as row names if it contains non-numeric values. These identifiers:
+**The first column is read as row names**, whatever it contains. A first
+column of `1, 2, 3 …` becomes row names exactly as `Patient001, Patient002 …`
+does, and in neither case does it enter the PCA. These identifiers:
+
 - Appear as labels in scores plots
 - Help identify outliers or interesting samples
-- Should be unique for each sample
+- Should be unique for each sample — two points sharing a label are
+  indistinguishable exactly where you would most want to tell them apart
 - Can contain any text (avoid special characters that might interfere with CSV parsing)
 
 Example:
@@ -55,6 +59,25 @@ Patient001,175.5,72.3,34
 Patient002,168.2,65.1,28
 Control001,172.0,70.5,31
 ```
+
+> **A file with no identifier column loses its first variable.** Because the
+> first column is taken as row names, a file that begins `Si,Fe,Cu` is analysed
+> on `Fe` and `Cu` alone, with the silicon values serving as labels. Nothing
+> reports this — the analysis runs and the scores plot is perfectly ordinary.
+>
+> **On the command line, say so with `--no-index`:**
+>
+> ```bash
+> pca analyze --no-index measurements.csv
+> ```
+>
+> It is accepted by `analyze`, `regress`, `transform` and `validate`, and it says
+> "the first column contains data, not row names". Without it, every one of them
+> reads the first column as labels.
+>
+> **In GoPCA Desktop there is no such switch**, so give the file an identifier
+> column before loading it. If you prepare your data in GoCSV you do not have to
+> think about it: a file never leaves GoCSV without one.
 
 ## Column Types
 
@@ -288,7 +311,7 @@ This will report:
 For successful PCA analysis with GoPCA:
 
 1. ✅ Include a header row with column names
-2. ✅ First column can be sample identifiers
+2. ✅ First column is read as sample identifiers — include one, or pass `--no-index`, or your first variable becomes labels
 3. ✅ Use consistent CSV format (comma or semicolon)
 4. ✅ Ensure numeric data for PCA features
 5. ✅ Mark target columns with `#target` suffix
@@ -305,4 +328,8 @@ GoCSV is the companion application for preparing data in this format:
 - Handles the #target suffix for target columns
 - Provides data quality assessment and cleaning tools
 - Exports clean CSV files ready for GoPCA analysis
+- **Always writes a column of row identifiers as column 1** — whatever the file
+  arrived with, whatever you assigned, or `Sample_ID` numbering the rows from 1
+  if it had neither. This is what makes the warning above something you never
+  have to think about when GoCSV prepared the file
 - Use "Open in GoPCA" for seamless transfer between applications

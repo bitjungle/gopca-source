@@ -709,7 +709,7 @@ func (a *App) ValidateForGoPCA(data *FileData) *ValidationResult {
 }
 
 // SaveCSV saves the data to a CSV file
-func (a *App) SaveCSV(data *FileData) error {
+func (a *App) SaveCSV(data *FileData) (*ExportResult, error) {
 	// Show save dialog
 	selection, err := wailsruntime.SaveFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
 		Title:           "Save CSV File",
@@ -722,17 +722,42 @@ func (a *App) SaveCSV(data *FileData) error {
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("error showing save dialog: %w", err)
+		return nil, fmt.Errorf("error showing save dialog: %w", err)
 	}
 	if selection == "" {
-		return fmt.Errorf("no file selected")
+		return nil, fmt.Errorf("no file selected")
 	}
+
+	file, err := os.Create(selection)
+	if err != nil {
+		return nil, fmt.Errorf("error writing CSV file: %w", err)
+	}
+	result, writeErr := writeCSVExport(file, data)
+	closeErr := file.Close()
+	if writeErr != nil {
+		return nil, writeErr
+	}
+	if closeErr != nil {
+		return nil, fmt.Errorf("error writing CSV file: %w", closeErr)
+	}
+
+	wailsruntime.EventsEmit(a.ctx, "file-saved", filepath.Base(selection))
+	a.markClean()
+	return result, nil
+}
+
+// writeCSVExport writes the export to w. It is separate from SaveCSV because
+// SaveCSV opens a native dialog and so cannot be called from a test, which would
+// leave the one behaviour worth testing here -- that the output carries row
+// identifiers whether or not the file had any -- checked nowhere.
+func writeCSVExport(w io.Writer, data *FileData) (*ExportResult, error) {
+	header, rowIDs, synthesized := exportRowIdentifiers(data)
 
 	// Convert FileData to pkg/csv.Data
 	csvData := &pkgcsv.Data{
 		Headers:        data.Headers,
-		RowNames:       data.RowNames,
-		RowNamesHeader: data.RowNamesHeader,
+		RowNames:       rowIDs,
+		RowNamesHeader: header,
 		StringData:     data.Data,
 		Rows:           data.Rows,
 		Columns:        data.Columns,
@@ -741,20 +766,22 @@ func (a *App) SaveCSV(data *FileData) error {
 	// Use pkg/csv writer with appropriate options
 	opts := pkgcsv.DefaultOptions()
 	opts.HasHeaders = true
-	opts.HasRowNames = len(data.RowNames) > 0
+	opts.HasRowNames = len(rowIDs) > 0
 
 	// Write using the unified CSV writer
-	if err := pkgcsv.SaveFile(selection, csvData, opts); err != nil {
-		return fmt.Errorf("error writing CSV file: %w", err)
+	if err := pkgcsv.Save(w, csvData, opts); err != nil {
+		return nil, fmt.Errorf("error writing CSV file: %w", err)
 	}
 
-	wailsruntime.EventsEmit(a.ctx, "file-saved", filepath.Base(selection))
-	a.markClean()
-	return nil
+	result := &ExportResult{}
+	if synthesized {
+		result.SyntheticRowIDHeader = header
+	}
+	return result, nil
 }
 
 // SaveExcel saves data to an Excel file
-func (a *App) SaveExcel(data *FileData) error {
+func (a *App) SaveExcel(data *FileData) (*ExportResult, error) {
 	// Show save dialog
 	selection, err := wailsruntime.SaveFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
 		Title:           "Save Excel File",
@@ -767,30 +794,51 @@ func (a *App) SaveExcel(data *FileData) error {
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("error showing save dialog: %w", err)
+		return nil, fmt.Errorf("error showing save dialog: %w", err)
 	}
 	if selection == "" {
-		return fmt.Errorf("no file selected")
+		return nil, fmt.Errorf("no file selected")
 	}
 
+	f, result, err := buildExcelExport(data)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	// Save file
+	if err := f.SaveAs(selection); err != nil {
+		return nil, fmt.Errorf("failed to save Excel file: %w", err)
+	}
+
+	wailsruntime.EventsEmit(a.ctx, "file-saved", filepath.Base(selection))
+	a.markClean()
+	return result, nil
+}
+
+// buildExcelExport assembles the workbook. Split out of SaveExcel for the same
+// reason as writeCSVExport: the dialog is untestable, and the row-identifier
+// rule has to be checked on every export path or it silently holds on only one.
+func buildExcelExport(data *FileData) (*excelize.File, *ExportResult, error) {
 	// Create new Excel file
 	f := excelize.NewFile()
-	defer f.Close()
 
 	// Create a new sheet
 	sheetName := "Sheet1"
 	index, err := f.NewSheet(sheetName)
 	if err != nil {
-		return fmt.Errorf("failed to create sheet: %w", err)
+		_ = f.Close()
+		return nil, nil, fmt.Errorf("failed to create sheet: %w", err)
 	}
 
 	// Write headers with row names if present
+	rowNameHeader, rowIDs, synthesized := exportRowIdentifiers(data)
 	headers := data.Headers
-	if len(data.RowNames) > 0 {
+	if len(rowIDs) > 0 {
 		// Carry the row-name column's own header through. "RowName" stays the
 		// fallback for files that had no name there, so existing exports of the
-		// blank-header convention are unchanged (#859).
-		rowNameHeader := data.RowNamesHeader
+		// blank-header convention are unchanged (#859). An invented column is
+		// never blank, so that fallback now applies only to a file's own names.
 		if rowNameHeader == "" {
 			rowNameHeader = "RowName"
 		}
@@ -800,7 +848,8 @@ func (a *App) SaveExcel(data *FileData) error {
 	for i, header := range headers {
 		cell, err := excelize.CoordinatesToCellName(i+1, 1)
 		if err != nil {
-			return fmt.Errorf("failed to get cell coordinate: %w", err)
+			_ = f.Close()
+			return nil, nil, fmt.Errorf("failed to get cell coordinate: %w", err)
 		}
 		f.SetCellValue(sheetName, cell, header)
 
@@ -826,10 +875,10 @@ func (a *App) SaveExcel(data *FileData) error {
 
 		// Write row name if present
 		colOffset := 0
-		if len(data.RowNames) > 0 && rowIdx < len(data.RowNames) {
+		if rowIdx < len(rowIDs) {
 			cell, err := excelize.CoordinatesToCellName(1, excelRow)
 			if err == nil {
-				f.SetCellValue(sheetName, cell, data.RowNames[rowIdx])
+				f.SetCellValue(sheetName, cell, rowIDs[rowIdx])
 			}
 			colOffset = 1
 		}
@@ -890,12 +939,9 @@ func (a *App) SaveExcel(data *FileData) error {
 	// Set active sheet
 	f.SetActiveSheet(index)
 
-	// Save file
-	if err := f.SaveAs(selection); err != nil {
-		return fmt.Errorf("failed to save Excel file: %w", err)
+	result := &ExportResult{}
+	if synthesized {
+		result.SyntheticRowIDHeader = rowNameHeader
 	}
-
-	wailsruntime.EventsEmit(a.ctx, "file-saved", filepath.Base(selection))
-	a.markClean()
-	return nil
+	return f, result, nil
 }

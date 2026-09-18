@@ -132,7 +132,13 @@ Two commands, both on the right-click menu of any column header:
 >
 > One click is the whole step. Inside GoCSV the numbers are row names rather than a column, so nothing new enters the analysis and the column count does not change — and **when you save, they are written as the first column of the file**, which is where GoPCA reads row names from. There is no second step to "put them into the table"; saving does it. Use this when the file genuinely has nothing to build an identifier from.
 >
-> **Analyse without row names.** GoPCA numbers the points itself, from 1, matching the `#` gutter down the left of the GoCSV grid — so the fourth row of your file is `Sample 4` in a scores plot. Nothing is lost except the ability to identify a point by anything more meaningful than its position.
+> **Do nothing, and let the export handle it.** If you export a file that still has no row names — as CSV, as Excel, or by handing it straight to GoPCA — GoCSV writes a `Sample_ID` column of `1`, `2`, `3` … as the first column for you, and says that it did. Nothing is added to the table you are editing: the column is in the file that left, not in the grid you are looking at.
+>
+> The only difference between this and **Number the Rows** is *when*. The command gives you the identifiers now, where you can see them in the grid. The export supplies them at the last moment if you never asked.
+
+**A file never leaves GoCSV without something that tells its rows apart.** Whatever the loader found, whatever you assigned, or numbers written at the door — one of the three is always there.
+
+That guarantee is about GoCSV's exports and nothing else. A file you open in GoPCA **directly**, having never passed through GoCSV, can still have no row names, and GoPCA then numbers the points itself, from 1 — so the fourth row of your file is `Sample 4` in a scores plot. Nothing is lost except the ability to identify a point by anything more meaningful than its position.
 
 ### What part does each column play?
 
@@ -504,12 +510,12 @@ When something *is* flagged, what to do about it is a judgement GoCSV cannot mak
 
 **Direct transfer:** click **Open in GoPCA**. The data is validated and passed across without an intermediate file.
 
-**Or export:** CSV keeps `#target` markers and is the most portable; Excel is convenient for sharing.
+**Or export:** CSV keeps `#target` markers and is the most portable; Excel is convenient for sharing. Either way the first column identifies the rows — see *Row names* in section 2 — so GoPCA has something to label your points with.
 
 **Before you hand over:**
 
 - [ ] Rows are samples, columns are variables — transpose if not
-- [ ] The row-name column identifies your samples, and its values are unique
+- [ ] The row-name column identifies your samples, and its values are unique — if the file has none, the export supplies numbers, but a label that says *what* a sample is beats one that says only *which*
 - [ ] Missing values dealt with, or NIPALS chosen in GoPCA
 - [ ] Columns with no variation removed
 - [ ] Categorical variables encoded, if you want them in the analysis
