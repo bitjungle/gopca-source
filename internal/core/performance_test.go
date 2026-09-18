@@ -261,38 +261,179 @@ func TestPCAPerformanceScaling(t *testing.T) {
 	times := make([]time.Duration, len(sizes))
 
 	for i, size := range sizes {
-		data := generateRandomMatrix(size.rows, size.cols)
-		config := types.PCAConfig{
-			Components:    10,
-			MeanCenter:    true,
-			StandardScale: false,
-			Method:        "svd",
-		}
-
-		engine := NewPCAEngine()
-
-		start := time.Now()
-		_, err := engine.Fit(data, config)
-		if err != nil {
-			t.Fatalf("PCA failed for size %dx%d: %v", size.rows, size.cols, err)
-		}
-		times[i] = time.Since(start)
-
-		t.Logf("Size %dx%d took %v", size.rows, size.cols, times[i])
+		times[i] = fastestFit(t, size.rows, size.cols)
 	}
 
-	// Check that time scaling is reasonable (not exponential)
-	// Time should increase less than quadratically with size
+	// Check that the cost does not grow explosively with the row count.
+	//
+	// With the column count fixed, the time is expected to grow roughly
+	// linearly with rows, and the measurements agree -- about 2.0x and 1.7x for
+	// each doubling here. The threshold below is set far above that on purpose:
+	// this is a smoke test against an accidental change of algorithmic shape,
+	// not a performance budget. It should fire when a doubling of the data
+	// costs eight times the work, and never when a change makes things 20%
+	// slower.
+	//
+	// The comment here used to say "less than quadratically" four lines above a
+	// cubic threshold. Two different claims about the same number, and neither
+	// matched what a reader would then measure.
 	for i := 1; i < len(times); i++ {
+		// A ratio of two measurements is only as good as its denominator, and a
+		// sub-millisecond baseline has a relative error large enough to swamp
+		// the signal on its own. Skipping is the honest response: the check has
+		// nothing to say here, and saying it loudly would be a false alarm.
+		if times[i-1] < minimumScalingSample {
+			t.Logf("skipping the %dx%d ratio: the %dx%d baseline was %v, too short "+
+				"to divide by", sizes[i].rows, sizes[i].cols,
+				sizes[i-1].rows, sizes[i-1].cols, times[i-1])
+			continue
+		}
+
 		ratio := float64(times[i]) / float64(times[i-1])
 		sizeRatio := float64(sizes[i].rows) / float64(sizes[i-1].rows)
 
-		// Allow up to cubic scaling (generous for safety)
+		// Cubic: one doubling of the data may cost up to eight times the time.
 		maxRatio := sizeRatio * sizeRatio * sizeRatio
 		if ratio > maxRatio {
-			t.Errorf("Performance scaling too poor: time increased by %.2fx for %.2fx size increase",
-				ratio, sizeRatio)
+			t.Errorf("Performance scaling too poor: time increased by %.2fx for %.2fx size increase "+
+				"(%v -> %v, each the fastest of %d runs)",
+				ratio, sizeRatio, times[i-1], times[i], performanceRepeats)
 		}
+	}
+}
+
+// performanceRepeats is how many times each size is timed. See fastestFit.
+const performanceRepeats = 5
+
+// minimumScalingSample is the shortest measurement whose reciprocal is worth
+// trusting. Below it the ratio check is skipped rather than failed.
+const minimumScalingSample = time.Millisecond
+
+// fastestFit times one PCA several times and returns the shortest run.
+//
+// The minimum rather than the mean, because the sources of variation here are
+// one-sided: a GC pause, the scheduler, or another job on the same CI runner can
+// only ever make a measurement longer than the work actually took. The fastest
+// run is therefore the closest estimate of the work, and averaging deliberately
+// mixes noise back in.
+//
+// This matters more than it looks because the caller divides consecutive
+// measurements, so one disturbed reading corrupts every ratio it appears in,
+// whether as numerator or as denominator.
+//
+// #971 failed twice in an afternoon, on pull requests that changed nothing in
+// this package -- one touched cmd/gocsv and the frontends, the other added only
+// data files. Both logs refute themselves the same way:
+//
+//	          first failure   second failure
+//	500x50      7.089791ms       5.894250ms
+//	1000x50    91.940750ms      50.740333ms
+//	2000x50    64.714334ms      31.458541ms
+//
+// The 2000-row case finished faster than the 1000-row case both times, which no
+// scaling property produces. That inconsistency is the proof of noise, and it
+// needs no reference timing to read -- which matters, because the typical cost
+// on a CI runner is not something measured here.
+//
+// In both runs the middle measurement is the one out of line, and it is the
+// numerator of the ratio that failed. Taking the fastest of several runs attacks
+// that directly: a disturbance now has to land on every run of a size rather
+// than on one of them.
+func fastestFit(t *testing.T, rows, cols int) time.Duration {
+	t.Helper()
+
+	data := generateRandomMatrix(rows, cols)
+	config := types.PCAConfig{
+		Components:    10,
+		MeanCenter:    true,
+		StandardScale: false,
+		Method:        "svd",
+	}
+
+	runs := make([]time.Duration, 0, performanceRepeats)
+	for run := 0; run < performanceRepeats; run++ {
+		engine := NewPCAEngine()
+		start := time.Now()
+		_, err := engine.Fit(data, config)
+		elapsed := time.Since(start)
+		if err != nil {
+			t.Fatalf("PCA failed for size %dx%d: %v", rows, cols, err)
+		}
+		runs = append(runs, elapsed)
+	}
+
+	fastest := minDuration(runs)
+	// Every run is logged, not just the winner: a failure is only diagnosable if
+	// the spread is visible, and a wide spread is itself the finding.
+	t.Logf("Size %dx%d took %v (fastest of %v)", rows, cols, fastest, runs)
+	return fastest
+}
+
+// minDuration returns the shortest of the given durations, or zero if there are
+// none.
+func minDuration(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+	fastest := durations[0]
+	for _, d := range durations[1:] {
+		if d < fastest {
+			fastest = d
+		}
+	}
+	return fastest
+}
+
+// Issue #971. The guard here is not that a loop can find a minimum -- it is that
+// this stays a minimum.
+//
+// The de-noising rests entirely on taking the fastest run. Replacing it with a
+// mean would look like a tidy-up, would keep every test passing, and would
+// silently restore the flakiness: an average mixes back in exactly the one-sided
+// noise the minimum exists to reject. The mean-vs-minimum case below is the one
+// that would fail if someone made that change.
+func TestMinDurationTakesTheFastestNotTheAverage(t *testing.T) {
+	tests := []struct {
+		name string
+		runs []time.Duration
+		want time.Duration
+	}{
+		{"single run", []time.Duration{5 * time.Millisecond}, 5 * time.Millisecond},
+		{"fastest is last", []time.Duration{9, 7, 3}, 3},
+		{"fastest is first", []time.Duration{3, 7, 9}, 3},
+		{"no runs at all", nil, 0},
+		{
+			// The measurements from the CI run that prompted #971, as if they had
+			// been repeats of one size rather than one run each of three. Their
+			// mean is 54.6ms and their minimum 7.1ms: an average would inherit
+			// the outlier that caused the failure.
+			name: "one wild outlier among normal runs",
+			runs: []time.Duration{
+				7089791 * time.Nanosecond,
+				91940750 * time.Nanosecond,
+				64714334 * time.Nanosecond,
+			},
+			want: 7089791 * time.Nanosecond,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := minDuration(tt.runs)
+			if got != tt.want {
+				t.Errorf("minDuration(%v) = %v, want %v", tt.runs, got, tt.want)
+			}
+			if len(tt.runs) > 0 {
+				var total time.Duration
+				for _, d := range tt.runs {
+					total += d
+				}
+				if mean := total / time.Duration(len(tt.runs)); got > mean {
+					t.Errorf("minDuration returned %v, which is above the mean %v -- "+
+						"this is no longer a minimum", got, mean)
+				}
+			}
+		})
 	}
 }
 
