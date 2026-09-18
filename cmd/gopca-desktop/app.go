@@ -105,6 +105,25 @@ func (a *App) LoadCSVFile(filePath string) (*FileDataJSON, error) {
 	return a.ParseCSV(string(content))
 }
 
+// ReloadCSVFile re-reads a file already on disk, saying whether its first column
+// is data rather than row names.
+//
+// This is GoPCA Desktop's --no-index. The CLI has had that flag on analyze,
+// regress, transform and validate all along; Desktop had no equivalent, so a
+// file with no identifier column was analysed one variable short with no way to
+// correct it from inside the application (#969).
+//
+// It re-reads from disk rather than re-parsing kept content, because the file
+// path is what the frontend already holds and keeping a second copy of every
+// loaded file in memory to serve one checkbox is not a trade worth making.
+func (a *App) ReloadCSVFile(filePath string, firstColumnIsData bool) (*FileDataJSON, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+	return a.parseCSVContent(string(content), !firstColumnIsData)
+}
+
 // CalculateEllipsesRequest represents a request to calculate confidence ellipses
 type CalculateEllipsesRequest struct {
 	Scores      [][]float64 `json:"scores"`
@@ -219,8 +238,14 @@ func (a *App) CalculateEllipses(request CalculateEllipsesRequest) CalculateEllip
 
 // FileData represents the structure of CSV data for the frontend
 type FileData struct {
-	Headers              []string             `json:"headers"`
-	RowNames             []string             `json:"rowNames"`
+	Headers  []string `json:"headers"`
+	RowNames []string `json:"rowNames"`
+	// RowNamesHeader names the column the row names were taken from, so the UI
+	// can say which one it was. The first column is always taken, whatever it
+	// holds, and until #969 its name was discarded -- leaving a file with no
+	// identifier column silently short one variable with nothing able to
+	// report it. Empty when the file used the blank-header convention.
+	RowNamesHeader       string               `json:"rowNamesHeader,omitempty"`
 	Data                 [][]float64          `json:"data"`
 	MissingMask          [][]bool             `json:"missingMask,omitempty"`
 	CategoricalColumns   map[string][]string  `json:"categoricalColumns,omitempty"`

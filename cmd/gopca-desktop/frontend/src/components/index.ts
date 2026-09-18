@@ -22,6 +22,7 @@
 // See LICENSE for the full license terms.
 
 export { DataTable } from './DataTable';
+export { RowNameColumnNotice } from './RowNameColumnNotice';
 export { SelectionTable } from './SelectionTable';
 export { ExportButton } from './ExportButton';
 export { PlotControls } from './PlotControls';

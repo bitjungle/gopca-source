@@ -165,6 +165,12 @@ func (r *Reader) parseAsNumeric(records [][]string, nullMap map[string]bool) (*D
 		startCol := 0
 		if r.opts.HasRowNames {
 			startCol = 1
+			// Keep the name of the column being consumed. It was discarded
+			// here, which left nothing downstream able to say which column
+			// became row names -- and the first column is taken whatever it
+			// holds, so a file with no identifier column silently loses its
+			// first variable and nothing could report it (#969).
+			data.RowNamesHeader = headerRow[0]
 		}
 
 		if startCol >= len(headerRow) {
@@ -304,10 +310,12 @@ func (r *Reader) parseAsString(records [][]string, nullMap map[string]bool) (*Da
 		headerRow := records[currentRow]
 		currentRow++
 
-		// Extract column names
+		// Extract column names. The row-name column's own header is kept for
+		// the same reason as in readNumeric above (#969).
 		startCol := 0
 		if r.opts.HasRowNames {
 			startCol = 1
+			data.RowNamesHeader = headerRow[0]
 		}
 
 		if startCol >= len(headerRow) {
@@ -391,6 +399,7 @@ func (r *Reader) parseAsMixed(records [][]string, nullMap map[string]bool) (*Dat
 		Matrix:             csvData.Matrix,
 		Headers:            csvData.Headers,
 		RowNames:           csvData.RowNames,
+		RowNamesHeader:     csvData.RowNamesHeader,
 		MissingMask:        csvData.MissingMask,
 		Rows:               csvData.Rows,
 		Columns:            csvData.Columns,
@@ -423,9 +432,14 @@ func (r *Reader) parseAsMixedWithTargets(records [][]string, nullMap map[string]
 
 	// Convert to unified Data structure
 	data := &Data{
-		Matrix:               csvData.Matrix,
-		Headers:              csvData.Headers,
-		RowNames:             csvData.RowNames,
+		Matrix:   csvData.Matrix,
+		Headers:  csvData.Headers,
+		RowNames: csvData.RowNames,
+		// types.ParseCSVMixedWithTargets populates this and the conversion used
+		// to drop it, which is the same defect as #969 one layer down: a field
+		// maintained on one side of a hand-written struct copy and silently not
+		// carried across it.
+		RowNamesHeader:       csvData.RowNamesHeader,
 		MissingMask:          csvData.MissingMask,
 		Rows:                 csvData.Rows,
 		Columns:              csvData.Columns,

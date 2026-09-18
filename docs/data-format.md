@@ -60,24 +60,30 @@ Patient002,168.2,65.1,28
 Control001,172.0,70.5,31
 ```
 
-> **A file with no identifier column loses its first variable.** Because the
-> first column is taken as row names, a file that begins `Si,Fe,Cu` is analysed
-> on `Fe` and `Cu` alone, with the silicon values serving as labels. Nothing
-> reports this — the analysis runs and the scores plot is perfectly ordinary.
+> **A file with no identifier column would lose its first variable.** Because
+> the first column is taken as row names, a file that begins `Si,Fe,Cu` would be
+> analysed on `Fe` and `Cu` alone, with the silicon values serving as labels.
 >
-> **On the command line, say so with `--no-index`:**
+> Both interfaces let you say otherwise, and neither tries to guess. There is
+> nothing in a column's contents to guess from: a measurement column can have
+> entirely distinct values, and an identifier column is often `1, 2, 3`.
+>
+> **On the command line, `--no-index`:**
 >
 > ```bash
 > pca analyze --no-index measurements.csv
 > ```
 >
 > It is accepted by `analyze`, `regress`, `transform` and `validate`, and it says
-> "the first column contains data, not row names". Without it, every one of them
-> reads the first column as labels.
+> "the first column contains data, not row names".
 >
-> **In GoPCA Desktop there is no such switch**, so give the file an identifier
-> column before loading it. If you prepare your data in GoCSV you do not have to
-> think about it: a file never leaves GoCSV without one.
+> **In GoPCA Desktop, the Loaded Data panel** names the column that became row
+> names — `Row names taken from the first column: Si` — with a checkbox reading
+> **First column contains data, not row names**. Ticking it re-reads the file
+> with every column as a variable.
+>
+> If you prepare your data in GoCSV you need not think about it at all: a file
+> never leaves GoCSV without an identifier column.
 
 ## Column Types
 
@@ -311,7 +317,7 @@ This will report:
 For successful PCA analysis with GoPCA:
 
 1. ✅ Include a header row with column names
-2. ✅ First column is read as sample identifiers — include one, or pass `--no-index`, or your first variable becomes labels
+2. ✅ First column is read as sample identifiers — include one, or say otherwise with `--no-index` or the checkbox in the Loaded Data panel
 3. ✅ Use consistent CSV format (comma or semicolon)
 4. ✅ Ensure numeric data for PCA features
 5. ✅ Mark target columns with `#target` suffix
