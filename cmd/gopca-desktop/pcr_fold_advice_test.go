@@ -42,7 +42,7 @@ func TestFoldAdviceSpeaksTheFoldsMenusLanguage(t *testing.T) {
 	if !strings.Contains(message, "Leave one out") {
 		t.Errorf("advice does not name the menu entry a user can actually see: %s", message)
 	}
-	if !strings.Contains(message, "5 folds or fewer") {
+	if !strings.Contains(message, "Choose 5 folds") {
 		t.Errorf("advice does not offer the 5 folds that are available: %s", message)
 	}
 	// The CLI's vocabulary has no place in a window with no command line.
@@ -53,31 +53,63 @@ func TestFoldAdviceSpeaksTheFoldsMenusLanguage(t *testing.T) {
 	}
 }
 
-// Every fold count the menu offers must still be reachable. A message that
-// advised a value not on the menu is the defect restated.
-func TestFoldAdviceOffersACountTheMenuContains(t *testing.T) {
-	// The options in RegressionConfigSection.tsx, with 0 standing for "Leave one out".
-	menu := []int{5, 10, 20, 0}
-
-	for _, available := range []int{5, 10, 20} {
-		message := foldAdvice(&crossval.TooManyFolds{
-			Requested: 40, Available: available, Grouped: true,
-		})
-		wanted := fmt.Sprintf("%d folds or fewer", available)
-		if !strings.Contains(message, wanted) {
-			t.Errorf("advice for %d available folds does not say %q: %s",
-				available, wanted, message)
-			continue
-		}
-		reachable := false
-		for _, option := range menu {
-			if option != 0 && option <= available {
-				reachable = true
+// The advice must name a setting the Folds menu can actually express.
+//
+// The first version of this test only tried Available values that happened to be
+// menu entries (5, 10, 20) -- the three cases where any reasonable implementation
+// passes. It was written so it could not fail, and it did not: the code it was
+// guarding said "choose N folds or fewer" with N straight from the engine, which
+// with 3 groups recommends 3 when the smallest number on the menu is 5. The
+// values between and below the options are the whole of the test.
+func TestFoldAdviceNamesASettingTheMenuOffers(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		available int
+		want      string
+	}{
+		{"exactly a menu entry", 5, "Choose 5 folds"},
+		{"between two entries", 8, "Choose 5 folds"},
+		{"just below the largest", 19, "Choose 10 folds"},
+		{"above every entry", 40, "Choose 20 folds"},
+		{"below the smallest entry", 4, "only available setting"},
+		{"the fewest groups that can be split", 2, "only available setting"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			message := foldAdvice(&crossval.TooManyFolds{
+				Requested: 100, Available: tt.available, Grouped: true,
+			})
+			if !strings.Contains(message, tt.want) {
+				t.Errorf("advice for %d groups does not contain %q: %s",
+					tt.available, tt.want, message)
 			}
-		}
-		if !reachable {
-			t.Errorf("advice offers %d folds or fewer, but the menu has no such "+
-				"option -- only Leave one out would work: %s", available, message)
+			// Whatever number it names must be on the menu.
+			for _, option := range []int{1, 2, 3, 4, 6, 7, 8, 9, 11, 19, 40} {
+				unreachable := fmt.Sprintf("Choose %d folds", option)
+				if strings.Contains(message, unreachable) {
+					t.Errorf("advice names %d folds, which the menu cannot select: %s",
+						option, message)
+				}
+			}
+			// And it must never recommend more folds than can be honoured.
+			if selectable := largestSelectableFolds(tt.available); selectable > tt.available {
+				t.Errorf("largestSelectableFolds(%d) = %d, more than is available",
+					tt.available, selectable)
+			}
+		})
+	}
+}
+
+// "Leave one out" is always a way through, because one fold per group is always
+// honourable once there are at least two groups. The advice must therefore offer
+// it in every case, including the ones where a number is also available.
+func TestFoldAdviceAlwaysOffersLeaveOneOut(t *testing.T) {
+	for _, available := range []int{2, 4, 5, 8, 19, 40} {
+		message := foldAdvice(&crossval.TooManyFolds{
+			Requested: 100, Available: available, Grouped: true,
+		})
+		if !strings.Contains(message, `"Leave one out"`) {
+			t.Errorf("advice for %d groups does not offer Leave one out: %s",
+				available, message)
 		}
 	}
 }

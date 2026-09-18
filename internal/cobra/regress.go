@@ -632,8 +632,6 @@ func buildPCRConfig(opts *RegressOptions, data *pkgcsv.Data,
 	return config, nil
 }
 
-// parseFolds accepts a fold count or the word "loo".
-//
 // withFoldAdvice adds the way out of a too-many-folds error, in this command's
 // own vocabulary.
 //
@@ -653,6 +651,8 @@ func withFoldAdvice(err error) error {
 		err, tooMany.Available)
 }
 
+// parseFolds accepts a fold count or the word "loo".
+//
 // Leave-one-out is expressed as zero folds, which the engine reads as "as many
 // folds as there are groups". With the default grouping of one row per group that
 // is K-fold at K equal to the row count, so the two spellings describe one design
