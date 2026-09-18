@@ -138,6 +138,23 @@ func (p *PCRImpl) Fit(data types.Matrix, y []float64, config types.PCRConfig) (*
 		return nil, fmt.Errorf("PCA stage failed: %w", err)
 	}
 
+	// Attach the diagnostic limits, as RunPCAWithDiagnostics does for `pca
+	// analyze`. Without this the exported model carries "diagnostics": {} and
+	// nothing applying it can say whether a new sample resembles the calibration
+	// set -- which for a regression model is the artifact that most needs to
+	// (#977).
+	//
+	// The limits describe the PCA model as stored, which is fitted with kMax
+	// components rather than the count the regression retains. That is the same
+	// rule `analyze` follows -- limits for the model in the file -- and it keeps
+	// the two commands agreeing on identical input. A consumer reading them
+	// should take the component count from len(model.explained_variance), not
+	// from regression.components.
+	//
+	// Failures are non-fatal here for the same reason they are there: a missing
+	// diagnostic should not cost the caller a fitted model.
+	_ = AttachDiagnostics(pcaResult)
+
 	fit, err := fitScoreRegression(pcaResult.Scores, y, labelled, selected)
 	if err != nil {
 		return nil, fmt.Errorf("score-space regression failed: %w", err)
