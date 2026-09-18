@@ -280,7 +280,7 @@ func runRegress(opts *RegressOptions, inputFile string) error {
 	case "json":
 		return outputRegressJSON(result, data, inputFile, opts)
 	case "table", "":
-		if err := outputRegressTable(result, data, opts); err != nil {
+		if err := outputRegressTable(result, data, opts, config.PCA); err != nil {
 			return err
 		}
 	default:

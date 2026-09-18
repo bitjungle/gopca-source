@@ -330,7 +330,7 @@ func TestRegressReportsMetricDisagreement(t *testing.T) {
 			opts.OutputDir = ""
 
 			output, err := captureStdout(t, func() error {
-				return outputRegressTable(result, data, opts)
+				return outputRegressTable(result, data, opts, types.PCAConfig{MeanCenter: true})
 			})
 			if err != nil {
 				t.Fatalf("outputRegressTable: %v", err)
