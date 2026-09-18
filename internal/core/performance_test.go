@@ -264,8 +264,19 @@ func TestPCAPerformanceScaling(t *testing.T) {
 		times[i] = fastestFit(t, size.rows, size.cols)
 	}
 
-	// Check that time scaling is reasonable (not exponential)
-	// Time should increase less than quadratically with size
+	// Check that the cost does not grow explosively with the row count.
+	//
+	// With the column count fixed, the time is expected to grow roughly
+	// linearly with rows, and the measurements agree -- about 2.0x and 1.7x for
+	// each doubling here. The threshold below is set far above that on purpose:
+	// this is a smoke test against an accidental change of algorithmic shape,
+	// not a performance budget. It should fire when a doubling of the data
+	// costs eight times the work, and never when a change makes things 20%
+	// slower.
+	//
+	// The comment here used to say "less than quadratically" four lines above a
+	// cubic threshold. Two different claims about the same number, and neither
+	// matched what a reader would then measure.
 	for i := 1; i < len(times); i++ {
 		// A ratio of two measurements is only as good as its denominator, and a
 		// sub-millisecond baseline has a relative error large enough to swamp
@@ -281,7 +292,7 @@ func TestPCAPerformanceScaling(t *testing.T) {
 		ratio := float64(times[i]) / float64(times[i-1])
 		sizeRatio := float64(sizes[i].rows) / float64(sizes[i-1].rows)
 
-		// Allow up to cubic scaling (generous for safety)
+		// Cubic: one doubling of the data may cost up to eight times the time.
 		maxRatio := sizeRatio * sizeRatio * sizeRatio
 		if ratio > maxRatio {
 			t.Errorf("Performance scaling too poor: time increased by %.2fx for %.2fx size increase "+
