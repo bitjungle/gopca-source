@@ -41,6 +41,7 @@ export { MarkdownRenderer } from './components/MarkdownRenderer';
 export { TableOfContents } from './components/TableOfContents';
 export { toSlug, extractTextContent, extractHeadings } from './utils/tocUtils';
 export { isCategoryColumn, isTargetColumn, isLabelColumn } from './utils/columnMarkers';
+export { compareCellValues } from './utils/compareCellValues';
 export { FontSizeControl } from './components/FontSizeControl';
 export { LoadingSpinner } from './components/LoadingSpinner';
 export { ErrorBoundary } from './components/ErrorBoundary';

@@ -26,7 +26,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridReadyEvent, CellValueChangedEvent, GridApi, ColumnApi, ColumnResizedEvent } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import { useTheme, isCategoryColumn, isTargetColumn, isLabelColumn } from '@gopca/ui-components';
+import { useTheme, isCategoryColumn, isTargetColumn, isLabelColumn, compareCellValues } from '@gopca/ui-components';
 import { ExecuteDeleteRows, ExecuteDeleteColumns, ExecuteInsertRow, ExecuteInsertColumn, ExecuteToggleTargetColumn, ExecuteToggleCategoryColumn, ExecuteAddRowNumbers, ExecuteDuplicateRows, ExecuteSetRowNames, ExecuteMoveRowNamesIntoTable, CanUseAsRowNames, ExecuteReorderColumns } from '../../wailsjs/go/main/App';
 import { RenameDialog } from './RenameDialog';
 import { ConfirmDialog } from '@gopca/ui-components';
@@ -524,6 +524,9 @@ return 'text';
                 headerName: rowNamesHeader || '',
                 editable: true,
                 sortable: true,
+                // Cells are strings, so the default comparison is lexicographic
+                // and identifiers ran 1, 10, 100, 1000 rather than 1, 2, 3 (#963).
+                comparator: compareCellValues,
                 filter: true,
                 resizable: true,
                 minWidth: 100,
@@ -562,6 +565,11 @@ return 'text';
                 },
                 editable: true,
                 sortable: true,
+                // Every cell is a string, so without this a measurement column
+                // sorts as text: "7e-05" outranks "0.12" because '7' outranks
+                // '0', and sorting Zn descending to find the highest-zinc alloys
+                // put values 1,714x too small at the top (#963).
+                comparator: compareCellValues,
                 filter: true,
                 resizable: true,
                 minWidth: 80,
