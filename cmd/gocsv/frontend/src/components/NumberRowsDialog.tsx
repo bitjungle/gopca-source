@@ -21,7 +21,6 @@
 //
 // See LICENSE for the full license terms.
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogFooter } from '@gopca/ui-components';
 
