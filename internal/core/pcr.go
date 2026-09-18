@@ -556,6 +556,32 @@ func validatePCRInput(data types.Matrix, y []float64, config types.PCRConfig) er
 		return fmt.Errorf("unknown PCA method %q: expected svd or nipals", config.PCA.Method)
 	}
 
+	// Uncentred predictors are refused rather than quietly accepted.
+	//
+	// The fit succeeds either way and looks entirely normal -- on the Tecator
+	// spectra the training error differs in the fifth decimal -- which is what
+	// makes it worth refusing. Without centring the first component absorbs the
+	// mean of the data: its share of the retained eigenvalues there rises from
+	// 98.61% to 99.96%, so a component is spent describing where the samples sit
+	// rather than how they vary, while the intercept accounts for that offset at
+	// no cost. See Gallagher, O'Sullivan & Palacios (2020), The Effect of Data
+	// Centering on PCA Models, on why uncentred eigenvalues conflate the mean
+	// with the variance (#981).
+	//
+	// Uncentred PCA remains available for exploration, where it is a defensible
+	// choice; it is regression, with a response and an intercept, that leaves it
+	// no purpose.
+	//
+	// The wording names neither a flag nor a checkbox. The engine has two callers
+	// that spell their controls differently, and a remedy written here would be
+	// wrong for one of them (#973).
+	if !config.PCA.MeanCenter || config.PCA.ScaleOnly {
+		return fmt.Errorf("principal component regression requires mean-centred predictors: " +
+			"without centring the first component absorbs the mean of the data, so one " +
+			"retained component describes where the samples sit rather than how they vary, " +
+			"and the intercept already accounts for that offset. Turn mean centring on")
+	}
+
 	switch config.Selection.Mode {
 	case "fixed":
 		if config.Selection.Fixed < 0 {
