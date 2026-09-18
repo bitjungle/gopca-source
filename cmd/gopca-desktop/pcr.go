@@ -24,12 +24,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sort"
 	"strings"
 
 	"github.com/bitjungle/gopca/internal/core"
+	"github.com/bitjungle/gopca/internal/crossval"
 	"github.com/bitjungle/gopca/internal/utils"
 	"github.com/bitjungle/gopca/pkg/types"
 )
@@ -174,7 +176,7 @@ func (a *App) RunPCR(request PCRRequest) (response PCRResponse) {
 	engine := core.NewPCREngine()
 	result, err := engine.Fit(data, y, config)
 	if err != nil {
-		return PCRResponse{Success: false, Error: err.Error()}
+		return PCRResponse{Success: false, Error: foldAdvice(err)}
 	}
 
 	return PCRResponse{
@@ -540,4 +542,23 @@ func describePCRFit(result *types.PCRResult, missingInfo string) string {
 		}
 	}
 	return summary
+}
+
+// foldAdvice renders an engine error for this interface, adding the way out of a
+// too-many-folds error in the words the Folds menu actually uses.
+//
+// The engine names no remedy on purpose. Leave-one-out is K = 0 to the engine
+// and "--cv loo" to the CLI, which refuses 0 outright; here it is a menu entry
+// reading "Leave one out" whose value happens to be 0. The old engine message
+// advised "use 0", which named nothing a user of this window can see, since the
+// menu never shows the number (#973).
+//
+// Any other error is rendered unchanged.
+func foldAdvice(err error) string {
+	var tooMany *crossval.TooManyFolds
+	if !errors.As(err, &tooMany) {
+		return err.Error()
+	}
+	return fmt.Sprintf("%s. Choose %d folds or fewer, or \"Leave one out\".",
+		err.Error(), tooMany.Available)
 }
