@@ -510,12 +510,12 @@ When something *is* flagged, what to do about it is a judgement GoCSV cannot mak
 
 **Direct transfer:** click **Open in GoPCA**. The data is validated and passed across without an intermediate file.
 
-**Or export:** CSV keeps `#target` markers and is the most portable; Excel is convenient for sharing.
+**Or export:** CSV keeps `#target` markers and is the most portable; Excel is convenient for sharing. Either way the first column identifies the rows — see *Row names* in section 2 — so GoPCA has something to label your points with.
 
 **Before you hand over:**
 
 - [ ] Rows are samples, columns are variables — transpose if not
-- [ ] The row-name column identifies your samples, and its values are unique
+- [ ] The row-name column identifies your samples, and its values are unique — if the file has none, the export supplies numbers, but a label that says *what* a sample is beats one that says only *which*
 - [ ] Missing values dealt with, or NIPALS chosen in GoPCA
 - [ ] Columns with no variation removed
 - [ ] Categorical variables encoded, if you want them in the analysis
