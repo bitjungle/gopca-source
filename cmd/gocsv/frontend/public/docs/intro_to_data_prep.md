@@ -128,9 +128,9 @@ Two commands, both on the right-click menu of any column header:
 >
 > **Build one from what you have.** **Combine Columns** will join a site and a date into something unique, and **Split Column** will pull an identifier out of a code that has one buried in it. Prefer this when the pieces are there — a label that says *what* a point is beats one that says only *which*.
 >
-> **Number the rows.** Right-click any column header and choose **Number the Rows — adds Sample_ID, saved as the first column**. Every row gets `1`, `2`, `3` …, unique by construction, so the rule is satisfied immediately.
+> **Number the rows.** Right-click any column header and choose **Number the Rows…**. A small dialog asks where to start and what to count by, and shows you the identifiers before it writes them. Leave both at 1 and every row gets `1`, `2`, `3` …, unique by construction. Change the start to 101 if that is how your samples are numbered, or the step to 2 if that is how they were taken.
 >
-> One click is the whole step. Inside GoCSV the numbers are row names rather than a column, so nothing new enters the analysis and the column count does not change — and **when you save, they are written as the first column of the file**, which is where GoPCA reads row names from. There is no second step to "put them into the table"; saving does it. Use this when the file genuinely has nothing to build an identifier from.
+> Inside GoCSV the numbers are row names rather than a column, so nothing new enters the analysis and the column count does not change — and **when you save, they are written as the first column of the file**, which is where GoPCA reads row names from. There is no second step to "put them into the table"; saving does it. Use this when the file genuinely has nothing to build an identifier from and you want a say in the numbering.
 >
 > **Do nothing, and let the export handle it.** If you export a file that still has no row names — as CSV, as Excel, or by handing it straight to GoPCA — GoCSV writes a `Sample_ID` column of `1`, `2`, `3` … as the first column for you, and says that it did. Nothing is added to the table you are editing: the column is in the file that left, not in the grid you are looking at.
 >
