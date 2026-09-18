@@ -409,6 +409,11 @@ func classifyColumn(data *FileData, header string, values []string) {
 // it populates those two fields directly, which is both simpler and avoids
 // creating a numeric column that would enter the PCA if it were ever moved back
 // into the table.
+//
+// Since #966 an export invents 1..n by itself when the file has nothing, so the
+// plain case no longer needs a command at all. What is left for this one is the
+// numbering an export cannot guess: a run that starts at 101, or steps by
+// something other than 1 (#967).
 type AddRowNumbersCommand struct {
 	app    *App
 	names  []string
@@ -420,7 +425,13 @@ type AddRowNumbersCommand struct {
 // Overwriting existing identifiers is destructive in a way undo does not excuse:
 // the user would lose labels that mean something in exchange for ordinals that
 // do not. Move Row Names into Table first if that is genuinely what is wanted.
-func NewAddRowNumbersCommand(app *App, data *FileData) (*AddRowNumbersCommand, error) {
+//
+// start is the number given to the first row and increment the step between
+// consecutive ones; 1 and 1 reproduce the plain sequence. An increment of zero
+// is refused because it would give every row the same name, and row names must
+// be distinct -- the rule checkRowNameCandidate enforces everywhere else. A
+// negative increment is allowed: it counts down, and the names stay distinct.
+func NewAddRowNumbersCommand(app *App, data *FileData, start, increment int) (*AddRowNumbersCommand, error) {
 	if data == nil || len(data.Data) == 0 {
 		return nil, fmt.Errorf("this file has no rows")
 	}
@@ -428,10 +439,14 @@ func NewAddRowNumbersCommand(app *App, data *FileData) (*AddRowNumbersCommand, e
 		return nil, fmt.Errorf("this file already has row names (%q). Use Move Row Names "+
 			"into Table first if you want to replace them", defaultRowNameHeader(data.RowNamesHeader))
 	}
+	if increment == 0 {
+		return nil, fmt.Errorf("the increment cannot be 0: every row would get the same " +
+			"number, and row names have to tell the rows apart")
+	}
 
 	names := make([]string, len(data.Data))
 	for i := range data.Data {
-		names[i] = strconv.Itoa(i + 1)
+		names[i] = strconv.Itoa(start + i*increment)
 	}
 	return &AddRowNumbersCommand{
 		app:    app,

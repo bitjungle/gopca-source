@@ -38,6 +38,7 @@ export { FilterRowsDialog } from './FilterRowsDialog';
 export { AggregateRowsDialog } from './AggregateRowsDialog';
 export { DocumentationViewer } from './DocumentationViewer';
 export { RenameDialog } from './RenameDialog';
+export { NumberRowsDialog } from './NumberRowsDialog';
 export { AboutDialog } from './AboutDialog';
 export { LoadFromUrlDialog } from './LoadFromUrlDialog';
 export {

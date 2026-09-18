@@ -46,7 +46,7 @@ func numberlessFixture(rows int) *FileData {
 
 func TestAddRowNumbersGivesEveryRowAUniqueName(t *testing.T) {
 	data := numberlessFixture(5)
-	cmd, err := NewAddRowNumbersCommand(&App{}, data)
+	cmd, err := NewAddRowNumbersCommand(&App{}, data, 1, 1)
 	if err != nil {
 		t.Fatalf("NewAddRowNumbersCommand: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestAddRowNumbersAddsNoColumn(t *testing.T) {
 	// Row names are not a column. Inserting one would put a numeric sequence in
 	// the table, where it would enter the PCA -- and dominate it.
 	data := numberlessFixture(4)
-	cmd, _ := NewAddRowNumbersCommand(&App{}, data)
+	cmd, _ := NewAddRowNumbersCommand(&App{}, data, 1, 1)
 	if err := cmd.Execute(data); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestAddRowNumbersRefusesWhenRowNamesExist(t *testing.T) {
 	data.RowNames = []string{"alpha", "beta", "gamma"}
 	data.RowNamesHeader = "SampleName"
 
-	_, err := NewAddRowNumbersCommand(&App{}, data)
+	_, err := NewAddRowNumbersCommand(&App{}, data, 1, 1)
 	if err == nil {
 		t.Fatal("accepted a file that already has row names")
 	}
@@ -111,7 +111,7 @@ func TestAddRowNumbersRefusesWhenRowNamesExist(t *testing.T) {
 func TestAddRowNumbersAvoidsAHeaderCollision(t *testing.T) {
 	data := numberlessFixture(3)
 	data.Headers = []string{"Sample_ID", "B"}
-	cmd, err := NewAddRowNumbersCommand(&App{}, data)
+	cmd, err := NewAddRowNumbersCommand(&App{}, data, 1, 1)
 	if err != nil {
 		t.Fatalf("NewAddRowNumbersCommand: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestAddRowNumbersAvoidsAHeaderCollision(t *testing.T) {
 
 func TestAddRowNumbersUndo(t *testing.T) {
 	data := numberlessFixture(3)
-	cmd, _ := NewAddRowNumbersCommand(&App{}, data)
+	cmd, _ := NewAddRowNumbersCommand(&App{}, data, 1, 1)
 	if err := cmd.Execute(data); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -135,7 +135,79 @@ func TestAddRowNumbersUndo(t *testing.T) {
 }
 
 func TestAddRowNumbersRefusesAnEmptyFile(t *testing.T) {
-	if _, err := NewAddRowNumbersCommand(&App{}, &FileData{}); err == nil {
+	if _, err := NewAddRowNumbersCommand(&App{}, &FileData{}, 1, 1); err == nil {
 		t.Error("accepted a file with no rows")
+	}
+}
+
+// Issue #967: the numbering is the user's to choose.
+//
+// The defaults reproduce the plain sequence, which is what every test above
+// checks. These cover the cases an export cannot guess for itself and which are
+// therefore the reason the command still exists at all after #966.
+
+func TestAddRowNumbersHonoursStartAndIncrement(t *testing.T) {
+	tests := []struct {
+		name      string
+		start     int
+		increment int
+		want      string
+	}{
+		{"defaults reproduce the plain sequence", 1, 1, "1,2,3,4"},
+		{"a run that starts at 101", 101, 1, "101,102,103,104"},
+		{"every second number", 1, 2, "1,3,5,7"},
+		{"both at once", 200, 5, "200,205,210,215"},
+		{"counting down", 10, -1, "10,9,8,7"},
+		{"starting below zero", -2, 1, "-2,-1,0,1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := numberlessFixture(4)
+			cmd, err := NewAddRowNumbersCommand(&App{}, data, tt.start, tt.increment)
+			if err != nil {
+				t.Fatalf("NewAddRowNumbersCommand: %v", err)
+			}
+			if err := cmd.Execute(data); err != nil {
+				t.Fatalf("Execute: %v", err)
+			}
+			if got := strings.Join(data.RowNames, ","); got != tt.want {
+				t.Errorf("row names = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+// An increment of zero would give every row the same name. Row names exist to
+// tell rows apart, and checkRowNameCandidate rejects repeats everywhere else, so
+// the command must not be the one place that produces them.
+func TestAddRowNumbersRefusesAZeroIncrement(t *testing.T) {
+	data := numberlessFixture(4)
+	_, err := NewAddRowNumbersCommand(&App{}, data, 1, 0)
+	if err == nil {
+		t.Fatal("a zero increment was accepted")
+	}
+	if !strings.Contains(err.Error(), "increment") {
+		t.Errorf("error does not say what was wrong: %v", err)
+	}
+}
+
+// Whatever start and increment are chosen, the result still has to satisfy the
+// rule that governs every other row-name column in the application. Asserting
+// the strings alone would not check that -- this runs the real gate.
+func TestAddRowNumbersAlwaysProducesUsableRowNames(t *testing.T) {
+	for _, pair := range [][2]int{{1, 1}, {101, 1}, {1, 2}, {10, -1}, {-5, 3}} {
+		data := numberlessFixture(6)
+		cmd, err := NewAddRowNumbersCommand(&App{}, data, pair[0], pair[1])
+		if err != nil {
+			t.Fatalf("start=%d increment=%d: %v", pair[0], pair[1], err)
+		}
+		if err := cmd.Execute(data); err != nil {
+			t.Fatalf("Execute: %v", err)
+		}
+		if check := checkRowNameCandidate(data.RowNames); !check.OK {
+			t.Errorf("start=%d increment=%d produced unusable row names: %s",
+				pair[0], pair[1], check.Reason)
+		}
 	}
 }

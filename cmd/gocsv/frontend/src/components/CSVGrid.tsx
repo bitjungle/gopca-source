@@ -29,6 +29,7 @@ import 'ag-grid-community/styles/ag-theme-quartz.css';
 import { useTheme, isCategoryColumn, isTargetColumn, isLabelColumn, compareCellValues } from '@gopca/ui-components';
 import { ExecuteDeleteRows, ExecuteDeleteColumns, ExecuteInsertRow, ExecuteInsertColumn, ExecuteToggleTargetColumn, ExecuteToggleCategoryColumn, ExecuteAddRowNumbers, ExecuteDuplicateRows, ExecuteSetRowNames, ExecuteMoveRowNamesIntoTable, CanUseAsRowNames, ExecuteReorderColumns } from '../../wailsjs/go/main/App';
 import { RenameDialog } from './RenameDialog';
+import { NumberRowsDialog } from './NumberRowsDialog';
 import { ConfirmDialog } from '@gopca/ui-components';
 import {
     TargetColumnIcon,
@@ -175,6 +176,9 @@ export const CSVGrid = forwardRef<any, CSVGridProps>(({
         currentName: string;
     }>({ isOpen: false, colIndex: -1, currentName: '' });
 
+    // Number-the-rows dialog state (#967)
+    const [numberRowsDialogOpen, setNumberRowsDialogOpen] = useState(false);
+
     // Confirm dialog state
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
@@ -270,24 +274,20 @@ return 'text';
                     // row names already exist, so gating this on hasRowNames would
                     // hide it in exactly the situation it is for (#923).
                     //
-                    // The label says what the user ends up with rather than what
-                    // the command does internally. "Number the Rows" describes a
-                    // mechanism, and a tester who already had 1, 2, 3 in the
-                    // position gutter read it as doing nothing -- then looked for
-                    // a second command to get the identifiers into the file,
-                    // which is not needed because saving writes them as column 1
-                    // (#949). The em-dash form matches the explanatory label on
-                    // Use as Row Names directly above.
-                    label: 'Number the Rows — adds Sample_ID, saved as the first column',
-                    action: async () => {
-                        if (fileData) {
-                            try {
-                                const updatedData = await ExecuteAddRowNumbers(fileData);
-                                onRefresh?.(updatedData);
-                            } catch (error) {
-                                console.error('Error numbering rows:', error);
-                            }
-                        }
+                    // The trailing ellipsis is the standing convention for an
+                    // item that opens a dialog rather than acting at once.
+                    //
+                    // The label used to carry its own explanation, because a
+                    // tester who already had 1, 2, 3 in the position gutter read
+                    // the command as doing nothing (#949). The dialog now makes
+                    // that case better than a label could: it previews the
+                    // identifiers it is about to write. And since #966 an export
+                    // supplies 1..n by itself, so the sentence the old label
+                    // added -- that saving writes them as column 1 -- is true of
+                    // every export and belongs in the help text, not here.
+                    label: 'Number the Rows…',
+                    action: () => {
+                        setNumberRowsDialogOpen(true);
                     },
                     icon: <RowNameMenuIcon />
                 }]
@@ -1024,6 +1024,22 @@ return;
                     onClose={() => setContextMenu(null)}
                 />
             )}
+
+            <NumberRowsDialog
+                isOpen={numberRowsDialogOpen}
+                onClose={() => setNumberRowsDialogOpen(false)}
+                rowCount={data.length}
+                onConfirm={async (start, increment) => {
+                    if (fileData) {
+                        try {
+                            const updatedData = await ExecuteAddRowNumbers(fileData, start, increment);
+                            onRefresh?.(updatedData);
+                        } catch (error) {
+                            console.error('Error numbering rows:', error);
+                        }
+                    }
+                }}
+            />
 
             {/* Rename dialog */}
             <RenameDialog
