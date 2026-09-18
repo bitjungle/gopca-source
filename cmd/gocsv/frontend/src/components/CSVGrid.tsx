@@ -524,7 +524,8 @@ return 'text';
                 headerName: rowNamesHeader || '',
                 editable: true,
                 // The exception to defaultColDef: no custom header here, so
-                // ag-grid's own handles the click and this column really sorts.
+                // ag-grid's own header handles the click and this column really
+                // sorts.
                 sortable: true,
                 // Cells are strings, so the default comparison is lexicographic
                 // and identifiers ran 1, 10, 100, 1000 rather than 1, 2, 3 (#963).
@@ -738,9 +739,14 @@ classes.push('target-header');
         //
         // The row-name column opts back in explicitly: it has no custom header,
         // so it sorts, and it is the one column where order helps -- finding a
-        // sample by identifier. Row order does not affect a PCA model in any
-        // case, since the mean, covariance and eigenvectors are all invariant
-        // to it.
+        // sample by identifier.
+        //
+        // Little is lost by not sorting the rest: row order does not affect an
+        // ordinary PCA model, because the mean, covariance and eigenvectors are
+        // all invariant to it and scores come back in input order. Temporal PCA
+        // is the exception -- it embeds the rows in time lags, so there the
+        // order is data rather than presentation, and reordering would change
+        // the model rather than just the view.
         sortable: false,
         filter: true,
         resizable: true
