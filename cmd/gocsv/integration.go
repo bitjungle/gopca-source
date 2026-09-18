@@ -163,7 +163,12 @@ func (a *App) OpenInGoPCA(data *FileData) error {
 func writeGoPCAExport(out io.Writer, data *FileData) error {
 	writer := csv.NewWriter(out)
 
-	// Write headers with row name column if present
+	// Write headers with row name column if present.
+	//
+	// Whether the identifiers were invented is discarded here, unlike in the
+	// two Save paths, which report it so the frontend can say a column was
+	// added. This one hands off to another application that takes focus
+	// immediately, so a banner left behind in GoCSV would be read by nobody.
 	rowNameHeader, rowIDs, _ := exportRowIdentifiers(data)
 	headers := data.Headers
 	if len(rowIDs) > 0 {
