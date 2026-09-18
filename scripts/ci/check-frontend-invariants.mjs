@@ -115,8 +115,9 @@ function guarded(guard, label) {
     if (end === -1) {
         return `the ${guard} guard is unterminated`;
     }
-    // Prefix, not the whole label: these carry an explanatory tail after an
-    // em-dash, and the guard is about which branch the entry sits in.
+    // Prefix, not the whole label: one of these carries an explanatory tail
+    // after an em-dash and the other a trailing ellipsis, and the guard is about
+    // which branch the entry sits in, not how it is worded.
     //
     // Existence is checked across the whole file before position is, because the
     // two cases need different fixes: a renamed entry needs this check updating,
@@ -135,7 +136,7 @@ function guarded(guard, label) {
 }
 
 for (const f of [
-    guarded('!hasRowNames', 'Number the Rows —'),
+    guarded('!hasRowNames', 'Number the Rows…'),
     guarded('hasRowNames', 'Move Row Names into Table'),
 ]) {
     if (f) failures.push(f);
