@@ -97,12 +97,12 @@
     },
     "export-csv": {
       "title": "Export as CSV",
-      "text": "Save edited data as CSV file with current formatting.",
+      "text": "Save edited data as CSV file with current formatting. The first column always identifies the rows: whatever the file arrived with, whatever you assigned, or row numbers written as Sample_ID if the file has neither. Row names label the points in a GoPCA scores plot.",
       "category": "export"
     },
     "export-excel": {
       "title": "Export as Excel",
-      "text": "Save edited data as Excel file with formatting preserved.",
+      "text": "Save edited data as Excel file with formatting preserved. The first column always identifies the rows: whatever the file arrived with, whatever you assigned, or row numbers written as Sample_ID if the file has neither.",
       "category": "export"
     },
     "theme-toggle": {

@@ -25,6 +25,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -166,4 +167,58 @@ func (a *App) CanUseAsRowNames(data *FileData, colIndex int) RowNameCheck {
 		return RowNameCheck{Reason: "no such column"}
 	}
 	return checkRowNameCandidate(columnValues(data, colIndex))
+}
+
+// syntheticRowIDHeader names the identifier column GoCSV invents for a file that
+// has none. It is shared with AddRowNumbersCommand so a column the user asked
+// for by hand and one an export supplied by itself are called the same thing.
+const syntheticRowIDHeader = "Sample_ID"
+
+// ExportResult reports what an export did beyond writing the rows out.
+type ExportResult struct {
+	// SyntheticRowIDHeader names the identifier column the export invented
+	// because the file carried none, and is empty when the file supplied its
+	// own. The frontend says so when it is set: adding a column to someone's
+	// file is not a thing to do quietly.
+	SyntheticRowIDHeader string `json:"syntheticRowIDHeader"`
+}
+
+// exportRowIdentifiers returns the row-identifier column an export should write.
+//
+// Row names label the points in a GoPCA scores plot, so a file that leaves GoCSV
+// without them produces an unlabelled plot -- and the user finds that out only
+// after the analysis has run. Three sources can supply them, in order of
+// preference: what the loader found in the file, what the user assigned with Use
+// as Row Names or Number the Rows, and failing both, numbers invented here.
+//
+// The third source is why this function exists. It applies only when the file
+// has no row names at all, which after #904 means nothing in the file could
+// serve as them.
+//
+// Nothing is written back into data. Every write in GoCSV is an export -- there
+// is no in-place Save -- so an invented column belongs in the output, not in the
+// document being edited: no undo entry, no dirty flag, and the grid does not
+// move under the user. Re-importing an exported file takes the column straight
+// back as row names, so the round trip is stable.
+//
+// header comes back empty when the file's own row names carried no header of
+// their own. That is the blank-header convention #859 preserved deliberately,
+// and each export path keeps its own substitute for it; only the invented column
+// is named the same everywhere.
+func exportRowIdentifiers(data *FileData) (header string, names []string, synthesized bool) {
+	if data == nil {
+		return "", nil, false
+	}
+	if len(data.RowNames) > 0 {
+		return data.RowNamesHeader, data.RowNames, false
+	}
+	if len(data.Data) == 0 {
+		return "", nil, false
+	}
+
+	names = make([]string, len(data.Data))
+	for i := range names {
+		names[i] = strconv.Itoa(i + 1)
+	}
+	return uniqueHeader(data.Headers, syntheticRowIDHeader), names, true
 }

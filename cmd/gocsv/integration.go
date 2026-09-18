@@ -26,6 +26,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -128,39 +129,8 @@ func (a *App) OpenInGoPCA(data *FileData) error {
 	}
 	defer file.Close()
 
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	// Write headers with row name column if present
-	headers := data.Headers
-	if len(data.RowNames) > 0 {
-		// Carry the row-name column's own header through to GoPCA. "Row" stays
-		// the fallback for files that had no name there, which is the common
-		// convention and what every dataset in testdata/ uses (#859).
-		rowNameHeader := data.RowNamesHeader
-		if rowNameHeader == "" {
-			rowNameHeader = "Row"
-		}
-		headers = append([]string{rowNameHeader}, headers...)
-	}
-	if err := writer.Write(headers); err != nil {
-		return fmt.Errorf("failed to write headers: %w", err)
-	}
-
-	// Write data rows
-	for i, row := range data.Data {
-		rowData := row
-		if len(data.RowNames) > 0 && i < len(data.RowNames) {
-			rowData = append([]string{data.RowNames[i]}, row...)
-		}
-		if err := writer.Write(rowData); err != nil {
-			return fmt.Errorf("failed to write row %d: %w", i+1, err)
-		}
-	}
-
-	writer.Flush()
-	if err := writer.Error(); err != nil {
-		return fmt.Errorf("failed to flush CSV writer: %w", err)
+	if err := writeGoPCAExport(file, data); err != nil {
+		return err
 	}
 
 	// Launch GoPCA with the file using the shared integration package
@@ -178,6 +148,54 @@ func (a *App) OpenInGoPCA(data *FileData) error {
 		os.Remove(tempFile)
 	}()
 
+	return nil
+}
+
+// writeGoPCAExport writes the handoff file GoPCA Desktop is launched with.
+//
+// This is the path that matters most for row identifiers: they are what labels
+// the points in a scores plot, so a handoff without them produces a plot whose
+// points cannot be told apart. exportRowIdentifiers supplies numbers when the
+// file carries nothing that can serve (#966).
+//
+// Split out of OpenInGoPCA so it can be tested -- OpenInGoPCA itself launches
+// another application and cannot be.
+func writeGoPCAExport(out io.Writer, data *FileData) error {
+	writer := csv.NewWriter(out)
+
+	// Write headers with row name column if present
+	rowNameHeader, rowIDs, _ := exportRowIdentifiers(data)
+	headers := data.Headers
+	if len(rowIDs) > 0 {
+		// Carry the row-name column's own header through to GoPCA. "Row" stays
+		// the fallback for files that had no name there, which is the common
+		// convention and what every dataset in testdata/ uses (#859). An
+		// invented column is never blank, so that fallback now applies only to
+		// a file's own names.
+		if rowNameHeader == "" {
+			rowNameHeader = "Row"
+		}
+		headers = append([]string{rowNameHeader}, headers...)
+	}
+	if err := writer.Write(headers); err != nil {
+		return fmt.Errorf("failed to write headers: %w", err)
+	}
+
+	// Write data rows
+	for i, row := range data.Data {
+		rowData := row
+		if i < len(rowIDs) {
+			rowData = append([]string{rowIDs[i]}, row...)
+		}
+		if err := writer.Write(rowData); err != nil {
+			return fmt.Errorf("failed to write row %d: %w", i+1, err)
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return fmt.Errorf("failed to flush CSV writer: %w", err)
+	}
 	return nil
 }
 

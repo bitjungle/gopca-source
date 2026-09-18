@@ -436,7 +436,7 @@ func NewAddRowNumbersCommand(app *App, data *FileData) (*AddRowNumbersCommand, e
 	return &AddRowNumbersCommand{
 		app:    app,
 		names:  names,
-		header: uniqueHeader(data.Headers, "Sample_ID"),
+		header: uniqueHeader(data.Headers, syntheticRowIDHeader),
 	}, nil
 }
 
