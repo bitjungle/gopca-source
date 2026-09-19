@@ -47,9 +47,18 @@ func TestDescribePreprocessing(t *testing.T) {
 			"mean centring, standard scaling",
 		},
 		{
-			"robust",
+			// Robust scaling centres on the median in its own branch, so "mean
+			// centring" would be wrong here even though the flag is set.
+			"robust with centring nominally on",
 			types.PCAConfig{MeanCenter: true, RobustScale: true},
-			"mean centring, robust scaling (median/MAD)",
+			"robust scaling (centred on the median, divided by the MAD)",
+		},
+		{
+			// And the data is still centred -- on the median -- with the flag off.
+			// Reporting "without centring" here would be the same error inverted.
+			"robust with centring nominally off",
+			types.PCAConfig{RobustScale: true},
+			"robust scaling (centred on the median, divided by the MAD)",
 		},
 		{
 			"scale only is one step, not a scaling plus a silent absence",
@@ -112,6 +121,8 @@ func TestDescribePreprocessingDistinguishesEveryOption(t *testing.T) {
 		"none":        {},
 	}
 
+	// Robust scaling appears once: with the flag on or off the branch taken is
+	// identical, so one description is correct rather than a collapsed distinction.
 	seen := make(map[string]string, len(configs))
 	for name, config := range configs {
 		description := describePreprocessing(config)

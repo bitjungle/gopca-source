@@ -65,21 +65,27 @@ func describePreprocessing(config types.PCAConfig) string {
 			config.SavGolWindow, config.SavGolPolyOrder, config.SavGolDeriv))
 	}
 
-	// Column statistics last. ScaleOnly is scaling without centring, so it is
-	// reported as one step rather than as a scaling plus a silent absence.
+	// Column statistics last, and the branches below mirror the precedence in
+	// Preprocessor.Transform rather than the flags as requested.
+	//
+	// Those are not the same thing. Robust scaling takes its own branch and
+	// centres on the *median* whatever MeanCenter says -- so a robust run is
+	// centred even with centring nominally off, and a robust run with centring
+	// nominally on does no *mean* centring. Scale-only likewise skips centring
+	// while MeanCenter may still be set. Describing the request rather than the
+	// branch would put this report in the same position as the reports it
+	// exists to replace.
 	switch {
+	case config.RobustScale:
+		steps = append(steps, "robust scaling (centred on the median, divided by the MAD)")
 	case config.ScaleOnly:
 		steps = append(steps, "variance scaling without centring")
 	case config.MeanCenter && config.StandardScale:
 		steps = append(steps, "mean centring", "standard scaling")
-	case config.MeanCenter && config.RobustScale:
-		steps = append(steps, "mean centring", "robust scaling (median/MAD)")
 	case config.MeanCenter:
 		steps = append(steps, "mean centring")
 	case config.StandardScale:
 		steps = append(steps, "standard scaling without centring")
-	case config.RobustScale:
-		steps = append(steps, "robust scaling without centring")
 	}
 
 	if len(steps) == 0 {
