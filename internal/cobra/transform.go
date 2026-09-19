@@ -264,7 +264,14 @@ func runTransform(opts *TransformOptions, modelFile, inputFile string) error {
 	case "json":
 		return outputTransformJSON(result, data, inputFile, opts.OutputDir, fits, limits)
 	default: // table
-		return outputTransformTable(result, data, fits, limits)
+		if err := outputTransformTable(result, data, fits, limits); err != nil {
+			return err
+		}
+		// Once, here, rather than inside each table that happens to print. A
+		// model with a regression block prints two tables, and the summary
+		// belongs to the run rather than to either of them.
+		printFitSummary(fits, limits)
+		return nil
 	}
 }
 
@@ -305,11 +312,7 @@ func printTransformPredictions(model *types.RegressionModel, predictions []float
 
 	fmt.Printf("\nPredicted %s\n", model.Response)
 	fmt.Println("──────────────────────────────────────────────────────────────")
-	if limits.HasT2 || limits.HasRSS {
-		fmt.Printf("  %-24s %16s %10s %10s\n", "Sample", "Predicted", "T²", "Q")
-	} else {
-		fmt.Printf("  %-24s %16s\n", "Sample", "Predicted")
-	}
+	fmt.Printf("  %-24s %16s %10s %10s\n", "Sample", "Predicted", "T²", "Q")
 
 	shown := len(predictions)
 	if shown > maxListedRows {
@@ -320,7 +323,7 @@ func printTransformPredictions(model *types.RegressionModel, predictions []float
 		if i < len(data.RowNames) && data.RowNames[i] != "" {
 			name = data.RowNames[i]
 		}
-		if i < len(fits) && (limits.HasT2 || limits.HasRSS) {
+		if i < len(fits) {
 			mark := ""
 			if fits[i].Outside() {
 				mark = "  outside the model"
@@ -334,8 +337,6 @@ func printTransformPredictions(model *types.RegressionModel, predictions []float
 	if len(predictions) > shown {
 		fmt.Printf("  ... %d more rows\n", len(predictions)-shown)
 	}
-
-	printFitSummary(fits, limits)
 
 	fmt.Printf("\n  Model: %d components, RMSEC %.6g", model.Components, model.RMSEC)
 	if model.Validation != nil {
@@ -393,7 +394,13 @@ func outputTransformTable(result *types.PCAResult, data *pkgcsv.Data,
 	// deserves to say how well it fitted. Without these columns the only output
 	// carrying a verdict would be the one that happens to predict a response
 	// (#978).
-	reportFit := limits.HasT2 || limits.HasRSS
+	//
+	// The statistics are shown whenever they were computed, which is always;
+	// only the verdict needs a limit to compare against. Hiding T² and Q for a
+	// model that carries no limits would withhold a number the reader can still
+	// use -- comparing samples against each other needs no threshold -- and
+	// would make the table disagree with the JSON, which reports them either way.
+	reportFit := true
 
 	// Print headers
 	fmt.Printf("%-15s", "Sample_ID")
@@ -426,7 +433,6 @@ func outputTransformTable(result *types.PCAResult, data *pkgcsv.Data,
 		fmt.Println()
 	}
 
-	printFitSummary(fits, limits)
 	return nil
 }
 

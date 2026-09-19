@@ -247,13 +247,24 @@ func measuredResponseFrom(data *pkgcsv.Data, response string) ([]float64, bool) 
 	if values, ok := data.NumericTargetColumns[response]; ok {
 		return values, true
 	}
-	bare := strings.TrimSuffix(strings.TrimSpace(response), "#target")
+	want := bareResponseName(response)
 	for name, values := range data.NumericTargetColumns {
-		if strings.TrimSuffix(strings.TrimSpace(name), "#target") == bare {
+		if bareResponseName(name) == want {
 			return values, true
 		}
 	}
 	return nil, false
+}
+
+// bareResponseName strips the target marker and the space that may precede it.
+//
+// The marker is documented in two spellings -- "Response#target" and
+// "Response #target" -- so trimming the suffix alone leaves a trailing space on
+// one of them and the comparison silently fails. Silently is the problem: the
+// response column is present, the predictions are printed, and the error figures
+// are simply never computed, with nothing to say why.
+func bareResponseName(name string) string {
+	return strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(name), "#target"))
 }
 
 // printPredictionError reports how well the predictions matched, and splits the

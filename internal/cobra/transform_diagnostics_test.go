@@ -169,3 +169,29 @@ func TestMeasuredResponseFromToleratesTheMarker(t *testing.T) {
 		t.Error("a nil dataset reported a response")
 	}
 }
+
+// The marker is documented in two spellings, "Response#target" and
+// "Response #target". Trimming the suffix without trimming the space it may
+// leave behind made the second one miss, and missing was silent: predictions
+// printed, error figures never computed, nothing saying why.
+func TestMeasuredResponseFromMatchesTheSpacedMarker(t *testing.T) {
+	for _, header := range []string{"Fat#target", "Fat #target", " Fat#target "} {
+		data := &pkgcsv.Data{NumericTargetColumns: map[string][]float64{header: {1, 2}}}
+		for _, response := range []string{"Fat", "Fat#target", "Fat #target"} {
+			if _, ok := measuredResponseFrom(data, response); !ok {
+				t.Errorf("header %q did not match response %q", header, response)
+			}
+		}
+	}
+}
+
+// And a response the file genuinely lacks must still miss, or the matching is
+// too loose to be worth anything.
+func TestMeasuredResponseFromRejectsADifferentColumn(t *testing.T) {
+	data := &pkgcsv.Data{NumericTargetColumns: map[string][]float64{"Fat #target": {1, 2}}}
+	for _, response := range []string{"Moisture", "Moisture#target", "Fatty"} {
+		if _, ok := measuredResponseFrom(data, response); ok {
+			t.Errorf("response %q matched a file carrying only Fat", response)
+		}
+	}
+}
