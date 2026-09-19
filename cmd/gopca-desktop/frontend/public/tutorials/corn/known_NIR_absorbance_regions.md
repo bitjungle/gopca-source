@@ -180,7 +180,7 @@ is currently held in `docs/references/`:
 progressions, checked for internal consistency, and validated where possible against
 the Corn dataset (§4). Corrections applied at review:
 
-1. **970 nm was labelled the 3rd overtone.** It is the **2nd** overtone (3ν).
+1. **970 nm was labeled the 3rd overtone.** It is the **2nd** overtone (3ν).
    The document's own table sets 1450 nm as the 1st overtone (2ν = 6897 cm⁻¹), and
    10309 / 6897 = 1.49, so 970 nm is the 3ν transition. A genuine 3rd overtone (4ν)
    falls near 760 nm, now listed separately.

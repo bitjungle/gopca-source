@@ -124,7 +124,7 @@ Load the new CSV in GoPCA Desktop and manually verify the key Temporal PCA signa
 ## Notes on physical correctness
 
 - `C_B` is an independent ODE state. Using `C_B = C_Af - C_A` is only valid at steady state; during transients `C_B` has its own residence-time dynamics.
-- The feed stream is assumed to be a liquid solution: reactant A is dissolved in a bulk solvent (water). The solvent is not modelled as a separate state because its concentration is effectively constant. Its thermal properties appear implicitly through `rho`, `Cp`, and `UA`.
+- The feed stream is assumed to be a liquid solution: reactant A is dissolved in a bulk solvent (water). The solvent is not modeled as a separate state because its concentration is effectively constant. Its thermal properties appear implicitly through `rho`, `Cp`, and `UA`.
 - At nominal steady state (T = 365 K, F = 100 L/min): k ~= 2.74 min^-1, C_A ~= 0.267 mol/L, C_B ~= 0.733 mol/L.
 
 ## References

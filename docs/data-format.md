@@ -62,7 +62,7 @@ Control001,172.0,70.5,31
 
 > **A file with no identifier column would lose its first variable.** Because
 > the first column is taken as row names, a file that begins `Si,Fe,Cu` would be
-> analysed on `Fe` and `Cu` alone, with the silicon values serving as labels.
+> analyzed on `Fe` and `Cu` alone, with the silicon values serving as labels.
 >
 > Both interfaces let you say otherwise, and neither tries to guess. There is
 > nothing in a column's contents to guess from: a measurement column can have
@@ -159,7 +159,7 @@ S2,2.3,4.5,11
 S3,3.4,5.6,10
 ```
 
-The column is then held out of the PCA and offered for colouring by class,
+The column is then held out of the PCA and offered for coloring by class,
 exactly as a column of text would be. It also becomes available to the one-hot
 and ordinal encoders, which only accept categorical columns.
 
@@ -175,7 +175,7 @@ about it, and in what GoPCA offers to do with it afterwards.
 |---|---|---|
 | **What you are saying** | "This is an outcome, not a predictor" | "These numbers are labels, not quantities" |
 | **Applies to** | Numeric columns | Numeric columns (text is already categorical) |
-| **In the PCA** | Held out; colours plots on a gradient | Held out; colours plots by class |
+| **In the PCA** | Held out; colors plots on a gradient | Held out; colors plots by class |
 | **In regression** | Can be nominated as the response with `--response` | Never a response; can group cross-validation folds with `--cv-group` |
 | **Encoders** | Not offered | Offered to one-hot and ordinal encoding |
 
@@ -201,10 +201,10 @@ S2,0.407,0.391,3,10.9
 S3,0.419,0.385,7,11.2
 ```
 
-Two wavelengths enter the PCA. `Batch` is held out as a class — colour the scores
+Two wavelengths enter the PCA. `Batch` is held out as a class — color the scores
 plot by it and you can see whether batches separate, and pass it to `--cv-group`
 so a batch never straddles a cross-validation fold. `Moisture` is held out as an
-outcome — colour by it to see whether the components relate to moisture, or model
+outcome — color by it to see whether the components relate to moisture, or model
 it with `pca regress --response "Moisture#target"`.
 
 > **The mistake to avoid.** Marking a class code `#target` and then regressing on
@@ -252,7 +252,7 @@ PCA does not require more samples than variables — it works naturally in both 
 
 - Workable: Any number of samples (PCA always produces results)
 - Recommended: At least 3–5 samples per variable for stable loadings
-- For reliable generalisation: 10+ samples per variable
+- For reliable generalization: 10+ samples per variable
 
 ### 3. Column Naming
 

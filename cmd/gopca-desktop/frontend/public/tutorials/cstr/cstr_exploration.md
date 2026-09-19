@@ -2,15 +2,15 @@
 
 ## Background: Why reactors produce time-series data
 
-In a chemical plant, sensors log dozens of measurements every minute — temperatures, flow rates, concentrations, pressures, valve positions. The goal of **process monitoring** is to detect abnormal behaviour early, understand the relationship between variables, and distinguish faults from ordinary process disturbances.
+In a chemical plant, sensors log dozens of measurements every minute — temperatures, flow rates, concentrations, pressures, valve positions. The goal of **process monitoring** is to detect abnormal behavior early, understand the relationship between variables, and distinguish faults from ordinary process disturbances.
 
 This dataset was simulated from a **non-isothermal Continuous Stirred-Tank Reactor (CSTR)** running an irreversible first-order exothermic reaction:
 
-> **What does non-isothermal mean?** In reactor modelling, *isothermal* means the temperature is assumed constant — a useful simplification when cooling is perfect and instantaneous. *Non-isothermal* means the reactor temperature is a genuine dynamic state variable: it rises and falls in response to changes in feed, flow, or cooling, and must be described by its own differential equation (the energy balance). Having a temperature controller does *not* make the reactor isothermal — the controller is imperfect. It acts through the coolant temperature, which has physical limits, responds with a time lag, and can saturate entirely during a fault. As a result, the reactor temperature still fluctuates, and during the cooling fault it drifts substantially away from setpoint. The word *non-isothermal* tells you how the model is built; the temperature controller tells you how the plant tries — imperfectly — to manage the consequences.
+> **What does non-isothermal mean?** In reactor modeling, *isothermal* means the temperature is assumed constant — a useful simplification when cooling is perfect and instantaneous. *Non-isothermal* means the reactor temperature is a genuine dynamic state variable: it rises and falls in response to changes in feed, flow, or cooling, and must be described by its own differential equation (the energy balance). Having a temperature controller does *not* make the reactor isothermal — the controller is imperfect. It acts through the coolant temperature, which has physical limits, responds with a time lag, and can saturate entirely during a fault. As a result, the reactor temperature still fluctuates, and during the cooling fault it drifts substantially away from setpoint. The word *non-isothermal* tells you how the model is built; the temperature controller tells you how the plant tries — imperfectly — to manage the consequences.
 
 $$\text{A} \rightarrow \text{B} \quad (\text{exothermic})$$
 
-> **A chemistry note:** This is a *unimolecular* first-order reaction — A spontaneously converts into B without requiring a second reactant. Real examples include thermal decomposition, isomerisation, and cracking reactions. The key physics is the [Arrhenius temperature](https://en.wikipedia.org/wiki/Arrhenius_equation) dependence of the rate constant, $k(T) = k_0\, e^{-E/RT}$: higher temperature accelerates the reaction, releasing more heat, which drives the temperature higher still. That thermal feedback is what makes the CSTR a classic system for studying nonlinear process dynamics. No catalyst is modelled explicitly — the effect of any catalyst is absorbed into the kinetic pre-factor $k_0$.
+> **A chemistry note:** This is a *unimolecular* first-order reaction — A spontaneously converts into B without requiring a second reactant. Real examples include thermal decomposition, isomerization, and cracking reactions. The key physics is the [Arrhenius temperature](https://en.wikipedia.org/wiki/Arrhenius_equation) dependence of the rate constant, $k(T) = k_0\, e^{-E/RT}$: higher temperature accelerates the reaction, releasing more heat, which drives the temperature higher still. That thermal feedback is what makes the CSTR a classic system for studying nonlinear process dynamics. No catalyst is modeled explicitly — the effect of any catalyst is absorbed into the kinetic pre-factor $k_0$.
 
 A CSTR is one of the most studied systems in chemical engineering [Uppal, Ray & Poore, 1974]. Reactant A flows in continuously, the reaction occurs inside the tank, and product B flows out. Because the reaction releases heat, a coolant circuit controls the reactor temperature.
 
@@ -56,11 +56,11 @@ The dataset also includes three string columns that label the operating state at
 | `regime` | 4 values | Coarser grouping: `normal` (baseline + recovery), `feed_disturbance` (both feed steps combined), `oscillation`, `cooling_fault` |
 | `fault_active` | `yes` / `no` | Binary flag: `no` during normal operation and recovery, `yes` during all disturbance and fault periods |
 
-All three describe the same 800-minute timeline at different levels of detail — `event` is the most specific, `fault_active` the broadest. **Use `regime` as your color target**: four clearly named categories are easier to read than six, and both feed steps are disturbances of the same kind — a change on the feed side that the controller absorbs and recovers from. They do not, however, produce *identical* signatures: the concentration step displaces the process considerably further than the temperature step, and you will see them as two separate clumps of the same colour. Switch to `event` whenever you want them told apart.
+All three describe the same 800-minute timeline at different levels of detail — `event` is the most specific, `fault_active` the broadest. **Use `regime` as your color target**: four clearly named categories are easier to read than six, and both feed steps are disturbances of the same kind — a change on the feed side that the controller absorbs and recovers from. They do not, however, produce *identical* signatures: the concentration step displaces the process considerably further than the temperature step, and you will see them as two separate clumps of the same color. Switch to `event` whenever you want them told apart.
 
 ### Operating scenarios
 
-The simulation passes through six distinct operating phases designed to produce recognisable signatures in Temporal PCA:
+The simulation passes through six distinct operating phases designed to produce recognizable signatures in Temporal PCA:
 
 | Time (min) | Scenario | What happens |
 |---|---|---|
@@ -102,7 +102,7 @@ Before introducing time lags, run a standard SVD PCA first. This lets you see ex
 
 > **Settings** — Method: **SVD** · Components: **5** · Preprocessing: **Standard Scale**
 
-Load the dataset by clicking the **CSTR (time series)** sample-dataset button — if you opened this tutorial from that button, the data is already loaded, with `regime` pre-selected as the colour variable. Then set:
+Load the dataset by clicking the **CSTR (time series)** sample-dataset button — if you opened this tutorial from that button, the data is already loaded, with `regime` pre-selected as the color variable. Then set:
 
 * **PCA Method** → **SVD**
 * **Number of Components** → **5**
@@ -114,7 +114,7 @@ Click **Go PCA!**.
 
 Open the **Biplot** (color by `regime`).
 
-> **Reading a biplot:** A biplot overlays the scores (one point per observation, coloured by regime) and the loadings (one arrow per variable) in the same panel. The direction and length of each arrow show how strongly that variable contributes to each PC — a long arrow means high variance explained. The angle between two arrows approximates the correlation between those variables: arrows pointing the same way are positively correlated; opposite arrows are negatively correlated. Note that the score points and the loading arrows live in different coordinate scales, so the absolute distance between a score point and an arrowhead is not directly meaningful.
+> **Reading a biplot:** A biplot overlays the scores (one point per observation, colored by regime) and the loadings (one arrow per variable) in the same panel. The direction and length of each arrow show how strongly that variable contributes to each PC — a long arrow means high variance explained. The angle between two arrows approximates the correlation between those variables: arrows pointing the same way are positively correlated; opposite arrows are negatively correlated. Note that the score points and the loading arrows live in different coordinate scales, so the absolute distance between a score point and an arrowhead is not directly meaningful.
 
 #### Questions:
 
@@ -122,7 +122,7 @@ Open the **Biplot** (color by `regime`).
 * PC1 typically captures **overall reaction intensity** — which loading arrows point most strongly along PC1? You would expect `T_K`, `reaction_rate_mol_L_min`, and `conversion_fraction` to dominate, since they are all tightly coupled through the energy and mass balances at steady state. Do the cooling fault points lie in the direction these arrows point?
 * Look at PC2. It is dominated by `F_L_min` (strongly negative — arrow pointing down) and `residence_time_min` (strongly positive — arrow pointing up). These two are mathematically coupled — τ = V/F, so they are exact inverses of each other. PC2 is essentially a **flow rate axis**. Does this explain why the oscillation period scatters along PC2 rather than PC1?
 * The **cooling fault** should appear far from the normal cluster along PC1. If it does, the biplot lets you read the cause directly: which loading arrows point toward the cooling fault cluster? Does the large offset compress the rest of the score plot into a small region on the left side?
-* Now look at the **flow oscillation** period. Rather than forming a compact cluster, it scatters broadly across the full vertical range of the plot. Why? SVD PCA has no sense of time — each measurement at minute 362 is treated as an independent sample, not as part of a repeating cycle. The oscillation appears as diffuse scatter rather than a recognisable structure.
+* Now look at the **flow oscillation** period. Rather than forming a compact cluster, it scatters broadly across the full vertical range of the plot. Why? SVD PCA has no sense of time — each measurement at minute 362 is treated as an independent sample, not as part of a repeating cycle. The oscillation appears as diffuse scatter rather than a recognizable structure.
 
 👉 SVD PCA sees the process at a **single instant in time**. It can detect large regime shifts (the cooling fault stands out clearly), but it cannot understand *how* a disturbance propagates through the process, *how quickly* the controller responds, or *whether* a periodic signal is present. The oscillation period looks like noise. That is the key limitation — and what Temporal PCA is designed to fix.
 
@@ -212,14 +212,14 @@ With Row Index coloring you can immediately see, for example, that the diagonal 
 #### Questions:
 
 * Can you identify which region of the plot corresponds to normal operation?
-* The feed disturbance period (orange) forms **two** tight clumps rather than one, joined by a trail. Why two? *(Hint: the `regime` label groups two separate events — colour by `event` to confirm.)*
+* The feed disturbance period (orange) forms **two** tight clumps rather than one, joined by a trail. Why two? *(Hint: the `regime` label groups two separate events — color by `event` to confirm.)*
 * Each step shows the same pattern: a fast excursion away from the normal cluster, then a slower return as the controller compensates. How many minutes pass between the step and the furthest point of the excursion?
 * Where does the cooling fault period appear — close to normal operation or far from it? Is it more spread out along PC1 than it was in the SVD scores plot?
-* Does the flow oscillation period trace a recognisable loop? How large is it compared to the steady-state cluster?
+* Does the flow oscillation period trace a recognizable loop? How large is it compared to the steady-state cluster?
 * Does the reactor return to the normal region during the recovery period?
 * Switch to **Row Index** coloring. Does the color gradient confirm the temporal sequence you expected — early dark colors in the normal cluster, transitioning through the disturbance periods, and the latest colors in the cooling fault and recovery region?
 
-> **Chemical engineering connection:** This is the same logic as a yield–selectivity map in a reaction engineering course. When you plot yield vs. selectivity over time during a runaway, the trajectory moves away from the optimal operating point. The scores plot is a multivariate generalisation of that idea — it shows where the process is in a compressed, multi-dimensional operating space.
+> **Chemical engineering connection:** This is the same logic as a yield–selectivity map in a reaction engineering course. When you plot yield vs. selectivity over time during a runaway, the trajectory moves away from the optimal operating point. The scores plot is a multivariate generalization of that idea — it shows where the process is in a compressed, multi-dimensional operating space.
 
 ---
 
@@ -254,7 +254,7 @@ The Variable Importance plot told you *which variables matter*; this plot tells 
 |---|---|
 | **Flat at a constant level** | No temporal structure — the component weights every lag equally, so it captures variance that is present throughout the window rather than a pattern that develops across it |
 | **Monotone ramp** | Step-response or slow drift — controller or first-order process dynamics |
-| **Sinusoidal oscillation** | Periodic variation — oscillatory process behaviour |
+| **Sinusoidal oscillation** | Periodic variation — oscillatory process behavior |
 
 #### Questions:
 
@@ -265,7 +265,7 @@ The Variable Importance plot told you *which variables matter*; this plot tells 
 
 > **Delayed thermal coupling — a closer look:** The reactor has thermal inertia: a change in coolant temperature (`Tc_out_K`) takes several minutes to propagate into a change in reactor temperature (`T_K`). This coupling is physically real, but at L = 10 it is subtle — both variables load broadly across many components at this lag length. To make the delay clearly visible, a longer window (L = 20–30) is needed so that the cause (`Tc_out_K` changing) and the effect (`T_K` responding) are separated by enough lags to be distinguishable. Keep this in mind when you compare lag settings in Step 8.
 
-> **Hint:** A sinusoidal temporal loading pattern means that component is tracking a variable that oscillates in time. The period can be estimated from the zero-crossings: if you count *k* zero-crossings across a window of L minutes, the oscillation period ≈ 2L/k minutes. For a 40-minute oscillation seen through a 10-minute window, you have only **one quarter of a cycle** (10/40 = 0.25) — far too little to recognise a clean sinusoid. Try L = 40 to resolve the full period.
+> **Hint:** A sinusoidal temporal loading pattern means that component is tracking a variable that oscillates in time. The period can be estimated from the zero-crossings: if you count *k* zero-crossings across a window of L minutes, the oscillation period ≈ 2L/k minutes. For a 40-minute oscillation seen through a 10-minute window, you have only **one quarter of a cycle** (10/40 = 0.25) — far too little to recognize a clean sinusoid. Try L = 40 to resolve the full period.
 
 ---
 
@@ -284,7 +284,7 @@ This pairing occurs because a sine wave requires both a sine and a cosine compon
 
 > **On equal explained variance:** For a pure, noise-free sinusoidal signal, SSA theory guarantees that an oscillatory pair will have exactly equal eigenvalues. In practice, however, two completely unrelated dynamics can explain the same percentage of variance by coincidence — so equal variance is a *supporting indicator*, not a reliable primary criterion. Always start from the shape of the temporal loading curves, and treat similar variance as confirmation, not identification.
 
-> **Important — you will not see a clean pair at L = 10.** The flow oscillation has a 40-minute period. With L = 10, the lag window covers only 10/40 = 25% of one cycle. SSA cannot decompose an oscillation into a sine/cosine pair when the window is too short to contain even a half cycle. At L = 10, the oscillation appears as slow-varying trend components rather than recognisable sinusoids.
+> **Important — you will not see a clean pair at L = 10.** The flow oscillation has a 40-minute period. With L = 10, the lag window covers only 10/40 = 25% of one cycle. SSA cannot decompose an oscillation into a sine/cosine pair when the window is too short to contain even a half cycle. At L = 10, the oscillation appears as slow-varying trend components rather than recognizable sinusoids.
 
 **What you will actually see at L = 10:**
 
@@ -302,7 +302,7 @@ Notice the pattern in that list, because it is the real lesson of this step: at 
 Run the analysis again with the new settings. Now the lag window spans one full oscillation period. Open the **Temporal Loadings**. The oscillatory pair should become clearly visible as two adjacent components whose loading curves are both sinusoidal and approximately 90° phase-shifted from each other:
 
 * Two adjacent components with nearly equal explained variance
-* One with a cosine-shaped temporal loading — one full wave across the 40-lag window, peaking near the centre
+* One with a cosine-shaped temporal loading — one full wave across the 40-lag window, peaking near the center
 * One with a sine-shaped temporal loading — also one full wave, but shifted approximately 10 lags (= 90° for a 40-minute period) relative to the cosine component
 
 > **Sign convention:** SSA eigenvectors have arbitrary sign — GoPCA may flip the sign of a loading curve relative to what you expect. A cosine that "starts high, passes through zero, and goes negative" and one that "starts low, rises to a peak, and returns to low" are the same component with opposite sign. Focus on the *shape* (one full sinusoidal wave) and the *phase offset between the two curves*, not on whether a curve starts positive or negative.
@@ -327,7 +327,7 @@ To identify which process variable drives this pair, cross-reference with the **
 
 The cooling fault (minutes 520–680) reduces the heat-transfer coefficient by 28 %. The controller tries to compensate by lowering T_c, but eventually saturates at its minimum value.
 
-Return to the **Scores Plot** and colour by `regime`.
+Return to the **Scores Plot** and color by `regime`.
 
 #### Questions:
 
@@ -343,7 +343,7 @@ That is worth pausing on, because it contradicts a natural expectation. Looking 
 
 That is the physics showing through. A drop in UA does not stay local: less heat leaves the reactor, so the temperature rises, which accelerates the Arrhenius rate, which converts more A into B and releases more heat still. The whole coupled reactor state moves together, and PC1 *is* that coupled state. The fault is legible in the dominant component precisely because it disturbs everything at once.
 
-The lesson generalises beyond this dataset: **do not look for a fault in the variable whose name matches it.** Look for the component that moves, then read the heatmap to find out what moved with it. A tightly coupled process rarely fails in one variable alone.
+The lesson generalizes beyond this dataset: **do not look for a fault in the variable whose name matches it.** Look for the component that moves, then read the heatmap to find out what moved with it. A tightly coupled process rarely fails in one variable alone.
 
 #### Questions to take further:
 
@@ -388,7 +388,7 @@ After completing this exploration, you should be able to:
 
 * Explain why **Standard Scale is essential** for process datasets with mixed units
 * Read a **process trajectory** in a scores plot — identifying stable operation, disturbances, oscillations, and faults
-* Recognise the **time constant** of process dynamics from the shape of temporal loading curves
+* Recognize the **time constant** of process dynamics from the shape of temporal loading curves
 * Identify a **paired oscillatory component** in the Scree Plot and Temporal Loadings
 * Select an appropriate **lag parameter L** based on the process time constants you want to capture
 * Describe how **Temporal PCA could be used for fault detection** in a real plant
@@ -415,15 +415,15 @@ Think about these questions:
 * The PI controller reduces temperature variation — it actively fights the disturbances. Does this make Temporal PCA harder or easier? What would the scores plot look like without any controller?
 * The cooling fault changes `heat_transfer_UA_kJ_min_K` directly. But which other variables are affected indirectly, and how quickly? Can you trace the fault propagation through the scores trajectory?
 * In a real plant, you would build the Temporal PCA model on normal data only, then apply it to new data in real time. What would you need to store — the loadings? The mean and standard deviation for scaling? The lag structure?
-* The flow oscillation was designed as a process disturbance. Could it also be a deliberate sinusoidal test signal, used to identify the process frequency response? How would Temporal PCA help you characterise the plant dynamics?
+* The flow oscillation was designed as a process disturbance. Could it also be a deliberate sinusoidal test signal, used to identify the process frequency response? How would Temporal PCA help you characterize the plant dynamics?
 
 ---
 
 ## References
 
-Uppal, A., Ray, W. H., & Poore, A. B. (1974). On the dynamic behavior of continuous stirred tank reactors. *Chemical Engineering Science*, 29(4), 967–985. — Foundational analysis of CSTR multiplicity and limit cycles; establishes analytically the full classification of dynamic behaviour as a function of the Damköhler number and heat of reaction.
+Uppal, A., Ray, W. H., & Poore, A. B. (1974). On the dynamic behavior of continuous stirred tank reactors. *Chemical Engineering Science*, 29(4), 967–985. — Foundational analysis of CSTR multiplicity and limit cycles; establishes analytically the full classification of dynamic behavior as a function of the Damköhler number and heat of reaction.
 
-Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle, F. J. III. *Process Dynamics and Control* (4th ed.). Wiley. — Standard chemical engineering reference for CSTR modelling and PI control.
+Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle, F. J. III. *Process Dynamics and Control* (4th ed.). Wiley. — Standard chemical engineering reference for CSTR modeling and PI control.
 
 Vautard, R., & Ghil, M. (1989). Singular spectrum analysis in nonlinear dynamics, with applications to paleoclimatic time series. *Physica D*, 35(3), 395–424. — Foundational paper for SSA (the mathematical basis of Temporal PCA).
 

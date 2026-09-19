@@ -208,9 +208,9 @@ in the same plot.
 
 In GoPCA, set **Color By → `species`** and enable **Confidence Ellipses**.
 
-> **Why `species` colours the groups distinctly.** It holds the names, so GoPCA treats it as categorical and gives each species its own colour. You will meet versions of this dataset that store the species as the codes 0, 1 and 2 instead — a common convention, and one worth being careful with. A column of codes is read as a *quantity*, so it renders a colour ramp, implying that versicolor sits numerically between setosa and virginica. It does not; the codes are arbitrary labels.
+> **Why `species` colors the groups distinctly.** It holds the names, so GoPCA treats it as categorical and gives each species its own color. You will meet versions of this dataset that store the species as the codes 0, 1 and 2 instead — a common convention, and one worth being careful with. A column of codes is read as a *quantity*, so it renders a color ramp, implying that versicolor sits numerically between setosa and virginica. It does not; the codes are arbitrary labels.
 >
-> If you have such a file, mark the column `#category` in GoCSV — right-click the header and choose **Mark as Category Column**. That tells GoPCA the numbers are labels, and the colouring becomes discrete again.
+> If you have such a file, mark the column `#category` in GoCSV — right-click the header and choose **Mark as Category Column**. That tells GoPCA the numbers are labels, and the coloring becomes discrete again.
 
 #### Questions:
 

@@ -100,7 +100,7 @@ Row-wise methods act along the variable axis, so two combinations are **refused*
 
 ##### Savitzky-Golay Smoothing and Derivatives
 
-Fits a low-order polynomial across a sliding window of variables and evaluates it, or one of its derivatives, at the window centre. It can be used on its own; when `--snv` or `--vector-norm` is also given, the filter runs **after** it, and in every case **before** any column centering or scaling.
+Fits a low-order polynomial across a sliding window of variables and evaluates it, or one of its derivatives, at the window center. It can be used on its own; when `--snv` or `--vector-norm` is also given, the filter runs **after** it, and in every case **before** any column centering or scaling.
 
 - `--savgol-window <n>` - Window length in variables, and the flag that switches the filter on. Any value greater than zero enables it, and must be odd and greater than the polynomial order. Omitted or `0` means no filtering.
 - `--savgol-order <n>` - Degree of the polynomial fitted in each window (default: `2`)
@@ -108,15 +108,15 @@ Fits a low-order polynomial across a sliding window of variables and evaluates i
 
 `--savgol-order` and `--savgol-deriv` are rejected without `--savgol-window`, because on their own they would do nothing.
 
-**Why derivatives.** For near-infrared spectra, a first derivative removes an additive baseline offset and a second removes a baseline slope — both vanish under differentiation. This is the usual next step after scatter correction. Differencing a noisy spectrum directly would amplify the noise, which is why the derivative is taken through a fitted polynomial rather than by subtracting neighbours.
+**Why derivatives.** For near-infrared spectra, a first derivative removes an additive baseline offset and a second removes a baseline slope — both vanish under differentiation. This is the usual next step after scatter correction. Differencing a noisy spectrum directly would amplify the noise, which is why the derivative is taken through a fitted polynomial rather than by subtracting neighbors.
 
-**Combining with `--snv`.** These are complementary, not alternatives. Differentiating removes any constant, so SNV's mean-subtraction vanishes and `savgol_deriv(SNV(x))` equals `savgol_deriv(x) / sd(x)` exactly. What survives is the division by each sample's spectral spread — the multiplicative scatter correction a derivative cannot perform. Scattering both shifts the baseline and stretches the spectrum; the derivative handles the first, SNV's divisor the second. For smoothing (`--savgol-deriv 0`) nothing vanishes and SNV applies in full, and `--vector-norm` behaves the same way at every derivative order since it never centres.
+**Combining with `--snv`.** These are complementary, not alternatives. Differentiating removes any constant, so SNV's mean-subtraction vanishes and `savgol_deriv(SNV(x))` equals `savgol_deriv(x) / sd(x)` exactly. What survives is the division by each sample's spectral spread — the multiplicative scatter correction a derivative cannot perform. Scattering both shifts the baseline and stretches the spectrum; the derivative handles the first, SNV's divisor the second. For smoothing (`--savgol-deriv 0`) nothing vanishes and SNV applies in full, and `--vector-norm` behaves the same way at every derivative order since it never centers.
 
 **Choosing the parameters.** Window and order trade smoothing against fidelity: a wider window or lower order smooths harder and can flatten narrow peaks, while a narrower window or higher order preserves shape and keeps more noise. A window of 11 with order 2 is a common starting point for NIR; there is no universally right pair, and the honest way to choose is to compare cross-validated predictions rather than the look of the spectra.
 
 **Variable order matters, and GoPCA checks it.** The filter slides along the columns in the order they appear in the file, so it assumes they are in wavelength order and evenly spaced. Two warnings are printed to standard error when that looks doubtful — warnings, not refusals, because you may know something the data does not show:
 
-- *The variables do not form a continuum.* For a derivative to mean anything the values have to change smoothly from one variable to the next. GoPCA measures this with the **von Neumann ratio** — the mean square difference between neighbouring variables divided by the variance along the row. Under a random column order its expected value is 2; a spectrum drives it to about 0.0003, roughly six thousand times smoother. Below 0.5 the axis is treated as a continuum. Thirteen unrelated chemical measurements score about 1.1, and a derivative across them mostly amplifies noise.
+- *The variables do not form a continuum.* For a derivative to mean anything the values have to change smoothly from one variable to the next. GoPCA measures this with the **von Neumann ratio** — the mean square difference between neighboring variables divided by the variance along the row. Under a random column order its expected value is 2; a spectrum drives it to about 0.0003, roughly six thousand times smoother. Below 0.5 the axis is treated as a continuum. Thirteen unrelated chemical measurements score about 1.1, and a derivative across them mostly amplifies noise.
 
 - *The variables are not evenly spaced.* Excluding columns from the middle of a spectrum with `--exclude-columns` closes the gap and makes wavelengths adjacent that were not, while leaving the data every bit as smooth — so only the spacing check can catch it. Restricting to a contiguous range is safe; removing an interior band is not.
 
@@ -160,7 +160,7 @@ pca analyze --savgol-window 15 --savgol-order 3 corn.csv
 
 **Note:** The `native` strategy is only available with the NIPALS method. When using SVD (default), you must choose a preprocessing strategy (drop, mean, median, or zero) if your data contains missing values.
 
-**Preprocessing with `native`:** Column-wise preprocessing is fully supported — `--scale standard`, `--scale robust` and `--scale-only` compute their statistics over the observed values of each column, so a request to scale is honoured rather than ignored. The row-wise methods `--snv` and `--vector-norm` are **rejected** with this strategy: both divide a row by a statistic of that row, which is computed over a different subset of variables for every incomplete row, so the rows would no longer share a common scale. Impute or drop first if you need them.
+**Preprocessing with `native`:** Column-wise preprocessing is fully supported — `--scale standard`, `--scale robust` and `--scale-only` compute their statistics over the observed values of each column, so a request to scale is honored rather than ignored. The row-wise methods `--snv` and `--vector-norm` are **rejected** with this strategy: both divide a row by a statistic of that row, which is computed over a different subset of variables for every incomplete row, so the rows would no longer share a common scale. Impute or drop first if you need them.
 
 ##### Data Selection
 - `--exclude-rows <string>` - Row indices to exclude (1-based). Supports individual indices and ranges: `1,3,5` or `1-5,8-10`
@@ -524,8 +524,8 @@ They differ in what they claim about it:
 
 | Suffix | Says | In PCA | In regression |
 |--------|------|--------|---------------|
-| `#target` | an outcome you might predict | colours plots on a gradient | can be the `--response` |
-| `#category` | the values are labels, not quantities | colours plots by class | never a response; can be `--cv-group` |
+| `#target` | an outcome you might predict | colors plots on a gradient | can be the `--response` |
+| `#category` | the values are labels, not quantities | colors plots by class | never a response; can be `--cv-group` |
 
 - **Target Columns**: numeric columns ending with `#target`, detected automatically
 - **Category Columns**: columns ending with `#category`, treated as categorical

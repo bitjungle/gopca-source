@@ -20,11 +20,11 @@ row 41  Condition: "Cast material, quenched from 648C, aged 300C/5 h,"
 row 42  Condition: "compression test"        (and nothing in any other column)
 ```
 
-Three neighbouring records from the same study end `..., compression test`, so a
+Three neighboring records from the same study end `..., compression test`, so a
 spreadsheet line break that stranded the tail of row 41 is the likely
 explanation. Only the free-text `Condition` is affected; the columns that carry
-the processing information for modelling, `Condition augmented` and `proc_num`,
-are intact and agree with those neighbours.
+the processing information for modeling, `Condition augmented` and `proc_num`,
+are intact and agree with those neighbors.
 
 The row is left exactly as published rather than corrected here, so this copy
 does not disagree with the source. GoCSV's data quality report flags it.
@@ -43,7 +43,7 @@ Six things were done to get there, in this order:
 26 numeric columns is empty, because the row is the stranded tail of a sentence
 in the row above. Left in place it forces a choice between dropping it during
 the analysis anyway or imputing 26 values for a record that describes nothing —
-and an imputed row sits at the mean of the data, adding a point to the centre
+and an imputed row sits at the mean of the data, adding a point to the center
 of every scores plot that corresponds to no alloy. Removing it also brings the
 row count to 1154, which is what the paper describes.
 
@@ -71,8 +71,8 @@ documented effect on mechanical properties, and this file follows that choice.
 1–5 and 7–11, not a quantity, and its variance is roughly 7400× the largest
 element's — left as a variable it takes 99.97% of PC1 and the chemistry
 disappears. `#category` holds it out of the analysis while keeping it available
-to colour a scores plot, which is what makes the paper's central claim testable:
-the components never saw it, so any grouping by colour is independent agreement.
+to color a scores plot, which is what makes the paper's central claim testable:
+the components never saw it, so any grouping by color is independent agreement.
 
 **4. Removed the 97 repeated rows.** 1154 → 1057 distinct rows. **This is a
 departure from the paper**, which treats all 1154 as instances.
@@ -116,7 +116,7 @@ distinct alloy is the honest default.
 
 **5. Kept all four text columns.** `Name`, `Source`, `Condition` and
 `Condition augmented` are text, so GoCSV excludes them from the analysis
-automatically and offers them for colouring. They cost nothing and they are the
+automatically and offers them for coloring. They cost nothing and they are the
 only route from a point in a scores plot back to a real alloy.
 
 **6. Numbered the rows.** `Sample_ID` runs 1 to 1057 and is the row-name column.

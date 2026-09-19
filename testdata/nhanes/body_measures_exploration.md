@@ -200,7 +200,7 @@ BMI is the obvious external check, so let us make it. Set
 **Color by → `BMI_class#category`** on the **Scores Plot**. The file carries BMI
 twice — as a continuous value and binned into the four WHO categories — and the
 categories show the pattern far more plainly, because discrete bands have visible
-edges where a smooth colour ramp does not.
+edges where a smooth color ramp does not.
 
 #### Questions:
 
@@ -243,7 +243,7 @@ built to divide out size cannot be a pure measure of size.
 
 ### Seeing all of this at once
 
-Rather than colouring by one target at a time and squinting at gradients, open
+Rather than coloring by one target at a time and squinting at gradients, open
 the **Eigencorrelation Plot**. It shows the correlation between every component
 and every held-out column in the file (`#target` and `#category` alike) as a heat map — so the BMI row displays
 +0.79 under PC1 and −0.58 under PC2 side by side, and the diagonal is obvious
@@ -332,7 +332,7 @@ distinct groups. Enable **Confidence Ellipses** (95%) to make the shift visible.
 
 Open the **Eigencorrelation Plot** and find the `Gender#category_Male` row — third
 from the top, since rows are sorted by their PC1 correlation. Read along it,
-watching the **colours**:
+watching the **colors**:
 
 | | PC1 | PC2 | PC3 | PC4 | PC5 |
 |---|---|---|---|---|---|
@@ -346,7 +346,7 @@ have you discard without a second thought holds nearly as much of this particula
 signal as the dominant one.
 
 That is the lesson in one row of a heat map: **principal components are chosen to
-maximise variance, not to separate groups.** Nothing requires the direction that
+maximize variance, not to separate groups.** Nothing requires the direction that
 best distinguishes two groups to be one of the directions along which the data
 spreads most — and when it is not, a scores plot shows heavy overlap even though
 the groups are highly distinguishable. It is the Swiss Roll lesson from the
@@ -369,8 +369,8 @@ which is why it is invisible here.
 > fixes each component only up to its sign — whether a cell reads + or − is a
 > convention, not a finding. And the PC5 cell carries no printed number because
 > GoPCA labels a cell only when |*r*| ≥ 0.3 — the test is on magnitude, so −0.58 is
-> labelled just as +0.58 is. This one is 0.2975, under the line by a whisker.
-> Compare its colour against the PC1 cell, labelled 0.35.
+> labeled just as +0.58 is. This one is 0.2975, under the line by a whisker.
+> Compare its color against the PC1 cell, labeled 0.35.
 
 > **A caution about interpretation.** That these measurements predict sex well in
 > aggregate says nothing about any individual: even the best of these models
@@ -453,7 +453,7 @@ Try these explorations:
   just **0.07%** of the variance — the signature of a variable that is *almost*
   redundant without being exactly so. If BMI were a linear combination of two
   columns, that figure would be zero. Leaving it out keeps the seven measurements
-  on an equal footing, which is why BMI is supplied as a colouring target instead.
+  on an equal footing, which is why BMI is supplied as a coloring target instead.
   (Try adding it back in GoCSV and compare the loadings.)
 
 * **Look at PC3.** Switch to the **3D Scores Plot** (PC1 vs PC2 vs PC3), or select
@@ -487,7 +487,7 @@ After completing this exploration, you should be able to:
 * Read an **Eigencorrelation Plot** to see every component against every external
   variable at once
 * Recognize that a group difference can be **highly predictable yet invisible** in
-  a scores plot, because components maximise variance rather than separation
+  a scores plot, because components maximize variance rather than separation
 * Accept that PCA need **not** align with every variable you have (age here) —
   and know when that means PCA is the wrong tool for a question
 

@@ -56,9 +56,9 @@ Seven raw anthropometric measurements taken for the whole adult population:
 Feature variances differ by ~60× (weight in kg vs. lengths in cm), so
 **standardize / autoscale** the columns before running PCA.
 
-## Held out of the PCA (metadata for colouring — not analysis variables)
+## Held out of the PCA (metadata for coloring — not analysis variables)
 
-Four columns are kept out of the analysis and offered for colouring instead. Two
+Four columns are kept out of the analysis and offered for coloring instead. Two
 markers do this, and they say different things:
 
 | Column | Marker | Description |
@@ -69,7 +69,7 @@ markers do this, and they say different things:
 | `BMI#target` | target | Body Mass Index (kg/m²) — a quantity you could predict |
 
 `#target` marks an outcome: something you might model. `#category` marks a label:
-a group you colour by, never a number to regress on. Both are excluded from the
+a group you color by, never a number to regress on. Both are excluded from the
 PCA, so the components are built from the body measurements alone.
 
 ## Missing-data handling
