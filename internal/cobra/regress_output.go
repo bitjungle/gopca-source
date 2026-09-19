@@ -52,7 +52,8 @@ const maxListedCoefficients = 15
 // what each one means. RMSEC in particular is easy to mistake for a performance
 // estimate, and on a well-fitted model it is the smallest and most flattering of
 // the three.
-func outputRegressTable(result *types.PCRResult, data *pkgcsv.Data, opts *RegressOptions) error {
+func outputRegressTable(result *types.PCRResult, data *pkgcsv.Data, opts *RegressOptions,
+	config types.PCAConfig) error {
 	fmt.Printf("\nPrincipal Component Regression: %s\n", result.Response)
 	fmt.Println("──────────────────────────────────────────────────────────────")
 	fmt.Printf("  Components retained     %d\n", result.Components)
@@ -63,6 +64,7 @@ func outputRegressTable(result *types.PCRResult, data *pkgcsv.Data, opts *Regres
 	}
 	fmt.Printf("  Predictors              %d\n", len(result.PCA.Loadings))
 	fmt.Printf("  Method                  %s\n", result.PCA.Method)
+	fmt.Printf("  Preprocessing           %s\n", describePreprocessing(config))
 
 	fmt.Println("\nError")
 	fmt.Println("──────────────────────────────────────────────────────────────")

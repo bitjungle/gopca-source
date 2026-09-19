@@ -37,7 +37,13 @@ import (
 
 // outputTableFormat outputs PCA results in table format
 func outputTableFormat(result *types.PCAResult, data *pkgcsv.Data,
-	outputScores, outputLoadings, outputVariance, includeMetrics bool, varianceExplained float64) error {
+	outputScores, outputLoadings, outputVariance, includeMetrics bool, varianceExplained float64,
+	config types.PCAConfig) error {
+
+	// What was done to the data before the decomposition, stated once at the top.
+	// Without it two runs that transformed the data completely differently produce
+	// output distinguishable only by its digits (#982).
+	fmt.Printf("\nPreprocessing: %s\n", describePreprocessing(config))
 
 	// Diagnostics (Q/T²) are computed once by the shared core pipeline
 	// (AttachDiagnostics) and attached to result.Metrics; reuse them. They are
