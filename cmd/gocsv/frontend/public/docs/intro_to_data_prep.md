@@ -10,7 +10,7 @@ One division is worth fixing in your mind from the start:
 
 > **GoCSV prepares the data. GoPCA preprocesses it.**
 >
-> Centering and scaling belong to the analysis, not to the file, because they depend on which samples you are analysing. GoPCA applies them at analysis time and can undo them. Do not apply them here.
+> Centering and scaling belong to the analysis, not to the file, because they depend on which samples you are analyzing. GoPCA applies them at analysis time and can undo them. Do not apply them here.
 
 | Task | Where |
 |------|-------|
@@ -23,7 +23,7 @@ One division is worth fixing in your mind from the start:
 | Mark group variables (`#target`) | GoCSV |
 | **Mean centering** | **GoPCA** |
 | **Scaling (autoscaling, Pareto, SNV…)** | **GoPCA** |
-| PCA computation and visualisation | GoPCA |
+| PCA computation and visualization | GoPCA |
 
 ---
 
@@ -40,13 +40,13 @@ One division is worth fixing in your mind from the start:
 
 You can save as **CSV** or **Excel**.
 
-**A note on Parquet.** These files have no row index, so GoCSV adds a `Sample_ID` column (1, 2, 3 …) to give every row a unique identifier. String columns arrive marked `#category`, which keeps them out of the analysis and available as group variables for colouring plots. The marker matters because a Parquet file knows a column is text while a CSV does not: a column of zero-padded codes like `001`, `002` would otherwise be read back as numbers and analysed as measurements. Numeric columns come in directly, and nulls become empty cells.
+**A note on Parquet.** These files have no row index, so GoCSV adds a `Sample_ID` column (1, 2, 3 …) to give every row a unique identifier. String columns arrive marked `#category`, which keeps them out of the analysis and available as group variables for coloring plots. The marker matters because a Parquet file knows a column is text while a CSV does not: a column of zero-padded codes like `001`, `002` would otherwise be read back as numbers and analyzed as measurements. Numeric columns come in directly, and nulls become empty cells.
 
 ### When a file will not open on its own
 
 Most files open with **Choose File**. Two situations need more control, and **Import with Wizard** handles both.
 
-**The table does not start at the first row.** Spreadsheets are often written for people rather than programs — a report title, a date, a blank row, and only then the real headers. GoCSV recognises this and offers the Import Wizard with the right number of rows already skipped. Check the preview and import.
+**The table does not start at the first row.** Spreadsheets are often written for people rather than programs — a report title, a date, a blank row, and only then the real headers. GoCSV recognizes this and offers the Import Wizard with the right number of rows already skipped. Check the preview and import.
 
 **You want to choose what comes in.** The wizard lets you pick the sheet, say which row holds the headers, and select only the columns you need.
 
@@ -157,7 +157,7 @@ Principal Component **Regression**, new in version 2, asks a different question:
 
 **Why this matters here, in the preparation step.** A response variable left sitting among the predictors is used to predict itself. The model will look superb and mean nothing, and neither the numbers nor the plots will look wrong. You tell GoCSV which column is which by marking the response with **`#target`** — see **Target columns** in section 5.
 
-> **One variable, two jobs.** A column marked `#target` is held out of the PCA in both cases. In PCA it comes back as a reference variable — colour the scores plot by yield and see whether the components have found anything related to it. In PCR that same column becomes the response you are modelling. The marking is the same; what you do with it is the difference between the two analyses.
+> **One variable, two jobs.** A column marked `#target` is held out of the PCA in both cases. In PCA it comes back as a reference variable — color the scores plot by yield and see whether the components have found anything related to it. In PCR that same column becomes the response you are modeling. The marking is the same; what you do with it is the difference between the two analyses.
 
 ---
 
@@ -173,7 +173,7 @@ Two things it flags are worth acting on:
 
 **Columns with no variation at all.** Every value identical. Such a column contributes exactly nothing to any component — but it is not harmless, because it sits at the origin of every loadings plot where its position can be read as meaningful. Instrument settings, a constant temperature, a batch code that never changed: all common, all worth removing.
 
-**Columns that barely vary.** Reported as a fraction of the column's own level, so the judgement does not depend on whether you recorded metres or kilometres. Below a tenth of a percent, standardisation will scale that column to unit variance anyway — which can turn measurement noise into an apparent component.
+**Columns that barely vary.** Reported as a fraction of the column's own level, so the judgement does not depend on whether you recorded meters or kilometers. Below a tenth of a percent, standardization will scale that column to unit variance anyway — which can turn measurement noise into an apparent component.
 
 Neither is removed for you. Whether a quiet variable matters is a question about your experiment, not about the numbers.
 
@@ -217,11 +217,11 @@ Removing rows or columns is the other option, and often the better one: use **Fi
 
 ---
 
-## 5. Choosing and shaping what you analyse
+## 5. Choosing and shaping what you analyze
 
 ### Choosing rows
 
-**Filter Rows** keeps or removes the rows matching a condition — drop the QC standards, analyse one batch, exclude samples you have decided are unusable.
+**Filter Rows** keeps or removes the rows matching a condition — drop the QC standards, analyze one batch, exclude samples you have decided are unusable.
 
 It shows how many rows match, and how many would remain, *before* you apply it. A filter that would empty the table says so.
 
@@ -245,9 +245,9 @@ The grouping column becomes the row-name column afterwards, since the rows it id
 
 ### Choosing columns
 
-- **Delete columns** — remove what you are not analysing: record numbers, timestamps, operator codes
+- **Delete columns** — remove what you are not analyzing: record numbers, timestamps, operator codes
 - **Insert Column Before / After** — add an empty column to fill in yourself
-- **Rename column** — give variables names you will recognise in a loadings plot
+- **Rename column** — give variables names you will recognize in a loadings plot
 - **Reorder columns** — drag a column header. The move is applied to the data, so it survives export and reaches GoPCA, and Undo reverses it like any other edit
 - **Mark as Target Column** — see below
 
@@ -269,9 +269,9 @@ PCA works on numbers. A categorical column has to be encoded before it can take 
 
 **One-Hot Encode** makes no claim about order. Each category becomes its own column, and PCA treats them as equally distant from one another. This is right for unordered categories: species, site, operator, instrument.
 
-**Ordinal Encode** replaces categories with 0, 1, 2 … in an order you set. Use it only when the categories genuinely form a scale — `lav, middels, høy`, or `never, rarely, sometimes, often, always`. The dialog lists the values with arrows to reorder them, and recognises common scales in English and Norwegian, so `lav / middels / høy` comes up already in the right order.
+**Ordinal Encode** replaces categories with 0, 1, 2 … in an order you set. Use it only when the categories genuinely form a scale — `lav, middels, høy`, or `never, rarely, sometimes, often, always`. The dialog lists the values with arrows to reorder them, and recognizes common scales in English and Norwegian, so `lav / middels / høy` comes up already in the right order.
 
-Both keep the original column by default. Keeping it is usually what you want, because GoPCA colours scores plots by categorical columns — encoding `species` and discarding it costs you a colouring you would probably have wanted.
+Both keep the original column by default. Keeping it is usually what you want, because GoPCA colors scores plots by categorical columns — encoding `species` and discarding it costs you a coloring you would probably have wanted.
 
 **The mistake worth avoiding.** Numbering unordered categories tells PCA something untrue. Encoding `species` as setosa = 0, versicolor = 1, virginica = 2 asserts that virginica is three times setosa and that versicolor sits exactly halfway between them. None of that is true, and PCA cannot know — it is a covariance method, so it consumes those invented distances as though they were measurements. The resulting component will look perfectly ordinary. If your categories have no order, reach for one-hot encoding.
 
@@ -291,12 +291,12 @@ ID,x1,x2,x3,Yield#target
 
 What you then do with it decides the analysis:
 
-- **In PCA**, colour the scores plot by it. If samples high in yield gather on one side of a component, that component has found something related to yield — without ever having been shown it. That is a genuinely independent check, and it is only worth anything *because* the variable was held out.
+- **In PCA**, color the scores plot by it. If samples high in yield gather on one side of a component, that component has found something related to yield — without ever having been shown it. That is a genuinely independent check, and it is only worth anything *because* the variable was held out.
 - **In PCR**, it is the response you model: `pca regress --response "Yield#target"`, or pick it from the list in GoPCA Desktop.
 
-**The test to apply is simple: will this variable be available when you come to make a prediction?** A spectrum will be — that is the point of the model. A lab-measured density will not, if measuring it is the work you are trying to avoid. Anything in the second group belongs out of the predictors, whether or not it is the response you are modelling today. A column that is only known *after* the answer is known will predict that answer beautifully and be useless on the next sample.
+**The test to apply is simple: will this variable be available when you come to make a prediction?** A spectrum will be — that is the point of the model. A lab-measured density will not, if measuring it is the work you are trying to avoid. Anything in the second group belongs out of the predictors, whether or not it is the response you are modeling today. A column that is only known *after* the answer is known will predict that answer beautifully and be useless on the next sample.
 
-Categorical columns are already excluded from the PCA and already available for colouring, so marking one changes its name without changing what it does. Marking `Batch#target` is a way of writing down what the column is *for* — a grouping variable, not a measurement — which is worth doing for the next person to open the file, and for you in six months.
+Categorical columns are already excluded from the PCA and already available for coloring, so marking one changes its name without changing what it does. Marking `Batch#target` is a way of writing down what the column is *for* — a grouping variable, not a measurement — which is worth doing for the next person to open the file, and for you in six months.
 
 > **What `#target` is not.** It does not transform the column, weight it, or tell PCA to pay attention to it. It does the opposite: it takes the column *out* of the analysis so that any agreement you find afterwards was not arranged in advance.
 
@@ -322,7 +322,7 @@ a year, a timestamp stored as seconds. If GoCSV's Data Quality Report finds one
 column carrying more than half the variance in your table, it will name it.
 
 **Mark as Category Column** appends `#category`, and the column is then treated
-as a class: held out of the PCA, offered for colouring, and available to the
+as a class: held out of the PCA, offered for coloring, and available to the
 encoders in the previous section — which only accept categorical columns, so
 this is what makes one-hot encoding a numeric code possible at all.
 
@@ -331,7 +331,7 @@ this is what makes one-hot encoding a numeric code possible at all.
 | | `#target` | `#category` |
 |---|---|---|
 | You are saying | "this is an outcome, not a predictor" | "these numbers are labels, not quantities" |
-| Colouring | gradient | by class |
+| Coloring | gradient | by class |
 | In regression | can be the response | never the response; can group CV folds |
 | Encoders | not offered | one-hot and ordinal |
 
@@ -373,12 +373,12 @@ If none of those applies, **do nothing here.** Centering and scaling in GoPCA ha
 | Log | Right-skewed data — concentrations, counts, incomes |
 | Square root | Count data, or moderate skew |
 | Square | Left-skewed data |
-| Standardisation (z-score) | General scaling — though GoPCA can do this at analysis time |
+| Standardization (z-score) | General scaling — though GoPCA can do this at analysis time |
 | Min-max scaling | Scale to [0, 1] or a range you choose |
 | Binning | Turn a continuous variable into categories |
 | Box-Cox | Right-skewed data, with the strength of the correction fitted to the column |
 | Yeo-Johnson | The same, but defined at zero and for negative values |
-| Centred log-ratio (CLR) | Compositional data — percentages, assays, parts of a whole |
+| Centered log-ratio (CLR) | Compositional data — percentages, assays, parts of a whole |
 
 **A column is transformed completely or not at all.** `log` is undefined at zero and below, and `sqrt` at negatives. If any value in a column is outside the range, GoCSV leaves the whole column untouched and tells you which rows are the problem.
 
@@ -415,7 +415,7 @@ Box-Cox(x) =
                 ln(x)           for k = 0
 ```
 
-The logarithm is not a special case bolted on — it is the k = 0 member, which the formula approaches smoothly. So "should I take logs, or a square root, or neither?" becomes one question with one answer: what value of k best symmetrises this column?
+The logarithm is not a special case bolted on — it is the k = 0 member, which the formula approaches smoothly. So "should I take logs, or a square root, or neither?" becomes one question with one answer: what value of k best symmetrizes this column?
 
 **Which of the two?** Box-Cox needs every value strictly above zero. **Yeo-Johnson** extends the same idea to zero and negative values, which is precisely where `log` and `sqrt` refuse — so it is the answer for zero-inflated concentration and count data, and the one to reach for when Box-Cox declines your column.
 
@@ -443,18 +443,18 @@ Some measurements only make sense relative to each other. Mineral assays, food c
 
 **This breaks PCA in a way that is easy to miss.** If the parts must sum to a constant, then one part rising forces the others to fall, whatever the underlying chemistry. That is not a fact about your samples; it is arithmetic. The covariance matrix becomes singular, correlations between parts come out spuriously negative, and the components you get describe the constant-sum constraint as much as the material.
 
-The fix is over a century old in outline and standard since Aitchison: stop analysing the amounts and start analysing the *ratios* between them.
+The fix is over a century old in outline and standard since Aitchison: stop analyzing the amounts and start analyzing the *ratios* between them.
 
-**Centred Log-Ratio (CLR)** does this. Each part is replaced by the logarithm of its ratio to the geometric mean of the whole row:
+**Centered Log-Ratio (CLR)** does this. Each part is replaced by the logarithm of its ratio to the geometric mean of the whole row:
 
 ```
 clr(x)ᵢ = ln( xᵢ / geometric mean of the row )
 ```
 
-Select **every part of the composition together** — all the oxides, all the percentages — and each becomes a new `_clr` column. Two things follow from the definition and are worth recognising:
+Select **every part of the composition together** — all the oxides, all the percentages — and each becomes a new `_clr` column. Two things follow from the definition and are worth recognizing:
 
 - **The values describe ratios, not amounts.** A row of `[2, 3, 5]` and a row of `[2000, 3000, 5000]` transform identically, because they are the same composition measured in different units.
-- **Each transformed row sums to zero.** That is inherent to centring on the geometric mean, not a sign of anything wrong.
+- **Each transformed row sums to zero.** That is inherent to centering on the geometric mean, not a sign of anything wrong.
 
 **What it looks like.** Two samples, three parts, percentages:
 
@@ -471,7 +471,7 @@ CLR keeps one output column per input column, so a loadings plot still names you
 >
 > If you want to proceed, give a **replacement value** below your detection limit. The other parts in that row are scaled down so the row total is unchanged, which keeps the ratios among the parts you actually measured intact. This is the standard remedy (Martín-Fernández et al., 2003) — but it invents a measurement that was not made, and "absent" and "below the detection limit" are different claims. That is why GoCSV makes you ask rather than doing it quietly.
 
-You do not need a closed composition. A **subcomposition** — a subset of the parts — is still compositional and is analysed this way routinely. GoCSV tells you which case you are in: whether the columns you selected sum to a constant in every row, or vary. If they vary when you expected them not to, you have probably missed a part.
+You do not need a closed composition. A **subcomposition** — a subset of the parts — is still compositional and is analyzed this way routinely. GoCSV tells you which case you are in: whether the columns you selected sum to a constant in every row, or vary. If they vary when you expected them not to, you have probably missed a part.
 
 **References:** Aitchison, J. (1986), *The Statistical Analysis of Compositional Data*, Chapman & Hall, Ch. 4. Egozcue et al. (2003), *Isometric Logratio Transformations for Compositional Data Analysis*, Mathematical Geology 35(3).
 
@@ -485,11 +485,11 @@ The reason is that "unusual" is rarely visible one column at a time. A sample ca
 
 So GoCSV does not try to judge whether a value is unusual at all. It looks for one specific thing: a value at least **a hundred times** the next one in.
 
-That is not a statement about your distribution, and it is deliberately far past anything a statistical rule would draw. It is the signature of a mechanical mistake — a misplaced decimal point, metres recorded where millimetres were meant, a sentinel such as `9999` or `-999` left in place of a missing reading. Two real measurements of the same quantity do not usually differ by two orders of magnitude from one another.
+That is not a statement about your distribution, and it is deliberately far past anything a statistical rule would draw. It is the signature of a mechanical mistake — a misplaced decimal point, meters recorded where millimetres were meant, a sentinel such as `9999` or `-999` left in place of a missing reading. Two real measurements of the same quantity do not usually differ by two orders of magnitude from one another.
 
 **Why not something more sensitive?** Because "far from the other values" and "wrong" are different things, and on real scientific data they come apart completely. An `Al-4Cr-1Fe` alloy contains 4.11% chromium where most aluminium alloys contain none. Every statistical fence flags that value — and it is the defining property of the material and the most correct number in the row. Nothing in the column can tell it apart from an error, because the arithmetic is identical; the difference lives in the alloy's name. A rule sensitive enough to catch small mistakes will accuse your most interesting samples, and it will do so most often exactly where your data is richest.
 
-The comparison is with the **neighbouring** value, not with the middle of the data, so a variable spanning several orders of magnitude is safe: each value is close to the next even when it is far from the median. And a value sitting next to zero is never flagged, because everything is infinitely larger than nothing — otherwise the only real measurements in a mostly-empty column would be reported as errors.
+The comparison is with the **neighboring** value, not with the middle of the data, so a variable spanning several orders of magnitude is safe: each value is close to the next even when it is far from the median. And a value sitting next to zero is never flagged, because everything is infinitely larger than nothing — otherwise the only real measurements in a mostly-empty column would be reported as errors.
 
 **What this gives up, and why that is the right trade.** It will miss mistakes smaller than a hundredfold. A dew point of 100 recorded where the next highest is 19 is plainly a sentinel; a sensor reading of 309231 among values near 4500 is plainly a glitch. Neither is a hundredfold step, so neither is reported. That is the price of never accusing a correct measurement — and both remain visible in the column statistics, and neither would survive a look at a PCA.
 

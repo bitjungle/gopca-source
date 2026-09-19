@@ -30,7 +30,7 @@ For each wine, **13 continuous chemical variables** were measured:
 * OD280/OD315 of diluted wines — an optical measurement rather than a named compound: the ratio of light absorbed at 280 nm to light absorbed at 315 nm by a diluted sample. Phenolic compounds are built around aromatic rings, which absorb strongly near 280 nm, so this ratio works as a quick stand-in for how much phenolic material a wine contains.
 * Proline — an amino acid, and the most abundant one in wine. Yeast needs oxygen to break it down, so most of what the grape accumulated while ripening survives fermentation, and how much that is depends strongly on the cultivar. It is reported in mg/L, which is why its values run into the hundreds and thousands while most variables here stay below 10.
 
-Each wine is described by **13 variables** — each sample lives in a **13-dimensional space**, far beyond anything we can directly visualise.
+Each wine is described by **13 variables** — each sample lives in a **13-dimensional space**, far beyond anything we can directly visualize.
 
 ![Vineyards in Piedmont, Italy](./Piedmont_Italy_pexels-lulo.jpg)
 *Vineyards in the Piedmont region of Italy — the origin of the wines in this dataset. Photo: Lulo*
@@ -39,7 +39,7 @@ Each wine is described by **13 variables** — each sample lives in a **13-dimen
 
 ## From Iris to Wine: why this dataset is harder
 
-In the Iris tutorial, PCA reduced 4 variables to 2 components and captured **95.8% of the total variance** — that figure is for the *standardised* Iris analysis in its Step 6, which is the fair comparison with what we do here. (Iris's default, unstandardised run reaches 97.8%, so you may remember a slightly different number.) Either way the result was nearly complete: almost nothing was lost in the reduction.
+In the Iris tutorial, PCA reduced 4 variables to 2 components and captured **95.8% of the total variance** — that figure is for the *standardized* Iris analysis in its Step 6, which is the fair comparison with what we do here. (Iris's default, unstandardized run reaches 97.8%, so you may remember a slightly different number.) Either way the result was nearly complete: almost nothing was lost in the reduction.
 
 Wine is a more realistic challenge. With 13 variables, several things change:
 
@@ -63,7 +63,7 @@ You will use **GoPCA** to explore the dataset. Work through the steps in order �
 
 ---
 
-## Step 1: Run PCA *without* standardisation first
+## Step 1: Run PCA *without* standardization first
 
 > **Settings** — Column-wise: **Mean Center Only** (the default) · Method: **SVD** · Components: **5** (the default)
 
@@ -101,7 +101,7 @@ Standard Scale divides each variable by its standard deviation after centering, 
 
 👉 With Standard Scale the three cultivar classes separate clearly in the scores plot, and the loadings spread across the whole chemistry: PC1's largest is now `flavanoids` at 0.423, with five other variables above 0.28. PC1 falls from 99.8% to **36.2%** — not because information was lost, but because it is no longer one variable wearing thirteen variables' clothing.
 
-This is why standardisation is described as *essential* for datasets with mixed units — not a preference, but a requirement for meaningful results.
+This is why standardization is described as *essential* for datasets with mixed units — not a preference, but a requirement for meaningful results.
 
 > Keep **Standard Scale** active for all remaining steps.
 
@@ -166,8 +166,8 @@ Now open the **Circle of Correlations**. This plot shows all 13 variables simult
 
 👉 The four phenolic variables really do travel together — they correlate with one another at **0.69** on average, which is why their arrows nearly coincide. `color_intensity`, `malic_acid` and `alcalinity_of_ash` point away from them, and that opposition is the chemical backbone of PC1.
 
-**`hue` is the interesting case, and it is not a phenolic.** It is a colour ratio, and it correlates with the four phenolics at only 0.30 to 0.57 — noticeably weaker than their 0.69 with each other. What it really tracks is the *other* group, negatively: −0.52 with `color_intensity` and −0.56 with `malic_acid`. It sits near the phenolics because deeply coloured, acidic wines are also the phenol-poor ones, not because hue measures a phenol. A variable can join a cluster in a biplot by opposing that cluster's opposite.
-* No arrow quite reaches the outer circle, and you can now say exactly why. `flavanoids` comes closest at 0.92, so PC1 and PC2 account for 84% of its variance — the best-described variable in the plot, and no coincidence that it is also the largest loading on PC1. Six variables fall *inside* the dotted circle: `proanthocyanins` (47%), `nonflavanoid_phenols` (42%), `malic_acid` (41%), `magnesium` (32%), `alcalinity_of_ash` (27%) and `ash` (25%). For those, this plane describes less than half of what they do, and any conclusion you draw about them from this view is built on a minority of their behaviour.
+**`hue` is the interesting case, and it is not a phenolic.** It is a color ratio, and it correlates with the four phenolics at only 0.30 to 0.57 — noticeably weaker than their 0.69 with each other. What it really tracks is the *other* group, negatively: −0.52 with `color_intensity` and −0.56 with `malic_acid`. It sits near the phenolics because deeply colored, acidic wines are also the phenol-poor ones, not because hue measures a phenol. A variable can join a cluster in a biplot by opposing that cluster's opposite.
+* No arrow quite reaches the outer circle, and you can now say exactly why. `flavanoids` comes closest at 0.92, so PC1 and PC2 account for 84% of its variance — the best-described variable in the plot, and no coincidence that it is also the largest loading on PC1. Six variables fall *inside* the dotted circle: `proanthocyanins` (47%), `nonflavanoid_phenols` (42%), `malic_acid` (41%), `magnesium` (32%), `alcalinity_of_ash` (27%) and `ash` (25%). For those, this plane describes less than half of what they do, and any conclusion you draw about them from this view is built on a minority of their behavior.
 * Here is the satisfying part. Average those thirteen percentages and you get **55.4%** — precisely the variance PC1 and PC2 explain together, straight from Step 3. The scree plot gives you that number for the dataset as a whole; the Circle of Correlations gives you the same number broken out variable by variable. They are two views of one fact.
 
 > **Loadings Plot vs Circle of Correlations — when to use which:**
@@ -201,7 +201,7 @@ The biplot places samples (scores) and variables (loadings) in the same plot. Lo
 
 **`proline` and `alcohol` point at `class_0` as well** — the same cluster as the phenolics, not at a third one. `class_0` has the highest proline by a wide margin (1116, against 520 and 630) and the highest alcohol (13.74). There is simply no third direction for them to point in.
 
-So what defines the remaining cultivar? **`class_1` is the maximum of nothing.** It has the *lowest* proline, the *lowest* alcohol and the *lowest* colour intensity, with middling phenolics. No arrow points at it, because it is not chemically extreme in any of these measurements — it is the wine that is unremarkable in every direction the first two components describe.
+So what defines the remaining cultivar? **`class_1` is the maximum of nothing.** It has the *lowest* proline, the *lowest* alcohol and the *lowest* color intensity, with middling phenolics. No arrow points at it, because it is not chemically extreme in any of these measurements — it is the wine that is unremarkable in every direction the first two components describe.
 
 That is worth pausing on. A cluster with no arrow pointing at it is not a failure of the biplot; it is the biplot telling you that this group is defined by moderation rather than by excess. It also predicts what Step 6 will show: a group that sits between two others, with nothing pushing it away from either, is the group that will overlap.
 
@@ -229,7 +229,7 @@ Enable **Confidence Ellipses** (95%) on the Scores Plot.
 | class_1 | 67 / 71 (94%) |
 | **class_2** | **48 / 48 (100%)** |
 
-`class_2` is perfectly separated in two dimensions — the deeply coloured, acidic, phenol-poor wines are unmistakable. Nearly all the confusion is between **`class_0` and `class_1`**: four wines, one each way plus three more from `class_1`. A fifth wine, also from `class_1`, falls nearest `class_2`. Five misassignments in total, and every one of them belongs to a class that borders another.
+`class_2` is perfectly separated in two dimensions — the deeply colored, acidic, phenol-poor wines are unmistakable. Nearly all the confusion is between **`class_0` and `class_1`**: four wines, one each way plus three more from `class_1`. A fifth wine, also from `class_1`, falls nearest `class_2`. Five misassignments in total, and every one of them belongs to a class that borders another.
 
 This is exactly what Step 5 predicted: `class_1` has no arrow of its own, sits between the other two, and accounts for four of the five.
 
@@ -256,7 +256,7 @@ Switch to the **3D Scores Plot** (PC1 vs PC2 vs PC3).
 
 👉 PC3 adds **11.1%**, taking the cumulative from 55.4% to **66.5%** — a substantial addition, and far more than a third component usually contributes once the first two have done their work. That is what a scree plot without a sharp elbow looks like from the inside.
 
-This contrasts with standardised Iris, where PC3 adds 3.7% and the third dimension mostly confirms what the first two already showed.
+This contrasts with standardized Iris, where PC3 adds 3.7% and the third dimension mostly confirms what the first two already showed.
 
 ---
 
@@ -264,11 +264,11 @@ This contrasts with standardised Iris, where PC3 adds 3.7% and the third dimensi
 
 After completing this exploration, you should be able to:
 
-* Explain why standardisation is essential for datasets with mixed measurement units — and demonstrate the difference it makes
+* Explain why standardization is essential for datasets with mixed measurement units — and demonstrate the difference it makes
 * Interpret a scree plot and understand what it means when explained variance is spread across many components
 * Read a loadings plot to identify groups of correlated variables
 * Use a biplot to connect the separation of groups to specific chemical variables
-* Recognise the limits of a 2D PCA summary when explained variance is substantially below 100%
+* Recognize the limits of a 2D PCA summary when explained variance is substantially below 100%
 
 ---
 
@@ -278,8 +278,8 @@ After completing this exploration, you should be able to:
 
 Think about these questions:
 
-* The standardised Iris scores plot captured 95.8% of variance in 2D. The Wine scores plot captures 55.4%. Is the Wine PCA result less useful — or is it doing something more impressive given the complexity of the data?
-* Without standardisation, proline dominated everything. Yet proline may not be the most chemically interesting variable for distinguishing cultivars. What does this tell you about the relationship between numerical variance and scientific importance?
+* The standardized Iris scores plot captured 95.8% of variance in 2D. The Wine scores plot captures 55.4%. Is the Wine PCA result less useful — or is it doing something more impressive given the complexity of the data?
+* Without standardization, proline dominated everything. Yet proline may not be the most chemically interesting variable for distinguishing cultivars. What does this tell you about the relationship between numerical variance and scientific importance?
 * The phenolic variables cluster together in the loadings. What does it mean, chemically, that these variables point in the same direction?
 * Could you use PCA scores as input features for a supervised classifier? What might be the advantage over using the raw 13 variables directly?
 

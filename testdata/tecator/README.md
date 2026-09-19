@@ -92,7 +92,7 @@ file's own section 3:
 
 Membership is carried in the `Set#category` column. That column is the main
 reason to prefer this CSV over a bare matrix: it is a grouping variable for
-cross-validation (`pca regress --cv-group`), it colours a scores plot by design
+cross-validation (`pca regress --cv-group`), it colors a scores plot by design
 role, and it is what makes the published benchmark numbers reproducible, since
 they are all quoted on T after tuning on C+M.
 
@@ -142,7 +142,7 @@ filter checks that the variables are evenly spaced and warns when they are not,
 since the filter treats them as equally spaced whatever the labels say. `span`
 cannot pass that check at any precision: 200/99 = 2.0202… has no exact decimal
 form, so every rounding leaves at least two distinct step sizes — 2.0 and 2.1 at
-one decimal, 2.02 and 2.03 at two, 2.02 and 2.021 at three. A `span`-labelled
+one decimal, 2.02 and 2.03 at two, 2.02 and 2.021 at three. A `span`-labeled
 file makes the filter report a gap that is an artifact of the labels and says
 nothing about the spectra.
 
@@ -220,7 +220,7 @@ rather than ones recomputed here:
 python3 make_dataset.py --pcs-out tecator_supplied_pcs.csv
 ```
 
-Do not analyse that file alongside `tecator.csv`.
+Do not analyze that file alongside `tecator.csv`.
 
 ### Two claims in Borggaard & Thodberg that the data contradicts
 
@@ -262,7 +262,7 @@ if any of these do not hold:
 * **E1's fat is entirely above 50%**, which is how the paper defines it — this
   fails if the subset offsets are off by even one row;
 * **E2's protein starts above C's maximum**, likewise;
-* **the 22 supplied components are standardised over exactly the first 129 rows**
+* **the 22 supplied components are standardized over exactly the first 129 rows**
   — mean 0 and population sd √(128/129).
 
 That last check earns its place. The C/M boundary is the one split nothing else

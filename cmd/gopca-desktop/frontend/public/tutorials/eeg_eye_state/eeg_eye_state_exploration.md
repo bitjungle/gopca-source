@@ -55,14 +55,14 @@ Standard PCA treats each row as an independent observation and completely ignore
 
 Click the **EEG Eye State** sample dataset button to load the data (you may have done this already, see the **Loaded data** matrix preview).
 
-The `time` column is used as row identifiers and excluded from the PCA model fitting. The 14 EEG channel columns are the input variables. The `eye_state` column is automatically recognised as categorical and available for plot colouring.
+The `time` column is used as row identifiers and excluded from the PCA model fitting. The 14 EEG channel columns are the input variables. The `eye_state` column is automatically recognized as categorical and available for plot coloring.
 
 
 #### Question:
 
 * How many rows and columns does the dataset have?
 
-👉 At 128 Hz, two consecutive rows are only 7.8 ms apart. Brain signals change slowly relative to the sampling rate, so neighbouring rows are very similar — the data is far from a collection of independent snapshots.
+👉 At 128 Hz, two consecutive rows are only 7.8 ms apart. Brain signals change slowly relative to the sampling rate, so neighboring rows are very similar — the data is far from a collection of independent snapshots.
 
 ---
 
@@ -77,7 +77,7 @@ Click **Go PCA**.
 
 Before opening any plots, read the GoPCA warning banner:
 
-> *"Variables have very different scales (40000× difference). Consider standardisation unless this is intentional."*
+> *"Variables have very different scales (40000× difference). Consider standardization unless this is intentional."*
 
 All 14 channels are EEG voltages in microvolts — they should be comparable. The large scale difference comes from brief electrode artifacts and slightly different impedance conditions between channels.
 
@@ -100,16 +100,16 @@ Change **Preprocessing** to **Standard Scaling**. Click **Go PCA** again and re-
 
 👉 Standard scaling makes PCA measure *correlation* — all channels are treated equally regardless of raw amplitude. For EEG with known scale imbalances this is generally the more informative starting point. The GoPCA warning is your cue to make this choice deliberately.
 
-Now open the **Scores Plot (PC1 vs PC2)** and colour by `eye_state`.
+Now open the **Scores Plot (PC1 vs PC2)** and color by `eye_state`.
 
-The plot will look almost empty — just two or three isolated points with what appears to be a single dot at the origin. **Do not be fooled.** Use the **zoom tool** (box-select or scroll wheel) to zoom into the region near the origin. You will find that the "dot" is in fact a dense cluster of ~14,976 observations squeezed into a tiny area because the axis range is dominated by the extreme outliers far from the centre.
+The plot will look almost empty — just two or three isolated points with what appears to be a single dot at the origin. **Do not be fooled.** Use the **zoom tool** (box-select or scroll wheel) to zoom into the region near the origin. You will find that the "dot" is in fact a dense cluster of ~14,976 observations squeezed into a tiny area because the axis range is dominated by the extreme outliers far from the center.
 
 #### Questions:
 
 * After zooming in to the origin cluster, can you see the ~14,976 normal time points?
 * Hover over the extreme outliers at the edges of the unzoomed plot — what time labels do they carry? Do they match the artifact times mentioned above (~7 s, 81 s, 90 s, 103 s)?
 
-👉 This is **outlier domination**: standard scaling equalises column variances but does not protect against extreme rows. The four artifact rows have values 70–150× the normal range, so PCA points both PC1 and PC2 towards them — collapsing the remaining ~14,976 normal time points into a tiny cluster near the origin.
+👉 This is **outlier domination**: standard scaling equalizes column variances but does not protect against extreme rows. The four artifact rows have values 70–150× the normal range, so PCA points both PC1 and PC2 towards them — collapsing the remaining ~14,976 normal time points into a tiny cluster near the origin.
 
 | Problem | What it is | Fix |
 |---|---|---|
@@ -203,7 +203,7 @@ Click **Go PCA**.
 
 GoPCA builds the trajectory matrix (14 × 32 = 448 columns) and applies SVD. The result has approximately 14,945 score rows — one per window position.
 
-Open the **Scores Plot** and colour by `eye_state`.
+Open the **Scores Plot** and color by `eye_state`.
 
 ### Reading the scores plot as a trajectory
 
@@ -227,15 +227,15 @@ In standard PCA, each point is an **independent sample** — you look for cluste
 
 * Can you find the long arm? Roughly how many points does it hold, against the central cluster?
 * Hover over the points at the very tip of the arm. What **time labels** do they carry?
-* Now colour by `eye_state`. Does the arm belong to one eye state and the cluster to the other?
+* Now color by `eye_state`. Does the arm belong to one eye state and the cluster to the other?
 
-👉 **The arm is not brain activity.** Hover along it and every point at the tip carries a time between **83.2 s and 83.8 s** — 71 windows drawn from the same half-second. (Each point is labelled by the *first* sample of its window, so the label marks where the window starts, not where the disturbance sits inside it.) That is the P7 disturbance described in the data-quality note at the top of this tutorial. It survived the Step 2 cleanup because it is roughly a thousand times milder than the four spikes you removed there, and the trajectory matrix then *smeared* it. A single bad sample sits inside the sliding window for **32** consecutive window positions; this run of 56 samples keeps one inside for 87. A disturbance lasting less than half a second becomes a long, smooth, convincing-looking excursion.
+👉 **The arm is not brain activity.** Hover along it and every point at the tip carries a time between **83.2 s and 83.8 s** — 71 windows drawn from the same half-second. (Each point is labeled by the *first* sample of its window, so the label marks where the window starts, not where the disturbance sits inside it.) That is the P7 disturbance described in the data-quality note at the top of this tutorial. It survived the Step 2 cleanup because it is roughly a thousand times milder than the four spikes you removed there, and the trajectory matrix then *smeared* it. A single bad sample sits inside the sliding window for **32** consecutive window positions; this run of 56 samples keeps one inside for 87. A disturbance lasting less than half a second becomes a long, smooth, convincing-looking excursion.
 
 That smearing is worth understanding, because it is specific to Temporal PCA. In standard PCA one bad sample makes one outlying point, which looks like what it is. In Temporal PCA it makes *L* consecutive outlying points that trace a graceful arc — precisely the shape you have been told to read as a state transition.
 
 > **The habit to take from this step**: before reading any story into a dramatic excursion in a Temporal PCA scores plot, hover over it and check *when* it happened. If the points come from one narrow stretch of time, suspect the recording before the brain.
 
-**Where the eye state actually is.** Colour by `eye_state` and the two states are thoroughly mixed. Measuring the separation between their means along each component, in units of the pooled standard deviation:
+**Where the eye state actually is.** Color by `eye_state` and the two states are thoroughly mixed. Measuring the separation between their means along each component, in units of the pooled standard deviation:
 
 | | PC1 | PC2 | PC3 | PC14 |
 |---|---|---|---|---|
@@ -273,7 +273,7 @@ Each curve corresponds to one principal component. The horizontal axis is lag (0
 * **PC2–PC4**: gently sloped or arched — slow trend components
 * **PC5**: may show an S-shape — slow modulation, not yet a true oscillation
 
-> **Why does slow structure dominate?** The eye-state shift lasts several seconds and affects all 14 channels simultaneously — this generates large variance. Alpha oscillations at 10 Hz are faster, more localised, and lower in variance. They are present, but outranked.
+> **Why does slow structure dominate?** The eye-state shift lasts several seconds and affects all 14 channels simultaneously — this generates large variance. Alpha oscillations at 10 Hz are faster, more localized, and lower in variance. They are present, but outranked.
 
 Increase **Components** to **20** and click **Go PCA!** again.
 
@@ -316,7 +316,7 @@ Below PC6, many components have nearly equal variance, far too many to identify 
 
 * **PC1** (~53%): flat — global mean
 * **PC2–PC14** (declining from ~12% to ~0.6%): slow structure — ramps, arches, bowls, and S-shapes with no or very few zero-crossings
-* **PC15 (~0.6%) and its neighbour**: the first clearly sinusoidal curve appears around this rank — ~2.5 cycles over 32 lags, corresponding to ~10 Hz (alpha band). The paired component should appear at a similar % variance with the same frequency but ~90° phase-shifted.
+* **PC15 (~0.6%) and its neighbor**: the first clearly sinusoidal curve appears around this rank — ~2.5 cycles over 32 lags, corresponding to ~10 Hz (alpha band). The paired component should appear at a similar % variance with the same frequency but ~90° phase-shifted.
 
 #### Questions:
 
@@ -393,11 +393,11 @@ After this exploration, you should be able to:
 
 * Explain why EEG is a multivariate time series and why rows are not independent samples
 * Diagnose a scale problem from the GoPCA warning and fix it with Standard Scaling
-* Identify and remove extreme outliers using the Diagnostic Plot and lasso tool — and recognise that milder artifacts survive a cleanup aimed at the obvious ones
+* Identify and remove extreme outliers using the Diagnostic Plot and lasso tool — and recognize that milder artifacts survive a cleanup aimed at the obvious ones
 * Explain the SSA embedding step: sliding windows, trajectory matrix, window length *L*
-* **Recognise a smeared artifact in a Temporal PCA scores plot** — a brief disturbance is stretched across *L* consecutive windows and arrives looking like a smooth state transition, so check *when* a dramatic excursion happened before deciding what it means
+* **Recognize a smeared artifact in a Temporal PCA scores plot** — a brief disturbance is stretched across *L* consecutive windows and arrives looking like a smooth state transition, so check *when* a dramatic excursion happened before deciding what it means
 * Interpret the Temporal Loadings plot: one curve per component showing the dominant channel's signed temporal eigenvector — not one curve per channel
-* Recognise the three curve types: flat (global), monotone (slow trend), sinusoidal (oscillation)
+* Recognize the three curve types: flat (global), monotone (slow trend), sinusoidal (oscillation)
 * Estimate oscillation frequency from the number of zero-crossings
 * Identify **paired oscillatory components** using the Temporal Loadings (sinusoidal shape, 90° phase shift) and the Explained Variance panel (nearly equal % for adjacent components)
 * Use **Variable Importance** to identify which channels drive each component, and verify that paired components share the same spatial pattern
@@ -408,7 +408,7 @@ After this exploration, you should be able to:
 
 > Standard PCA treats the EEG table as a collection of independent snapshots. Temporal PCA, by embedding the data into sliding windows, gives PCA access to *sequences* — and the resulting components represent oscillations and temporal dynamics rather than just spatial correlations. The same SVD algorithm is used in both cases; the embedding step is what makes the difference.
 >
-> In SSA, oscillatory signals leave a characteristic fingerprint: a pair of components with equal singular values, 90°-phase-shifted temporal eigenvectors, and the same spatial pattern of channel importance. Learning to recognise this fingerprint is the core skill of temporal dimensionality reduction.
+> In SSA, oscillatory signals leave a characteristic fingerprint: a pair of components with equal singular values, 90°-phase-shifted temporal eigenvectors, and the same spatial pattern of channel importance. Learning to recognize this fingerprint is the core skill of temporal dimensionality reduction.
 
 #### Questions:
 

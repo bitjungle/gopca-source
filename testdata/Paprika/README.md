@@ -21,15 +21,15 @@ cultivars, botanical types and storage histories.
 * [Article and supplementary data on ScienceDirect](https://www.sciencedirect.com/science/article/pii/S0956713520304126) —
   the elemental data is Appendix A, Supplementary data (`mmc1.docx`, Table S1).
 
-### Copyright and licence
+### Copyright and license
 
 > © 2020 The Authors. Published by Elsevier Ltd.
 >
 > This is an open access article under the CC BY-NC-ND 4.0 licence,
 > [http://creativecommons.org/licenses/by-nc-nd/4.0/](http://creativecommons.org/licenses/by-nc-nd/4.0/)
 
-The licence is as registered by the publisher with Crossref for the version of
-record. The supplementary file itself carries no licence statement.
+The license is as registered by the publisher with Crossref for the version of
+record. The supplementary file itself carries no license statement.
 
 **This repository redistributes none of that material.** It carries
 `make_dataset.py`, which rebuilds the dataset from documents you obtain
@@ -70,7 +70,7 @@ stops rather than write a workbook that is quietly wrong.
 | `sample_info` | 67 samples × 6 descriptive fields | Table 1 (article body, page 2) |
 | `meta` | Article link, group definitions, method, instrument, meaning of `< LoQ` | written by this project |
 
-**Modifications made to the published material**, which the licence requires to
+**Modifications made to the published material**, which the license requires to
 be stated:
 
 * the two tables above are combined into one workbook;
@@ -132,7 +132,7 @@ scaling decision a real one rather than a formality.
 
 The paper reports **Mn, Br and Zn as higher in La Vera** paprika and **Fe and Sr
 as lower**, with no overlap between La Vera and either other group for Mn, Fe or
-Sr. Elements measured but excluded from modelling, because more than half the
+Sr. Elements measured but excluded from modeling, because more than half the
 samples fell below the limit of quantification, were Mg, Sb, Mo and Cs.
 
 ## Target
@@ -143,7 +143,7 @@ three-level label `LV` / `SNLV` / `Rest`.
 `sample_info` additionally carries `Type of paprika` (Sweet 37, Hot 13,
 Semisweet 6, NA 11), `Smoked` (Yes 38, No 23, NA 6), `Country of origin`,
 `Country of purchase` and `Year of purchase`. None of these entered the models
-in the paper; they are available for colouring or grouping.
+in the paper; they are available for coloring or grouping.
 
 ## Notes on the data
 
