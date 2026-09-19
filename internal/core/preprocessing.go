@@ -458,6 +458,78 @@ func (p *Preprocessor) Transform(data types.Matrix) (types.Matrix, error) {
 	return result, nil
 }
 
+// columnBranch names the three mutually exclusive column-wise transformations.
+type columnBranch int
+
+const (
+	branchRobust    columnBranch = iota // (x - median) / MAD
+	branchScaleOnly                     // x / scale, no centering
+	branchStandard                      // optional mean centering, optional scaling
+)
+
+// columnStage reports which branch the column-wise stage takes.
+//
+// The four boolean fields are not independent. RobustScale and ScaleOnly each
+// suppress everything below them, so asking for mean centering alongside either
+// has no effect. Everything that needs to know what the column stage does asks
+// here rather than re-deriving the precedence, because a second copy is how
+// #987 happened: the exported artifact read the requested flags and recorded a
+// pipeline the training run had not used.
+func (p *Preprocessor) columnStage() columnBranch {
+	switch {
+	case p.RobustScale:
+		return branchRobust
+	case p.ScaleOnly:
+		return branchScaleOnly
+	default:
+		return branchStandard
+	}
+}
+
+// AppliedColumnStats describes the column-wise transformation Transform
+// actually performs, as distinct from the flags that were requested.
+type AppliedColumnStats struct {
+	MeanCenter    bool
+	StandardScale bool
+	RobustScale   bool
+	ScaleOnly     bool
+}
+
+// AppliedColumnStatistics reports which column-wise branch Transform takes.
+//
+// The four flags are not independent: Transform chooses one of three branches in
+// precedence order, so RobustScale and ScaleOnly each suppress everything below
+// them. Asking for mean centering alongside either has no effect on the data.
+//
+// Three of the five reachable combinations therefore differ between what was
+// requested and what happened (#987):
+//
+//	requested                      applied
+//	mean_center + scale_only    -> scale_only alone; nothing was centered
+//	mean_center + robust_scale  -> robust_scale alone; centering was on the
+//	                               median, not the mean
+//	robust_scale alone          -> robust_scale alone; the data IS centered,
+//	                               on the median
+//
+// Callers that record what a model did -- the exported artifact above all --
+// must use this rather than the requested flags. This function and Transform
+// must agree; TestAppliedColumnStatisticsMatchesTransform asserts that they do,
+// by applying the reported flags independently and comparing the result.
+func (p *Preprocessor) AppliedColumnStatistics() AppliedColumnStats {
+	switch p.columnStage() {
+	case branchRobust:
+		// (x - median) / MAD. Centered, but not on the mean, so MeanCenter is
+		// false: it names a mean centering that did not happen. That the data is
+		// centered at all is carried by RobustScale.
+		return AppliedColumnStats{RobustScale: true}
+	case branchScaleOnly:
+		// x / scale, with no centering of any kind.
+		return AppliedColumnStats{ScaleOnly: true}
+	default:
+		return AppliedColumnStats{MeanCenter: p.MeanCenter, StandardScale: p.StandardScale}
+	}
+}
+
 // InverseTransform reverses the preprocessing
 // Note: When SNV is combined with column-wise preprocessing, the inverse transform
 // only reverses the column-wise operations. Full reversal of SNV after column
@@ -692,11 +764,11 @@ func (p *Preprocessor) ColumnAffine() (center, divisor []float64, err error) {
 
 	for j := 0; j < m; j++ {
 		// The branches below mirror Transform exactly. Keep them in step.
-		switch {
-		case p.RobustScale:
+		switch p.columnStage() {
+		case branchRobust:
 			center[j] = p.median[j]
 			divisor[j] = p.mad[j]
-		case p.ScaleOnly:
+		case branchScaleOnly:
 			center[j] = 0
 			divisor[j] = p.scale[j]
 		default:

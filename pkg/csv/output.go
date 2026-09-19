@@ -143,12 +143,30 @@ func ConvertToPCAOutputDataWithMetadata(result *types.PCAResult, data *Data, pre
 		}
 	}
 
-	// Create preprocessing info
+	// Create preprocessing info.
+	//
+	// The column-statistic booleans record what the preprocessor ACTUALLY did,
+	// not what was requested. Those differ: Transform takes one of three
+	// branches in precedence order, so asking for mean centering alongside
+	// robust or scale-only scaling has no effect on the data. Recording the
+	// request made the artifact claim a centering that never happened, and --
+	// for robust scaling without --no-mean-centering -- deny one that did
+	// (#987).
+	//
+	// The preprocessor is the only thing that knows which branch it takes, so
+	// it is asked rather than the branch being re-derived here. A second copy
+	// of the precedence is exactly how this went wrong the first time.
+	//
+	// Row-wise flags need no such treatment: SNV, vector normalization and
+	// Savitzky-Golay are applied whenever configured, so requested and applied
+	// already coincide.
+	applied := appliedColumnStats(config, preprocessor)
+
 	preprocessingInfo := types.PreprocessingInfo{
-		MeanCenter:    config.MeanCenter,
-		StandardScale: config.StandardScale,
-		RobustScale:   config.RobustScale,
-		ScaleOnly:     config.ScaleOnly,
+		MeanCenter:    applied.MeanCenter,
+		StandardScale: applied.StandardScale,
+		RobustScale:   applied.RobustScale,
+		ScaleOnly:     applied.ScaleOnly,
 		SNV:           config.SNV,
 		VectorNorm:    config.VectorNorm,
 		// Recorded so `pca transform` rebuilds the same filter. These travel as
@@ -281,3 +299,21 @@ func ConvertToPCAOutputDataWithMetadata(result *types.PCAResult, data *Data, pre
 // our output failed (#848). Our own validator never noticed because it loads the
 // schemas from an embedded copy.
 const schemaURL = "https://raw.githubusercontent.com/bitjungle/gopca/main/schemas/v2/pca-output.schema.json"
+
+// appliedColumnStats reports the column-wise transformation that was actually
+// performed. It delegates to the preprocessor, which owns the precedence.
+//
+// When no preprocessor was fitted -- a model with no column-wise preprocessing
+// at all -- there is nothing to ask, and the config is reported as given. In
+// that case no branch was taken, so the two cannot disagree.
+func appliedColumnStats(config types.PCAConfig, preprocessor *core.Preprocessor) core.AppliedColumnStats {
+	if preprocessor == nil {
+		return core.AppliedColumnStats{
+			MeanCenter:    config.MeanCenter,
+			StandardScale: config.StandardScale,
+			RobustScale:   config.RobustScale,
+			ScaleOnly:     config.ScaleOnly,
+		}
+	}
+	return preprocessor.AppliedColumnStatistics()
+}
