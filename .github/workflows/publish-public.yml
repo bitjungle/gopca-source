@@ -1,0 +1,127 @@
+name: Publish public assets
+
+# Pushes the user-facing parts of this private repository to the public
+# distribution repository, bitjungle/gopca.
+#
+# Three things have to stay reachable from outside even though the source does
+# not:
+#
+#   schemas/   - every model file GoPCA writes embeds a $schema pointer at
+#                raw.githubusercontent.com/bitjungle/gopca/main/schemas/... If
+#                these stop being published, every exported artifact in the
+#                world carries a dead reference.
+#   docs/      - the GitHub Pages site and the tutorials it links to.
+#   PRIVACY.md, CHANGELOG.md - user-facing, and linked from release notes.
+#
+# LICENSE and README.md are deliberately NOT published. The public repository
+# has its own: the Binary Distribution License, and a download landing page.
+# Overwriting them with this repository's source licence and developer README
+# would be wrong in both cases.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'schemas/**'
+      - 'docs/**'
+      - 'PRIVACY.md'
+      - 'CHANGELOG.md'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report what would change without pushing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-public
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to bitjungle/gopca
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout public repository
+        uses: actions/checkout@v4
+        with:
+          repository: bitjungle/gopca
+          token: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          path: public
+
+      - name: Copy published paths
+        run: |
+          set -euo pipefail
+          cd source
+
+          # git ls-files enumerates TRACKED files only. That is the safety
+          # property this whole step rests on: docs/devel/, docs/references/
+          # and docs/CLAUDE.md are gitignored internal material, so they are
+          # invisible here and cannot be copied out by accident. Never replace
+          # this with find or cp -r.
+          copied=0
+          for f in $(git ls-files schemas docs PRIVACY.md CHANGELOG.md); do
+            mkdir -p "../public/$(dirname "$f")"
+            cp -p "$f" "../public/$f"
+            copied=$((copied + 1))
+          done
+          echo "copied=$copied" >> "$GITHUB_ENV"
+          echo "Copied $copied tracked files"
+
+      - name: Refuse to publish internal material
+        run: |
+          set -euo pipefail
+          cd public
+          fail=0
+          for forbidden in docs/devel docs/references docs/CLAUDE.md CLAUDE.md; do
+            if [ -e "$forbidden" ]; then
+              echo "::error::$forbidden reached the public checkout - refusing to publish"
+              fail=1
+            fi
+          done
+          # The public repository owns these two. If this step ever sees them
+          # modified, the copy step has overreached.
+          if ! git diff --quiet -- LICENSE README.md; then
+            echo "::error::LICENSE or README.md was modified - the public repository owns both"
+            git diff --stat -- LICENSE README.md
+            fail=1
+          fi
+          [ "$fail" -eq 0 ] || exit 1
+          echo "No internal material present; LICENSE and README.md untouched"
+
+      - name: Show what changed
+        run: |
+          cd public
+          git add -A
+          git status --short
+          git diff --cached --stat | tail -1
+
+      - name: Commit and push
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -euo pipefail
+          cd public
+          if git diff --cached --quiet; then
+            echo "Nothing to publish - public repository already matches"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Publish docs and schemas from gopca-source@${GITHUB_SHA:0:7}
+
+          Automated. Source commit: ${GITHUB_SHA}"
+          git push
+          echo "Published to bitjungle/gopca"
+
+      - name: Dry run summary
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: echo "Dry run - nothing pushed."
