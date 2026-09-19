@@ -1,4 +1,4 @@
-name: Check Documentation Sync
+name: Check Documentation and Schema Sync
 
 on:
   pull_request:
@@ -15,6 +15,9 @@ on:
       - 'testdata/**/*.svg'
       - 'cmd/*/frontend/public/tutorials/**'
       - 'scripts/sync-docs.sh'
+      - 'scripts/sync-schemas.sh'
+      - 'schemas/**'
+      - 'pkg/validation/schemas/**'
       - 'Makefile'
 
 # Restrict all jobs to read-only repository access by default.
@@ -23,7 +26,7 @@ permissions:
 
 jobs:
   check-sync:
-    name: Verify documentation synchronization
+    name: Verify documentation and schema synchronization
     runs-on: ubuntu-latest
     
     steps:
@@ -52,6 +55,19 @@ jobs:
           
           echo "✅ Documentation files are properly synchronized"
       
+      - name: Check schema synchronization
+        run: |
+          echo "Checking that the embedded schema copy matches schemas/..."
+
+          # schemas/ is the source: it is the directory named by the $id URL in
+          # every model file GoPCA writes, and the copy published to the public
+          # distribution repository. pkg/validation/schemas/ exists only because
+          # //go:embed cannot reach outside its own package.
+          #
+          # These two drifted once before, unnoticed, because syncing was a
+          # manual Make target with nothing checking it.
+          bash scripts/sync-schemas.sh --check
+
       - name: Verify documentation accessibility
         run: |
           # Verify that the documentation files exist where expected

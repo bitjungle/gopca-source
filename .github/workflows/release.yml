@@ -14,6 +14,10 @@ on:
 
 env:
   GO_VERSION: '1.26'
+  # Releases are published to the PUBLIC distribution repository, never to this
+  # one. See the guard in the create-release job for why this is load-bearing
+  # and not merely tidy.
+  PUBLIC_RELEASE_REPO: 'bitjungle/gopca'
 
 permissions:
   contents: write
@@ -1130,15 +1134,58 @@ jobs:
 
         ---
 
-        **Full Changelog**: https://github.com/bitjungle/gopca/blob/${VERSION}/CHANGELOG.md
+        **Full Changelog**: https://github.com/bitjungle/gopca/blob/main/CHANGELOG.md
         EOF
 
         echo "✓ Release body generated with changelog"
+
+    # Runs immediately before the release is created, and checks the same
+    # variable the step below passes to the action -- so it cannot pass while
+    # the release goes somewhere else.
+    - name: Guard - a release must never be created in the source repository
+      if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+      env:
+        TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+      run: |
+        set -euo pipefail
+
+        # GitHub generates "Source code (zip)" and "Source code (tar.gz)" for
+        # every release, built from the tag in the repository that HOSTS the
+        # release. They are not assets: there is no delete endpoint for them,
+        # because nothing is stored -- they are rendered from the tag on
+        # request, and the only way to remove them is to delete the tag.
+        #
+        # In the public distribution repository the tag has no source, so those
+        # archives contain documentation and schemas. Created HERE they would
+        # contain the complete GoPCA source, labelled "Source code", one
+        # visibility mistake away from publication. That asymmetry is the whole
+        # reason releases are published to another repository, so it is checked
+        # rather than remembered.
+        if [ "${PUBLIC_RELEASE_REPO}" = "${GITHUB_REPOSITORY}" ]; then
+          echo "::error::Refusing to create a release in ${GITHUB_REPOSITORY}."
+          echo "::error::PUBLIC_RELEASE_REPO must name the public distribution"
+          echo "::error::repository, not the repository holding the source."
+          exit 1
+        fi
+
+        if [ -z "${TOKEN}" ]; then
+          echo "::error::PUBLIC_REPO_TOKEN is not set."
+          echo "::error::Create a fine-grained PAT with Contents: write scoped"
+          echo "::error::to ${PUBLIC_RELEASE_REPO} only, and add it as a repository"
+          echo "::error::secret named PUBLIC_REPO_TOKEN. Without it the release"
+          echo "::error::would fall back to this repository."
+          exit 1
+        fi
+
+        echo "Publishing the release to ${PUBLIC_RELEASE_REPO}"
+        echo "Source archives there are generated from a tag with no source in it."
 
     - name: Create Release
       if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
+        repository: ${{ env.PUBLIC_RELEASE_REPO }}
+        token: ${{ secrets.PUBLIC_REPO_TOKEN }}
         files: |
           artifacts/gopca-macos-universal.zip
           artifacts/gopca-windows-x64.zip

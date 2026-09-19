@@ -73,7 +73,7 @@ WAILS_VERSION := $(shell grep 'wailsapp/wails/v2 v' go.mod | awk '{print $$2}')
 .DEFAULT_GOAL := all
 
 # Phony targets
-.PHONY: sync-schemas all build cli cli-all build-cross build-darwin-amd64 build-darwin-arm64 build-linux-amd64 build-linux-arm64 build-windows-amd64 build-all pca-dev pca-build pca-build-all pca-run pca-deps csv-dev csv-build csv-build-all csv-run csv-deps build-everything test test-verbose test-coverage test-integration test-platforms test-e2e test-parity test-regression fmt lint typecheck build-ui run-pca-iris clean clean-cross install deps deps-all install-hooks sign sign-cli sign-pca sign-csv sign-windows windows-installer windows-installer-signed windows-installer-all notarize notarize-cli notarize-pca notarize-csv sign-and-notarize help
+.PHONY: sync-schemas check-schemas all build cli cli-all build-cross build-darwin-amd64 build-darwin-arm64 build-linux-amd64 build-linux-arm64 build-windows-amd64 build-all pca-dev pca-build pca-build-all pca-run pca-deps csv-dev csv-build csv-build-all csv-run csv-deps build-everything test test-verbose test-coverage test-integration test-platforms test-e2e test-parity test-regression fmt lint typecheck build-ui run-pca-iris clean clean-cross install deps deps-all install-hooks sign sign-cli sign-pca sign-csv sign-windows windows-installer windows-installer-signed windows-installer-all notarize notarize-cli notarize-pca notarize-csv sign-and-notarize help
 
 ## all: Build all applications for current platform and run tests
 all: build pca-build csv-build test
@@ -584,13 +584,11 @@ appimage-all: appimage-gopca appimage-gocsv
 
 ## sync-schemas: Copy every published schema version over its embedded copy
 sync-schemas:
-	@for v in $$(ls -d schemas/v*/ | xargs -n1 basename); do \
-		echo "Syncing schemas/$$v -> pkg/validation/schemas/$$v..."; \
-		mkdir -p pkg/validation/schemas/$$v; \
-		cp schemas/$$v/*.json pkg/validation/schemas/$$v/; \
-	done
-	@echo "Done. schemas/ is the source: it is what the \$$schema URLs name."
-	@echo "The copy exists only because //go:embed cannot reach outside its package."
+	@./scripts/sync-schemas.sh
+
+## check-schemas: Verify the embedded schema copy matches schemas/ (used by CI)
+check-schemas:
+	@./scripts/sync-schemas.sh --check
 
 ## test: Run all tests with coverage
 test:
