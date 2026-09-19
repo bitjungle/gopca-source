@@ -18,6 +18,13 @@ env:
   # one. See the guard in the create-release job for why this is load-bearing
   # and not merely tidy.
   PUBLIC_RELEASE_REPO: 'bitjungle/gopca'
+  # Release tags point at a near-empty orphan branch, not at main. GitHub builds
+  # the unremovable "Source code (zip)" and "Source code (tar.gz)" archives from
+  # the tagged tree, so tagging main gave every release a 13MB pair of archives
+  # containing the whole documentation site under a label that says "source
+  # code". Anchored here they are 4KB: a README explaining what they are, and
+  # the licence, which section 2(b) requires to travel with redistribution.
+  PUBLIC_RELEASE_ANCHOR: 'release-anchor'
 
 permissions:
   contents: write
@@ -1186,6 +1193,7 @@ jobs:
       with:
         repository: ${{ env.PUBLIC_RELEASE_REPO }}
         token: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        target_commitish: ${{ env.PUBLIC_RELEASE_ANCHOR }}
         files: |
           artifacts/gopca-macos-universal.zip
           artifacts/gopca-windows-x64.zip
