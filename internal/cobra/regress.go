@@ -176,12 +176,14 @@ EXAMPLES:
 
 	cmd.Flags().StringVarP(&opts.Method, "method", "m", "svd",
 		"PCA method: svd or nipals")
+	// Accepted and then refused, rather than removed, so a script that passes it
+	// gets the reasoning instead of "unknown flag" (#981).
 	cmd.Flags().BoolVar(&opts.NoMeanCentering, "no-mean-centering", false,
-		"Skip mean centering")
+		"Not available for regression: PCR requires mean-centred predictors")
 	cmd.Flags().StringVar(&opts.Scale, "scale", "none",
 		"Scaling: none, standard, robust")
 	cmd.Flags().BoolVar(&opts.ScaleOnly, "scale-only", false,
-		"Divide by standard deviation without mean centering")
+		"Not available for regression: PCR requires mean-centred predictors")
 	cmd.Flags().BoolVar(&opts.SNV, "snv", false,
 		"Standard Normal Variate, applied per row")
 	addSavGolFlags(cmd, &opts.SavGol)

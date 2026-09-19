@@ -305,7 +305,9 @@ If a numeric column is really a class code — 0, 1, 2 for three species — mar
 | `--wold-r <x>` | For `--select wold`: PRESS ratio threshold | `1.0` |
 | `--metric <m>` | Selection metric: `rmse` or `mae` | `rmse` |
 
-Predictor-side options (`--method`, `--scale`, `--snv`, `--vector-norm`, `--savgol-window`, `--savgol-order`, `--savgol-deriv`, `--no-mean-centering`, `--exclude-rows`, `--exclude-columns`) work as they do for `analyze`.
+Predictor-side options (`--method`, `--scale`, `--snv`, `--vector-norm`, `--savgol-window`, `--savgol-order`, `--savgol-deriv`, `--exclude-rows`, `--exclude-columns`) work as they do for `analyze`.
+
+**Two do not.** `--no-mean-centering` and `--scale-only` are refused by `regress`. Without centring, the first component absorbs the mean of the data — so one retained component describes where the samples sit rather than how they vary — while the intercept accounts for that offset at no cost. Uncentred PCA remains available for `analyze`, where exploring the data in its original position can be a deliberate choice; it is regression, with a response and an intercept, that leaves it no purpose.
 
 Savitzky-Golay is worth singling out for regression. Unlike SNV it is the *same* operator for every sample, so it folds into the reported coefficients and the original-scale form stays available — a deployed model needs the raw wavelengths and nothing else. Combine it with `--snv` and that collapse is lost again, because SNV still scales each sample by its own spread.
 
