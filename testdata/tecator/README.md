@@ -129,12 +129,27 @@ determine a spacing, and both conventions are in circulation.
 
 | `--wavelengths` | Columns | Rationale |
 |---|---|---|
-| `span` *(default)* | `850.0` … `1050.0`, step 200/99 ≈ 2.0202 nm | Exact at both endpoints, so it matches the only range anyone states. Matches `seq(850, 1050, length = 100)`, the convention of the functional-data literature |
-| `step2` | `850` … `1048`, step 2 nm | Round numbers, but the last channel then contradicts the stated 1050 nm upper end |
+| `step2` *(default)* | `850` … `1048`, step 2 nm | Exactly evenly spaced, and 2 nm is the interval most of the chemometrics literature quotes for this instrument. The cost: the last channel reads 1048 where every source says the range reaches 1050 |
+| `span` | `850.0` … `1050.0`, step 200/99 ≈ 2.0202 nm | Exact at both endpoints, so it matches the only range anyone states. Matches `seq(850, 1050, length = 100)`, the convention of the functional-data literature. But see below — it is not evenly spaced once written down |
 | `index` | `A1` … `A100` | Asserts nothing |
 
 If you have an instrument specification that settles it, pass the flag
 accordingly rather than trusting the default.
+
+**Why `step2` is the default, given that `span` matches the stated range.**
+Because these labels are read, not only displayed. GoPCA's Savitzky-Golay
+filter checks that the variables are evenly spaced and warns when they are not,
+since the filter treats them as equally spaced whatever the labels say. `span`
+cannot pass that check at any precision: 200/99 = 2.0202… has no exact decimal
+form, so every rounding leaves at least two distinct step sizes — 2.0 and 2.1 at
+one decimal, 2.02 and 2.03 at two, 2.02 and 2.021 at three. A `span`-labelled
+file makes the filter report a gap that is an artifact of the labels and says
+nothing about the spectra.
+
+The labels do not enter any calculation: the same file under `span` and under
+`step2` gives identical scores, loadings, and RMSECV, with and without
+Savitzky-Golay. The choice affects what the axes read and what the continuity
+check concludes, nothing else.
 
 ## Targets
 

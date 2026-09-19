@@ -90,18 +90,32 @@ The file states a range of 850-1050 nm and a count of 100 channels, and gives no
 per-channel wavelength table. Those two facts do not determine the spacing, and
 both conventions are in circulation:
 
-    span (default)  850.0 ... 1050.0, step 200/99 ~= 2.0202 nm
-                    exact at both endpoints, matching the stated range
-    step2           850 ... 1048, step 2 nm
-                    round numbers, but the last channel then contradicts
-                    the stated 1050 nm upper end
+    step2 (default) 850 ... 1048, step 2 nm
+                    exactly evenly spaced, but the last channel then
+                    contradicts the stated 1050 nm upper end
+    span            850.0 ... 1050.0, step 200/99 ~= 2.0202 nm
+                    exact at both endpoints, but not evenly spaced once
+                    written down as decimal labels
     index           A1 ... A100
                     asserts nothing at all
 
-``span`` is the default because it is the only mapping derivable from what the
-source actually says. It is a derived label either way: if you have an
-instrument specification that settles it, pass ``--wavelengths`` accordingly
-rather than trusting this choice.
+``step2`` is the default because these labels are read as data, not only shown
+as text. GoPCA's Savitzky-Golay filter checks that the variables are evenly
+spaced and warns when they are not, since the filter treats them as equally
+spaced whatever they say. ``span`` cannot satisfy that check: 200/99 =
+2.0202... has no exact decimal form, so every rounding yields at least two
+distinct step sizes -- 2.0/2.1 at one decimal, 2.02/2.03 at two, 2.02/2.021 at
+three. More precision does not help, and a tester then meets a warning that is
+correct about the labels and says nothing about the data.
+
+``span`` was the original default, on the argument that linear interpolation
+across the stated range is the only mapping derivable from what the source
+says. That argument still holds for the physics. It does not hold for labels a
+continuity check reads. ``step2`` pays for its evenness visibly: the last
+channel reads 1048 where the source says the range reaches 1050. The spacing is
+a derived label under every scheme -- if you have an instrument specification
+that settles it, pass ``--wavelengths`` accordingly rather than trusting this
+choice.
 
 
 NUMBERS ARE COPIED, NOT RECOMPUTED
@@ -122,7 +136,7 @@ CSV by default; see ``--no-permission-note``.
 USAGE
 -----
     python3 make_dataset.py                          # -> tecator.csv
-    python3 make_dataset.py --wavelengths step2
+    python3 make_dataset.py --wavelengths span
     python3 make_dataset.py --pcs-out tecator_supplied_pcs.csv
     python3 make_dataset.py --check-only             # validate, write nothing
 """
@@ -520,9 +534,9 @@ def main(argv: list[str] | None = None) -> int:
         help="CSV to write (default: tecator.csv beside this script)",
     )
     parser.add_argument(
-        "--wavelengths", choices=("span", "step2", "index"), default="span",
+        "--wavelengths", choices=("step2", "span", "index"), default="step2",
         help="how to name the 100 spectral columns; see the module docstring "
-             "(default: span, 850.0-1050.0 nm)",
+             "(default: step2, 850-1048 nm in exact 2 nm steps)",
     )
     parser.add_argument(
         "--pcs-out", type=Path, default=None,
