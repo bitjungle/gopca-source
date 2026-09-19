@@ -68,8 +68,14 @@ jobs:
           # and docs/CLAUDE.md are gitignored internal material, so they are
           # invisible here and cannot be copied out by accident. Never replace
           # this with find or cp -r.
+          # The :(exclude) pathspecs drop editable Office documents. These are
+          # working material rather than published documentation -- nothing
+          # links to them, and they carry metadata and embedded originals that
+          # are not visible in a file listing. A 6.5MB screenshots .pptx reached
+          # the public site this way once.
           copied=0
-          for f in $(git ls-files schemas docs PRIVACY.md CHANGELOG.md); do
+          for f in $(git ls-files schemas docs PRIVACY.md CHANGELOG.md \
+                       ':(exclude)*.pptx' ':(exclude)*.docx' ':(exclude)*.xlsx'); do
             mkdir -p "../public/$(dirname "$f")"
             cp -p "$f" "../public/$f"
             copied=$((copied + 1))
