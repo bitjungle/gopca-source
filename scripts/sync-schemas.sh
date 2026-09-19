@@ -37,6 +37,7 @@ fi
 
 drift=0
 synced=0
+removed=0
 
 # Every version directory under schemas/ must have an identical embedded copy.
 for version_path in "$SOURCE_DIR"/v*/; do
@@ -71,6 +72,10 @@ done
 
 # An embedded file with no counterpart in schemas/ is drift in the other
 # direction: it would be validated against but is not the published schema.
+# In --check mode that is reported; otherwise it is deleted, because syncing
+# has to be able to fix everything the check complains about. Reporting it here
+# but not removing it would leave --check failing while telling the user to run
+# a sync that cannot resolve it.
 for embed_path in "$EMBED_DIR"/v*/; do
     [ -d "$embed_path" ] || continue
     version=$(basename "$embed_path")
@@ -78,10 +83,27 @@ for embed_path in "$EMBED_DIR"/v*/; do
         [ -f "$embed_file" ] || continue
         name=$(basename "$embed_file")
         if [ ! -f "$SOURCE_DIR/$version/$name" ]; then
-            echo -e "${RED}✗ orphaned:${NC}   $embed_file has no counterpart in $SOURCE_DIR/$version/"
-            drift=$((drift + 1))
+            if $CHECK_ONLY; then
+                echo -e "${RED}✗ orphaned:${NC}   $embed_file has no counterpart in $SOURCE_DIR/$version/"
+                drift=$((drift + 1))
+            else
+                rm "$embed_file"
+                echo -e "${GREEN}✓ removed:${NC}    $embed_file (no counterpart in $SOURCE_DIR/$version/)"
+                removed=$((removed + 1))
+            fi
         fi
     done
+    # A whole version directory can be orphaned, not just files within one.
+    if [ -d "$embed_path" ] && [ -z "$(ls -A "$embed_path")" ]; then
+        if $CHECK_ONLY; then
+            echo -e "${RED}✗ orphaned:${NC}   $embed_path is empty and has no counterpart"
+            drift=$((drift + 1))
+        else
+            rmdir "$embed_path"
+            echo -e "${GREEN}✓ removed:${NC}    $embed_path (empty)"
+            removed=$((removed + 1))
+        fi
+    fi
 done
 
 if $CHECK_ONLY; then
@@ -98,11 +120,11 @@ if $CHECK_ONLY; then
     exit 0
 fi
 
-if [ "$synced" -eq 0 ]; then
-    echo -e "${GREEN}✓ already in sync${NC} - nothing to copy"
+if [ "$synced" -eq 0 ] && [ "$removed" -eq 0 ]; then
+    echo -e "${GREEN}✓ already in sync${NC} - nothing to copy or remove"
 else
     echo ""
-    echo -e "${GREEN}Synced $synced file(s).${NC}"
+    echo -e "${GREEN}Synced $synced file(s), removed $removed.${NC}"
 fi
 echo -e "${YELLOW}schemas/ is the source: it is what the \$schema URLs name.${NC}"
 echo "The copy exists only because //go:embed cannot reach outside its package."

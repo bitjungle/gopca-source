@@ -68,6 +68,14 @@ jobs:
           # and docs/CLAUDE.md are gitignored internal material, so they are
           # invisible here and cannot be copied out by accident. Never replace
           # this with find or cp -r.
+          # Clear the two directories the source repository wholly owns before
+          # copying. Without this the publish is additive only: a document or a
+          # schema deleted here would linger in the public repository forever,
+          # and a file that stops being published -- the screenshots .pptx, for
+          # instance -- would never actually go away. PRIVACY.md and
+          # CHANGELOG.md are single files and are overwritten in place.
+          rm -rf ../public/docs ../public/schemas
+
           # The :(exclude) pathspecs drop editable Office documents. These are
           # working material rather than published documentation -- nothing
           # links to them, and they carry metadata and embedded originals that
