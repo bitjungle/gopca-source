@@ -593,10 +593,10 @@ func validatePCRInput(data types.Matrix, y []float64, config types.PCRConfig) er
 	// that spell their controls differently, and a remedy written here would be
 	// wrong for one of them (#973).
 	if !config.PCA.MeanCenter || config.PCA.ScaleOnly {
-		return fmt.Errorf("principal component regression requires mean-centred predictors: " +
-			"without centring the first component absorbs the mean of the data, so one " +
+		return fmt.Errorf("principal component regression requires mean-centered predictors: " +
+			"without centering the first component absorbs the mean of the data, so one " +
 			"retained component describes where the samples sit rather than how they vary, " +
-			"and the intercept already accounts for that offset. Turn mean centring on")
+			"and the intercept already accounts for that offset. Turn mean centering on")
 	}
 
 	switch config.Selection.Mode {
