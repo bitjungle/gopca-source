@@ -234,6 +234,13 @@ func runTransform(opts *TransformOptions, modelFile, inputFile string) error {
 		Method:          pcaOutputData.Metadata.Config.Method,
 	}
 
+	// Measure each sample against the model before reporting anything about it.
+	// A prediction the model has no basis for looks exactly like one it does,
+	// and until now nothing here said which was which (#978).
+	limits := limitsFrom(pcaOutputData.Diagnostics)
+	fits := computeSampleFits(processedData, scores, pcaOutputData.Model.Loadings,
+		pcaOutputData.Model.ExplainedVariance, limits)
+
 	// A model carrying a regression block predicts a response as well as
 	// projecting, so emit the predictions alongside the scores.
 	if pcaOutputData.Regression != nil {
@@ -241,15 +248,23 @@ func runTransform(opts *TransformOptions, modelFile, inputFile string) error {
 		if err != nil {
 			return err
 		}
-		printTransformPredictions(pcaOutputData.Regression, predictions, data)
+		printTransformPredictions(pcaOutputData.Regression, predictions, data, fits, limits)
+
+		// The file being transformed often carries the response already. Until
+		// now it was read and ignored, while `pca regress --help` said RMSEP was
+		// "not produced here" -- so the one honest error figure was a column away
+		// and uncomputed.
+		if measured, ok := measuredResponseFrom(data, pcaOutputData.Regression.Response); ok {
+			printPredictionError(predictions, measured, fits, limits)
+		}
 	}
 
 	// Output results based on format
 	switch opts.OutputFormat {
 	case "json":
-		return outputTransformJSON(result, data, inputFile, opts.OutputDir)
+		return outputTransformJSON(result, data, inputFile, opts.OutputDir, fits, limits)
 	default: // table
-		return outputTransformTable(result, data)
+		return outputTransformTable(result, data, fits, limits)
 	}
 }
 
@@ -286,11 +301,15 @@ func predictFromModel(model *types.RegressionModel, scores types.Matrix) ([]floa
 // that prediction's uncertainty. It is not: it is an average over the calibration
 // set, and a sample unlike that set can be predicted far worse.
 func printTransformPredictions(model *types.RegressionModel, predictions []float64,
-	data *pkgcsv.Data) {
+	data *pkgcsv.Data, fits []sampleFit, limits modelLimits) {
 
 	fmt.Printf("\nPredicted %s\n", model.Response)
 	fmt.Println("──────────────────────────────────────────────────────────────")
-	fmt.Printf("  %-24s %16s\n", "Sample", "Predicted")
+	if limits.HasT2 || limits.HasRSS {
+		fmt.Printf("  %-24s %16s %10s %10s\n", "Sample", "Predicted", "T²", "Q")
+	} else {
+		fmt.Printf("  %-24s %16s\n", "Sample", "Predicted")
+	}
 
 	shown := len(predictions)
 	if shown > maxListedRows {
@@ -301,11 +320,22 @@ func printTransformPredictions(model *types.RegressionModel, predictions []float
 		if i < len(data.RowNames) && data.RowNames[i] != "" {
 			name = data.RowNames[i]
 		}
+		if i < len(fits) && (limits.HasT2 || limits.HasRSS) {
+			mark := ""
+			if fits[i].Outside() {
+				mark = "  outside the model"
+			}
+			fmt.Printf("  %-24s %16.8g %10.4g %10.3g%s\n",
+				truncate(name, 24), predictions[i], fits[i].T2, fits[i].RSS, mark)
+			continue
+		}
 		fmt.Printf("  %-24s %16.8g\n", truncate(name, 24), predictions[i])
 	}
 	if len(predictions) > shown {
 		fmt.Printf("  ... %d more rows\n", len(predictions)-shown)
 	}
+
+	printFitSummary(fits, limits)
 
 	fmt.Printf("\n  Model: %d components, RMSEC %.6g", model.Components, model.RMSEC)
 	if model.Validation != nil {
@@ -318,15 +348,60 @@ func printTransformPredictions(model *types.RegressionModel, predictions []float
 	fmt.Println("  data can be predicted far worse than they suggest.")
 }
 
+// printFitSummary states how many samples the model did not recognise.
+//
+// The count is the number a reader acts on -- scanning a marked column of 240
+// rows is not the same as being told that 8 of them are extrapolations. Silence
+// when the model carries no limits is deliberate too, but it is a different
+// silence and says so, because "none exceeded" and "nothing to compare against"
+// are opposite conclusions (#978).
+func printFitSummary(fits []sampleFit, limits modelLimits) {
+	if len(fits) == 0 {
+		return
+	}
+	if !limits.HasT2 && !limits.HasRSS {
+		fmt.Println("\n  This model carries no T² or Q limits, so nothing here says whether a")
+		fmt.Println("  sample resembles the calibration data. Models written before GoPCA")
+		fmt.Println("  recorded them look the same as models where every sample is ordinary.")
+		return
+	}
+
+	outside := countOutside(fits)
+	fmt.Printf("\n  %d of %d samples fall outside the model's 95%% limits (%s).\n",
+		outside, len(fits), describeLimits(limits))
+	if outside > 0 {
+		// Deliberately not "these are extrapolations". This command is often
+		// pointed at the data the model was fitted on, where a sample past the
+		// limit is not novel at all -- roughly 5% of any calibration set exceeds
+		// its own 95% limit by construction, and more than that when the limits'
+		// distributional assumptions do not hold. What can be said without
+		// knowing the provenance is what was measured.
+		fmt.Println("  The model accounts for those poorly. Whether that makes them novel")
+		fmt.Println("  depends on whether they were part of the calibration, which this")
+		fmt.Println("  command cannot know.")
+	}
+}
+
 // Output functions for transform command
-func outputTransformTable(result *types.PCAResult, data *pkgcsv.Data) error {
+func outputTransformTable(result *types.PCAResult, data *pkgcsv.Data,
+	fits []sampleFit, limits modelLimits) error {
+
 	fmt.Println("\nTransformed Scores:")
 	fmt.Println("──────────────────────────────────────────────────────────────")
+
+	// A model without a regression block still projects, and a projection still
+	// deserves to say how well it fitted. Without these columns the only output
+	// carrying a verdict would be the one that happens to predict a response
+	// (#978).
+	reportFit := limits.HasT2 || limits.HasRSS
 
 	// Print headers
 	fmt.Printf("%-15s", "Sample_ID")
 	for i := 0; i < len(result.ComponentLabels); i++ {
 		fmt.Printf("%12s", result.ComponentLabels[i])
+	}
+	if reportFit {
+		fmt.Printf("%12s%12s", "T²", "Q")
 	}
 	fmt.Println()
 	fmt.Println("──────────────────────────────────────────────────────────────")
@@ -342,14 +417,21 @@ func outputTransformTable(result *types.PCAResult, data *pkgcsv.Data) error {
 		for j := 0; j < len(result.ComponentLabels); j++ {
 			fmt.Printf("%12.4f", result.Scores[i][j])
 		}
+		if reportFit && i < len(fits) {
+			fmt.Printf("%12.4g%12.3g", fits[i].T2, fits[i].RSS)
+			if fits[i].Outside() {
+				fmt.Printf("  outside the model")
+			}
+		}
 		fmt.Println()
 	}
 
+	printFitSummary(fits, limits)
 	return nil
 }
 
 func outputTransformJSON(result *types.PCAResult, data *pkgcsv.Data,
-	inputFile, outputDir string) error {
+	inputFile, outputDir string, fits []sampleFit, limits modelLimits) error {
 	// Generate output path
 	dir := filepath.Dir(inputFile)
 	base := filepath.Base(inputFile)
@@ -365,13 +447,26 @@ func outputTransformJSON(result *types.PCAResult, data *pkgcsv.Data,
 
 	outputFile := filepath.Join(dir, baseName+"_transformed.json")
 
-	// Create output structure
-	type TransformOutput struct {
-		Samples []struct {
-			ID     string             `json:"id"`
-			Scores map[string]float64 `json:"scores"`
-		} `json:"samples"`
+	// Create output structure.
+	//
+	// hotelling_t2 and rss are spelled as the model schema spells them for the
+	// training rows (results.samples.metrics), so one quantity keeps one name
+	// across the two files a reader is likely to hold open together. The verdict
+	// is deliberately not called is_outlier: that field judges a row against a
+	// limit fitted on data including it, and this one against a model the row had
+	// no part in (#978).
+	type sampleOutput struct {
+		ID           string             `json:"id"`
+		Scores       map[string]float64 `json:"scores"`
+		HotellingT2  *float64           `json:"hotelling_t2,omitempty"`
+		RSS          *float64           `json:"rss,omitempty"`
+		OutsideModel *bool              `json:"outside_model,omitempty"`
 	}
+	type TransformOutput struct {
+		Samples []sampleOutput `json:"samples"`
+	}
+
+	reportFit := limits.HasT2 || limits.HasRSS
 
 	var output TransformOutput
 	for i := 0; i < len(result.Scores); i++ {
@@ -385,13 +480,20 @@ func outputTransformJSON(result *types.PCAResult, data *pkgcsv.Data,
 			scores[result.ComponentLabels[j]] = result.Scores[i][j]
 		}
 
-		output.Samples = append(output.Samples, struct {
-			ID     string             `json:"id"`
-			Scores map[string]float64 `json:"scores"`
-		}{
-			ID:     sampleID,
-			Scores: scores,
-		})
+		sample := sampleOutput{ID: sampleID, Scores: scores}
+		if i < len(fits) {
+			// The statistics are reported whenever they were computed. The verdict
+			// only when there was something to compare them against, so an absent
+			// outside_model says "no limits in the model" rather than "within
+			// them" -- opposite conclusions that a false would conflate.
+			t2, rss := fits[i].T2, fits[i].RSS
+			sample.HotellingT2, sample.RSS = &t2, &rss
+			if reportFit {
+				outside := fits[i].Outside()
+				sample.OutsideModel = &outside
+			}
+		}
+		output.Samples = append(output.Samples, sample)
 	}
 
 	// Marshal JSON
