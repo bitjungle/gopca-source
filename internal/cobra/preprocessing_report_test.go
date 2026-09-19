@@ -40,45 +40,45 @@ func TestDescribePreprocessing(t *testing.T) {
 		config types.PCAConfig
 		want   string
 	}{
-		{"default", types.PCAConfig{MeanCenter: true}, "mean centring"},
+		{"default", types.PCAConfig{MeanCenter: true}, "mean centering"},
 		{
-			"standardised",
+			"standardized",
 			types.PCAConfig{MeanCenter: true, StandardScale: true},
-			"mean centring, standard scaling",
+			"mean centering, standard scaling",
 		},
 		{
 			// Robust scaling centres on the median in its own branch, so "mean
-			// centring" would be wrong here even though the flag is set.
-			"robust with centring nominally on",
+			// centering" would be wrong here even though the flag is set.
+			"robust with centering nominally on",
 			types.PCAConfig{MeanCenter: true, RobustScale: true},
-			"robust scaling (centred on the median, divided by the MAD)",
+			"robust scaling (centered on the median, divided by the MAD)",
 		},
 		{
-			// And the data is still centred -- on the median -- with the flag off.
-			// Reporting "without centring" here would be the same error inverted.
-			"robust with centring nominally off",
+			// And the data is still centered -- on the median -- with the flag off.
+			// Reporting "without centering" here would be the same error inverted.
+			"robust with centering nominally off",
 			types.PCAConfig{RobustScale: true},
-			"robust scaling (centred on the median, divided by the MAD)",
+			"robust scaling (centered on the median, divided by the MAD)",
 		},
 		{
 			"scale only is one step, not a scaling plus a silent absence",
 			types.PCAConfig{ScaleOnly: true},
-			"variance scaling without centring",
+			"variance scaling without centering",
 		},
 		{
 			"SNV comes first because it is applied first",
 			types.PCAConfig{MeanCenter: true, SNV: true},
-			"SNV, mean centring",
+			"SNV, mean centering",
 		},
 		{
 			"vector norm",
 			types.PCAConfig{MeanCenter: true, VectorNorm: true},
-			"vector normalisation, mean centring",
+			"vector normalization, mean centering",
 		},
 		{
 			"Savitzky-Golay carries its settings",
 			types.PCAConfig{MeanCenter: true, SavGolWindow: 11, SavGolPolyOrder: 2, SavGolDeriv: 2},
-			"Savitzky-Golay (window 11, order 2, derivative 2), mean centring",
+			"Savitzky-Golay (window 11, order 2, derivative 2), mean centering",
 		},
 		{
 			"the full pipeline, in application order",
@@ -86,7 +86,7 @@ func TestDescribePreprocessing(t *testing.T) {
 				MeanCenter: true, StandardScale: true, SNV: true,
 				SavGolWindow: 7, SavGolPolyOrder: 3, SavGolDeriv: 1,
 			},
-			"SNV, Savitzky-Golay (window 7, order 3, derivative 1), mean centring, standard scaling",
+			"SNV, Savitzky-Golay (window 7, order 3, derivative 1), mean centering, standard scaling",
 		},
 		{
 			// Said explicitly. A blank reads as an omission rather than an answer.

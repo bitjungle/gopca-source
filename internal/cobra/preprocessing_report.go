@@ -38,7 +38,7 @@ import (
 // digits (#982). That matters here more than it would elsewhere: preprocessing
 // is frequently the largest single decision in the analysis. On the Tecator
 // spectra SNV takes the model from 15 components to 5; on the aluminium alloy
-// data standardisation moves PC1 from 59% of the variance to 10%. A figure
+// data standardization moves PC1 from 59% of the variance to 10%. A figure
 // pasted into a report was not reproducible from itself.
 //
 // The order is the order of application -- row-wise corrections, then
@@ -57,7 +57,7 @@ func describePreprocessing(config types.PCAConfig) string {
 		steps = append(steps, "SNV")
 	}
 	if config.VectorNorm {
-		steps = append(steps, "vector normalisation")
+		steps = append(steps, "vector normalization")
 	}
 
 	if config.SavGolWindow > 0 {
@@ -70,22 +70,22 @@ func describePreprocessing(config types.PCAConfig) string {
 	//
 	// Those are not the same thing. Robust scaling takes its own branch and
 	// centres on the *median* whatever MeanCenter says -- so a robust run is
-	// centred even with centring nominally off, and a robust run with centring
-	// nominally on does no *mean* centring. Scale-only likewise skips centring
+	// centered even with centering nominally off, and a robust run with centering
+	// nominally on does no *mean* centering. Scale-only likewise skips centering
 	// while MeanCenter may still be set. Describing the request rather than the
 	// branch would put this report in the same position as the reports it
 	// exists to replace.
 	switch {
 	case config.RobustScale:
-		steps = append(steps, "robust scaling (centred on the median, divided by the MAD)")
+		steps = append(steps, "robust scaling (centered on the median, divided by the MAD)")
 	case config.ScaleOnly:
-		steps = append(steps, "variance scaling without centring")
+		steps = append(steps, "variance scaling without centering")
 	case config.MeanCenter && config.StandardScale:
-		steps = append(steps, "mean centring", "standard scaling")
+		steps = append(steps, "mean centering", "standard scaling")
 	case config.MeanCenter:
-		steps = append(steps, "mean centring")
+		steps = append(steps, "mean centering")
 	case config.StandardScale:
-		steps = append(steps, "standard scaling without centring")
+		steps = append(steps, "standard scaling without centering")
 	}
 
 	if len(steps) == 0 {
