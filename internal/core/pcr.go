@@ -141,8 +141,8 @@ func (p *PCRImpl) Fit(data types.Matrix, y []float64, config types.PCRConfig) (*
 	// Attach the diagnostic limits, as RunPCAWithDiagnostics does for `pca
 	// analyze`. Without this the exported model carries "diagnostics": {} and
 	// nothing applying it can say whether a new sample resembles the calibration
-	// set -- which for a regression model is the artifact that most needs to
-	// (#977).
+	// set. A regression model is the artifact that most needs to say so, because
+	// its output is a number somebody acts on (#977).
 	//
 	// The limits describe the PCA model as stored, which is fitted with kMax
 	// components rather than the count the regression retains. That is the same

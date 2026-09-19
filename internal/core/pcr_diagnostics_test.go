@@ -92,7 +92,13 @@ func TestPCRCarriesTheSameDiagnosticLimitsAsPCA(t *testing.T) {
 		{"Q 95%", pcaResult.QLimit95, pcrResult.PCA.QLimit95},
 		{"Q 99%", pcaResult.QLimit99, pcrResult.PCA.QLimit99},
 	} {
-		if tt.pca != tt.pcr {
+		// A tolerance rather than exact equality. The two paths call one
+		// implementation on one decomposition, and five repeated fits were
+		// verified identical to the bit -- but a future BLAS or algorithm change
+		// could introduce noise far below anything this test is about. At 1e-12
+		// relative it still separates the defect it exists for by thirteen orders
+		// of magnitude: the bug it caught was a limit of 0 against 35.
+		if !withinRelative(tt.pca, tt.pcr, 1e-12) {
 			t.Errorf("%s: PCA gives %v, PCR gives %v -- the two commands disagree "+
 				"about the same data", tt.name, tt.pca, tt.pcr)
 		}
@@ -125,4 +131,17 @@ func TestPCRDiagnosticLimitsAreNotAllZero(t *testing.T) {
 		t.Errorf("the 99%% T² limit (%v) is not above the 95%% limit (%v)",
 			result.PCA.T2Limit99, result.PCA.T2Limit95)
 	}
+}
+
+// withinRelative compares two values allowing a relative difference, and treats
+// two zeros as equal rather than dividing by one.
+func withinRelative(a, b, tolerance float64) bool {
+	if a == b {
+		return true
+	}
+	scale := math.Max(math.Abs(a), math.Abs(b))
+	if scale == 0 {
+		return true
+	}
+	return math.Abs(a-b)/scale <= tolerance
 }
