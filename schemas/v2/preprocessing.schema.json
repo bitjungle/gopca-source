@@ -16,19 +16,19 @@
   "properties": {
     "mean_center": {
       "type": "boolean",
-      "description": "Whether mean centering was applied"
+      "description": "Whether the data was centered on the column MEAN. False when robust scaling was used: that centers on the median instead, which robust_scale records. False does not by itself mean the data was uncentered -- check robust_scale."
     },
     "standard_scale": {
       "type": "boolean",
-      "description": "Whether standard scaling (z-score) was applied"
+      "description": "Whether the data was divided by the column standard deviation. This says nothing about centering: standard scaling without centering is reachable (--no-mean-centering --scale standard), so read mean_center separately. Mutually exclusive with robust_scale and scale_only."
     },
     "robust_scale": {
       "type": "boolean",
-      "description": "Whether robust scaling (median/MAD) was applied"
+      "description": "Whether robust scaling was applied: (x - median) / MAD. This CENTERS ON THE MEDIAN as well as scaling, so a model with robust_scale true is centered even though mean_center is false. Mutually exclusive with standard_scale and scale_only."
     },
     "scale_only": {
       "type": "boolean",
-      "description": "Whether variance scaling without mean centering was applied"
+      "description": "Whether the data was divided by the column standard deviation WITHOUT any centering. Mutually exclusive with standard_scale and robust_scale."
     },
     "snv": {
       "type": "boolean",
@@ -49,7 +49,7 @@
         {
           "minimum": 3,
           "not": { "multipleOf": 2 },
-          "description": "An enabled filter. The window must be odd so it has a centre, and at least 3."
+          "description": "An enabled filter. The window must be odd so it has a center, and at least 3."
         }
       ],
       "description": "Savitzky-Golay sliding window length in variables. Either zero, meaning no filter, or an odd length of at least 3 that is also greater than savgol_polyorder. The relation to savgol_polyorder cannot be expressed here and is checked when the filter is rebuilt."

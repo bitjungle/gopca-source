@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The exported `preprocessing` block now records the transformation that was applied, not the
+  flags that were requested** (#987). `Preprocessor.Transform` takes one of three branches in
+  precedence order, so robust and scale-only scaling each suppress mean centering. Three of the five
+  reachable combinations therefore described a pipeline the training run had not used — a model
+  built with `--scale-only` claimed a centering that never happened, and one built with
+  `--scale robust` recorded `mean_center: true` when the centering was on the median, not the mean.
+
+  ```
+                                        before                        after
+  --scale-only            mean_center, scale_only            scale_only
+  --scale robust          mean_center, robust_scale          robust_scale
+  ```
+
+  The flags are now mutually exclusive: at most one of `standard_scale`, `robust_scale` and
+  `scale_only` is ever set, so a consumer never needs to know GoPCA's internal precedence. Note that
+  `robust_scale` implies centering on the median, so `mean_center: false` alongside it does **not**
+  mean the data was uncentered; the schema descriptions now say so.
+
+  **Existing model files are unaffected and need no migration.** The flags that were wrong are
+  exactly the ones the precedence ignores, so a pre-fix file selects the same branch and transforms
+  identically — verified, and pinned by a regression test.
+
 ### Changed
 - **Model files are now validated against the JSON schema.** The v1 schemas shipped with the
   applications but were never parsed; `ValidateModel` ran a set of hand-written structural checks
