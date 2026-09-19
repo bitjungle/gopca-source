@@ -179,11 +179,11 @@ EXAMPLES:
 	// Accepted and then refused, rather than removed, so a script that passes it
 	// gets the reasoning instead of "unknown flag" (#981).
 	cmd.Flags().BoolVar(&opts.NoMeanCentering, "no-mean-centering", false,
-		"Not available for regression: PCR requires mean-centred predictors")
+		"Not available for regression: PCR requires mean-centered predictors")
 	cmd.Flags().StringVar(&opts.Scale, "scale", "none",
 		"Scaling: none, standard, robust")
 	cmd.Flags().BoolVar(&opts.ScaleOnly, "scale-only", false,
-		"Not available for regression: PCR requires mean-centred predictors")
+		"Not available for regression: PCR requires mean-centered predictors")
 	cmd.Flags().BoolVar(&opts.SNV, "snv", false,
 		"Standard Normal Variate, applied per row")
 	addSavGolFlags(cmd, &opts.SavGol)

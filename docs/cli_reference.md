@@ -100,7 +100,7 @@ Row-wise methods act along the variable axis, so two combinations are **refused*
 
 ##### Savitzky-Golay Smoothing and Derivatives
 
-Fits a low-order polynomial across a sliding window of variables and evaluates it, or one of its derivatives, at the window centre. It can be used on its own; when `--snv` or `--vector-norm` is also given, the filter runs **after** it, and in every case **before** any column centring or scaling.
+Fits a low-order polynomial across a sliding window of variables and evaluates it, or one of its derivatives, at the window centre. It can be used on its own; when `--snv` or `--vector-norm` is also given, the filter runs **after** it, and in every case **before** any column centering or scaling.
 
 - `--savgol-window <n>` - Window length in variables, and the flag that switches the filter on. Any value greater than zero enables it, and must be odd and greater than the polynomial order. Omitted or `0` means no filtering.
 - `--savgol-order <n>` - Degree of the polynomial fitted in each window (default: `2`)
@@ -307,7 +307,7 @@ If a numeric column is really a class code — 0, 1, 2 for three species — mar
 
 Predictor-side options (`--method`, `--scale`, `--snv`, `--vector-norm`, `--savgol-window`, `--savgol-order`, `--savgol-deriv`, `--exclude-rows`, `--exclude-columns`) work as they do for `analyze`.
 
-**Two do not.** `--no-mean-centering` and `--scale-only` are refused by `regress`. Without centring, the first component absorbs the mean of the data — so one retained component describes where the samples sit rather than how they vary — while the intercept accounts for that offset at no cost. Uncentred PCA remains available for `analyze`, where exploring the data in its original position can be a deliberate choice; it is regression, with a response and an intercept, that leaves it no purpose.
+**Two do not.** `--no-mean-centering` and `--scale-only` are refused by `regress`. Without centering, the first component absorbs the mean of the data — so one retained component describes where the samples sit rather than how they vary — while the intercept accounts for that offset at no cost. Uncentered PCA remains available for `analyze`, where exploring the data in its original position can be a deliberate choice; it is regression, with a response and an intercept, that leaves it no purpose.
 
 Savitzky-Golay is worth singling out for regression. Unlike SNV it is the *same* operator for every sample, so it folds into the reported coefficients and the original-scale form stays available — a deployed model needs the raw wavelengths and nothing else. Combine it with `--snv` and that collapse is lost again, because SNV still scales each sample by its own spread.
 

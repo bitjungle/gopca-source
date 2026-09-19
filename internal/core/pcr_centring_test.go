@@ -80,7 +80,7 @@ func TestPCRRefusesUncentredPredictors(t *testing.T) {
 			if err == nil {
 				t.Fatal("uncentred predictors were accepted")
 			}
-			if !strings.Contains(err.Error(), "mean-centred predictors") {
+			if !strings.Contains(err.Error(), "mean-centered predictors") {
 				t.Errorf("the refusal does not say what is wrong: %v", err)
 			}
 		})
