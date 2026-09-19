@@ -513,7 +513,7 @@ type AppliedColumnStats struct {
 //
 // Callers that record what a model did -- the exported artifact above all --
 // must use this rather than the requested flags. This function and Transform
-// must agree; TestAppliedColumnStatisticsMatchesTransform asserts that they do,
+// must agree; TestRecordedFlagsReproduceTheTransformation asserts that they do,
 // by applying the reported flags independently and comparing the result.
 func (p *Preprocessor) AppliedColumnStatistics() AppliedColumnStats {
 	switch p.columnStage() {

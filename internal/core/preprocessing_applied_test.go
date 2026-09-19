@@ -93,6 +93,7 @@ func TestRecordedFlagsReproduceTheTransformation(t *testing.T) {
 	}{
 		{"mean centering only", true, false, false, false},
 		{"standard scaling", true, true, false, false},
+		{"standard scaling without centering", false, true, false, false},
 		{"scale-only", true, false, false, true},
 		{"scale-only, centering not requested", false, false, false, true},
 		{"robust", true, false, true, false},
@@ -143,6 +144,8 @@ func TestAppliedColumnStatisticsNamesTheBranch(t *testing.T) {
 			AppliedColumnStats{RobustScale: true}},
 		{"standard branch keeps both", true, true, false, false,
 			AppliedColumnStats{MeanCenter: true, StandardScale: true}},
+		{"standard scaling without centering is reachable", false, true, false, false,
+			AppliedColumnStats{StandardScale: true}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			p := NewPreprocessorWithScaleOnly(tt.meanCenter, tt.standardScale,

@@ -20,7 +20,7 @@
     },
     "standard_scale": {
       "type": "boolean",
-      "description": "Whether the data was divided by the column standard deviation, after mean centering. Mutually exclusive with robust_scale and scale_only."
+      "description": "Whether the data was divided by the column standard deviation. This says nothing about centering: standard scaling without centering is reachable (--no-mean-centering --scale standard), so read mean_center separately. Mutually exclusive with robust_scale and scale_only."
     },
     "robust_scale": {
       "type": "boolean",
