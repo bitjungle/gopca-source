@@ -23,6 +23,12 @@ describe('formatThresholdValue', () => {
         expect(formatThresholdValue(0)).toBe('0');
     });
 
+    it('drops trailing zeros in the small-value fallback too', () => {
+        // Three significant digits is what the value is rounded *to*, not how
+        // many are necessarily shown: 0.000100 and 0.0001 are the same number.
+        expect(formatThresholdValue(0.000100)).toBe('0.0001');
+    });
+
     it('honours a caller that wants different precision', () => {
         expect(formatThresholdValue(1 / Math.sqrt(24), 1)).toBe('0.2');
     });

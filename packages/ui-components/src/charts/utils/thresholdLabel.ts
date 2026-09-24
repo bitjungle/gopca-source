@@ -16,8 +16,11 @@ export const THRESHOLD_LABEL_DECIMALS = 3;
  * Formats a threshold for display, dropping trailing zeros so a value that is
  * already round stays round: 80 prints as "80", not "80.000".
  *
- * A value too small to survive the rounding falls back to three significant
- * digits rather than printing "0", which would be a different number.
+ * A value too small to survive the rounding is rounded to three significant
+ * digits instead, so it does not print as "0" — which would be a different
+ * number, not a shorter spelling of the same one. Trailing zeros are dropped
+ * there as well, so the result can show fewer than three digits: 0.000100 prints
+ * as "0.0001".
  */
 export function formatThresholdValue(
     value: number,
