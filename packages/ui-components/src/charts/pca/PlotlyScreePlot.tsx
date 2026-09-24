@@ -26,6 +26,7 @@
 import React, { useMemo } from 'react';
 import { Data, Layout } from 'plotly.js';
 import { getPlotlyTheme, mergeLayouts } from '../utils/plotlyTheme';
+import { formatThresholdValue } from '../utils/thresholdLabel';
 import { PlotlyVisualizationConfig } from '../core/PlotlyVisualization';
 import { getExportMenuItems } from '../utils/plotlyExport';
 import { PLOT_CONFIG } from '../config/plotConfig';
@@ -217,13 +218,18 @@ export class PlotlyScreePlot {
 
       layout.annotations = [
         {
-          text: `${this.config.thresholdValue}%`,
+          text: `${formatThresholdValue(this.config.thresholdValue!)}%`,
+          // Inside the plot area: at x: 1 with `xanchor: 'left'` this sat in the
+          // right margin strip, on top of the secondary axis tick labels (#1000).
           x: 1,
           xref: 'paper',
           y: this.config.thresholdValue!,
           yref: 'y2',
-          xanchor: 'left',
-          yanchor: 'middle',
+          xanchor: 'right',
+          // Above the line rather than centered on it: inside the plot area the
+          // dashed line would otherwise run straight through the boxed label.
+          // Matches how the loadings plot places the same kind of label.
+          yanchor: 'bottom',
           showarrow: false,
           font: {
             color: this.config.colorScheme?.[3] || '#C44E52',  // Use palette color

@@ -26,6 +26,7 @@
 import React, { useMemo } from 'react';
 import { Data, Layout } from 'plotly.js';
 import { getPlotlyTheme, mergeLayouts } from '../utils/plotlyTheme';
+import { formatThresholdValue } from '../utils/thresholdLabel';
 import { PlotlyVisualizationConfig } from '../core/PlotlyVisualization';
 import { getExportMenuItems } from '../utils/plotlyExport';
 import { PLOT_CONFIG } from '../config/plotConfig';
@@ -304,12 +305,15 @@ export class PlotlyLoadingsPlot {
 
       layout.annotations = [
         {
-          text: `Threshold: ±${this.config.thresholdValue}`,
+          text: `Threshold: ±${formatThresholdValue(this.config.thresholdValue!)}`,
+          // Anchored inside the plot area, not outside it. `xanchor: 'left'` at
+          // x: 1 extends the text into the right margin, which nothing reserves
+          // space for -- 30px against a 171px label, so it read "Thres" (#1000).
           x: 1,
           xref: 'paper',
           y: this.config.thresholdValue!,
           yref: 'y',
-          xanchor: 'left',
+          xanchor: 'right',
           yanchor: 'bottom',
           showarrow: false,
           font: {
