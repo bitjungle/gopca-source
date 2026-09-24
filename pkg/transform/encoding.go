@@ -25,7 +25,6 @@ package transform
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
 
@@ -65,7 +64,9 @@ func applyOneHot(data [][]string, columnTypes map[string]string, catCols map[str
 		for v := range uniqueSet {
 			sortedValues = append(sortedValues, v)
 		}
-		sort.Strings(sortedValues)
+		// Numeric-aware: category codes are usually numbers kept as labels, and
+		// text order would give 1, 10, 11, 2, 3 (#996).
+		sortCategoryValues(sortedValues)
 
 		// Append one new column per unique value.
 		newColumns := make([]string, 0, len(sortedValues))

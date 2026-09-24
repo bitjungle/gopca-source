@@ -25,7 +25,6 @@ package transform
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -121,7 +120,9 @@ func effectiveOrder(present map[string]bool, requested []string) []string {
 			remaining = append(remaining, value)
 		}
 	}
-	sort.Strings(remaining)
+	// Values the caller did not place explicitly. Their order decides the codes
+	// they receive, so numeric levels must not be ordered as text (#996).
+	sortCategoryValues(remaining)
 
 	return append(order, remaining...)
 }

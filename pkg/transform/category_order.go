@@ -124,7 +124,9 @@ func SuggestCategoryOrder(values []string) []string {
 		}
 	}
 
-	sort.Strings(unique)
+	// No known vocabulary matched. Fall back to sorted order, numeric-aware so a
+	// column of codes 1..11 is proposed in the order a reader expects (#996).
+	sortCategoryValues(unique)
 	return unique
 }
 
