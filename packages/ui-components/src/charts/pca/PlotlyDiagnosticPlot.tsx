@@ -32,6 +32,7 @@ import { PlotlyWithFullscreen } from '../utils/plotlyFullscreen';
 import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { PlotlyVisualizationConfig } from '../core/PlotlyVisualization';
 import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
+import { escapeHoverText } from '../utils/hoverText';
 
 export interface DiagnosticPlotData {
   mahalanobisDistances: number[];
@@ -184,9 +185,13 @@ return;
               symbol: cat.symbol,
               opacity: 0.7
             },
-            text: sampleNames ? filteredIndices.map(i => sampleNames[i]) : undefined,
+            text: sampleNames
+              ? filteredIndices.map(i => escapeHoverText(sampleNames[i]))
+              : undefined,
+            // Escaped: Plotly parses hover text as markup, and this is the one place
+            // the untruncated value is guaranteed readable (#999).
             hovertemplate: '<b>%{text}</b><br>' +
-                          'Group: ' + group + '<br>' +
+                          'Group: ' + escapeHoverText(group) + '<br>' +
                           'Mahalanobis: %{x:.2f}<br>' +
                           'RSS: %{y:.2f}<extra></extra>',
             legendgroup: group,

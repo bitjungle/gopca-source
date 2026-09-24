@@ -134,9 +134,20 @@ describe('legend labels are shortened but never lost (#999)', () => {
     const longLevel = 'Chemical composition measured by optical emission spectrometry';
     const n = 6;
 
-    const groupedTraces = () => {
+    /** Every string a plot puts in front of the user on hover, concatenated. */
+    const hoverTextOf = (traces: Data[]) =>
+        traces
+            .map(trace => trace as { hovertext?: string[]; text?: string[]; hovertemplate?: string })
+            .map(trace => [
+                ...(trace.hovertext ?? []),
+                ...(trace.text ?? []),
+                trace.hovertemplate ?? ''
+            ].join('\n'))
+            .join('\n');
+
+    const groupedTraces = (level: string = longLevel) => {
         const scores = scoresFor(n);
-        const groups = Array.from({ length: n }, (_, i) => (i % 2 ? longLevel : 'short'));
+        const groups = Array.from({ length: n }, (_, i) => (i % 2 ? level : 'short'));
         return {
             'PlotlyScoresPlot': tracesOf(new PlotlyScoresPlot(
                 { scores, groups, explainedVariance },
@@ -177,14 +188,20 @@ describe('legend labels are shortened but never lost (#999)', () => {
         }
     });
 
+    it.each(PLOT_NAMES)('%s escapes markup in the level rather than letting Plotly parse it', name => {
+        // `<LOD` (below the limit of detection) is an ordinary value in the
+        // sciences this tool serves, and Plotly reads hover text as markup, so an
+        // unescaped one is swallowed as the start of a tag. Since hover is what
+        // makes shortening the legend acceptable, it has to survive intact.
+        const hover = hoverTextOf(groupedTraces('<LOD & >99')[name]);
+        expect(hover).toContain('&lt;LOD &amp; &gt;99');
+        expect(hover).not.toContain('<LOD');
+    });
+
     it.each(PLOT_NAMES)('%s still names the level in full on hover', name => {
         // Shortening the legend is only acceptable because the hover text is
         // where the value is actually read. If a plot stops carrying it, the
         // information is gone and this must fail.
-        const hover = groupedTraces()[name]
-            .map(trace => trace as { hovertext?: string[]; hovertemplate?: string })
-            .map(trace => `${(trace.hovertext ?? []).join('\n')}\n${trace.hovertemplate ?? ''}`)
-            .join('\n');
-        expect(hover).toContain(longLevel);
+        expect(hoverTextOf(groupedTraces()[name])).toContain(longLevel);
     });
 });

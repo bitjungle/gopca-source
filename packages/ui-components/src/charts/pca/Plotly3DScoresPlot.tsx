@@ -32,6 +32,7 @@ import { PlotlyWithFullscreen } from '../utils/plotlyFullscreen';
 import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { sampleLabel } from '../utils/sampleLabel';
 import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
+import { escapeHoverText } from '../utils/hoverText';
 
 export interface Scores3DPlotData {
   scores: number[][];
@@ -171,7 +172,9 @@ export class Plotly3DScoresPlot {
         // Prepare hover text
         const hovertext = groupIndices.map(i => {
           const label = sampleLabel(sampleNames, i);
-          return `<b>${label}</b><br>Group: ${group}<br>PC${pc1 + 1}: ${scores[i][pc1].toFixed(2)}<br>PC${pc2 + 1}: ${scores[i][pc2].toFixed(2)}<br>PC${pc3 + 1}: ${scores[i][pc3].toFixed(2)}`;
+          // Escaped: Plotly parses hover text as markup, and this is the one place
+          // the untruncated value is guaranteed readable (#999).
+          return `<b>${escapeHoverText(label)}</b><br>Group: ${escapeHoverText(group)}<br>PC${pc1 + 1}: ${scores[i][pc1].toFixed(2)}<br>PC${pc2 + 1}: ${scores[i][pc2].toFixed(2)}<br>PC${pc3 + 1}: ${scores[i][pc3].toFixed(2)}`;
         });
 
         // Prepare text labels if enabled (limit per group)

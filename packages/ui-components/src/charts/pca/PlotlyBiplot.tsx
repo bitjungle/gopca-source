@@ -39,6 +39,7 @@ import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { optimizeTraceType } from '../utils/plotlyPerformance';
 import { sampleLabel } from '../utils/sampleLabel';
 import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
+import { escapeHoverText } from '../utils/hoverText';
 
 export interface BiplotData {
   scores: number[][];  // [n_samples][n_components]
@@ -232,10 +233,13 @@ export class PlotlyBiplot {
               size: getScaledMarkerSize(this.config.pointSize || 8, this.config.fontScale || 1.0),
               opacity: 0.7
             },
-            text: sampleNames ? indices.map((idx: number) => sampleNames[idx]) : undefined,
-            // Group named here because the legend entry may be truncated (#999).
-            hovertemplate: '<b>%{text}</b><br>Group: ' + group + '<br>PC' + (pcX + 1) +
-                          ': %{x:.2f}<br>PC' + (pcY + 1) + ': %{y:.2f}<extra></extra>'
+            text: sampleNames
+              ? indices.map((idx: number) => escapeHoverText(sampleNames[idx]))
+              : undefined,
+            // Group named here because the legend entry may be truncated (#999),
+            // escaped because Plotly parses hover text as markup.
+            hovertemplate: '<b>%{text}</b><br>Group: ' + escapeHoverText(group) + '<br>PC' +
+                          (pcX + 1) + ': %{x:.2f}<br>PC' + (pcY + 1) + ': %{y:.2f}<extra></extra>'
           });
 
           // Add confidence ellipse if enabled
