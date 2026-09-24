@@ -275,8 +275,7 @@ alloying element:
 | 7xxx | zinc |
 
 That system was built by metallurgists, by hand, over decades. Our PCA has never
-heard of it. Set **Color by → `Name#category`** or read the alloy designations
-with **Show labels** on, and compare where each series sits:
+heard of it. Here is where each series sits:
 
 | Series | n | PC1 | PC2 | PC3 |
 |---|---|---|---|---|
@@ -298,6 +297,35 @@ Read it against the loadings from Step 3 and it falls into place:
 
 PCA was given nothing but 24 numbers per alloy. It recovered the axes that the
 designation system is built on.
+
+#### Checking this for yourself
+
+That table was computed outside the applications, and it is worth saying why
+rather than presenting it as something you can reproduce by clicking.
+
+The series is the **first digit of the alloy designation** in the `Name` column,
+which needs a substring or pattern extraction. GoCSV's transforms cover splitting
+on a delimiter, combining, binning, encoding and the mathematical ones — none of
+them takes the first character of a text field. So there is no way to build a
+`series` column in the app, and the grouping had to be done with a script.
+
+What you *can* do is verify the claim point by point:
+
+**Color by `Name#category`, then ignore the legend and hover instead.** The
+tooltip names the alloy for whichever point you are asking about, and that is
+what lets you check the claim: the most negative PC1 points are high-silicon
+casting alloys, the most positive are 1xxx purities.
+
+The legend, by contrast, is useless here and worth understanding why. `Name` has
+**420** distinct values against a palette of **25** colors, so each color stands
+for roughly seventeen different alloys. It is not that the legend is cramped —
+one color genuinely does not identify one alloy, so no amount of space would
+rescue it. `Source` behaves the same way at 124 levels, five alloys per color.
+
+This is a general property of color as an encoding, not a quirk of this file. The
+eye can separate perhaps a dozen hues reliably, and a metadata column routinely
+holds hundreds of values. **When there are more groups than colors, the legend
+becomes decoration and hover becomes the instrument.**
 
 > **A caution about what this does and does not show.** The alloy series *is*
 > defined by principal alloying element, so finding that a composition-based
@@ -619,6 +647,9 @@ different things**, and recognizing the second is the harder skill.
 * Distinguish a **shift between overlapping groups** (processing type here) from
   a **separation into clusters**, and reason about which direction the causal
   arrow runs
+* Know when a **categorical has too many levels to color by** — a palette holds a
+  few dozen colors, so beyond that a legend stops identifying anything and hover
+  becomes the only reliable way to name a point
 * Appreciate that PCA can **rediscover an established classification** (the alloy
   series) from raw measurements — and that agreement between two very different
   methods on the same three variables is stronger evidence than either alone
