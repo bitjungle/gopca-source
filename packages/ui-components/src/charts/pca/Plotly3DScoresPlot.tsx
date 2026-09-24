@@ -31,6 +31,8 @@ import { PLOT_CONFIG, getScaledMarkerSize, getScaledFontSizes } from '../config/
 import { PlotlyWithFullscreen } from '../utils/plotlyFullscreen';
 import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { sampleLabel } from '../utils/sampleLabel';
+import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
+import { escapeHoverText } from '../utils/hoverText';
 
 export interface Scores3DPlotData {
   scores: number[][];
@@ -170,7 +172,9 @@ export class Plotly3DScoresPlot {
         // Prepare hover text
         const hovertext = groupIndices.map(i => {
           const label = sampleLabel(sampleNames, i);
-          return `<b>${label}</b><br>Group: ${group}<br>PC${pc1 + 1}: ${scores[i][pc1].toFixed(2)}<br>PC${pc2 + 1}: ${scores[i][pc2].toFixed(2)}<br>PC${pc3 + 1}: ${scores[i][pc3].toFixed(2)}`;
+          // Escaped: Plotly parses hover text as markup, and this is the one place
+          // the untruncated value is guaranteed readable (#999).
+          return `<b>${escapeHoverText(label)}</b><br>Group: ${escapeHoverText(group)}<br>PC${pc1 + 1}: ${scores[i][pc1].toFixed(2)}<br>PC${pc2 + 1}: ${scores[i][pc2].toFixed(2)}<br>PC${pc3 + 1}: ${scores[i][pc3].toFixed(2)}`;
         });
 
         // Prepare text labels if enabled (limit per group)
@@ -184,7 +188,8 @@ export class Plotly3DScoresPlot {
         traces.push({
           type: 'scatter3d',
           mode: showText ? 'markers+text' as any : 'markers',
-          name: group,
+          // Legend only; hovertext above carries the full value (#999).
+          name: truncateLegendLabel(group),
           x: groupScores.map(s => s[pc1]),
           y: groupScores.map(s => s[pc2]),
           z: groupScores.map(s => s[pc3]),
@@ -309,6 +314,17 @@ export class Plotly3DScoresPlot {
   getLayout(): Partial<Layout> {
     const { explainedVariance, pc1 = 0, pc2 = 1, pc3 = 2 } = this.data;
 
+    // More groups than the palette can distinguish (#999). Recomputed here so
+    // the layout does not depend on getTraces having run first. Skipped for a
+    // continuous coloring: there colorScheme is a sequential colorscale whose
+    // stop count says nothing about repeated swatches, and there are none.
+    const overflowNote = this.data.groupType === 'continuous'
+      ? null
+      : paletteOverflowNote(
+          new Set(this.data.groups ?? []).size,
+          this.config.colorScheme?.length ?? 0
+        );
+
     // Get scaled font sizes based on fontScale
     const scaledFonts = getScaledFontSizes(this.config.fontScale || 1.0);
 
@@ -366,6 +382,9 @@ export class Plotly3DScoresPlot {
       legend: {
         borderwidth: 1,
         font: { size: Math.round(12 * (this.config.fontScale || 1.0)) },
+        // Present only when the palette has run out, above the swatches it
+        // qualifies (#999).
+        ...(overflowNote ? { title: { text: overflowNote } } : {}),
         x: 1.02,
         y: 1,
         xanchor: 'left',

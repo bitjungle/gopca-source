@@ -31,6 +31,8 @@ import { PLOT_CONFIG, getScaledMarkerSize, getScaledFontSizes } from '../config/
 import { PlotlyWithFullscreen } from '../utils/plotlyFullscreen';
 import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { sampleLabel } from '../utils/sampleLabel';
+import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
+import { escapeHoverText } from '../utils/hoverText';
 
 export interface Biplot3DData {
   scores: number[][];  // [n_samples][n_components]
@@ -264,7 +266,9 @@ export class Plotly3DBiplot {
           // Prepare hover text
           const hovertext = indices.map(i => {
             const label = sampleLabel(sampleNames, i);
-            return `<b>${label}</b><br>Group: ${group}<br>PC${pc1 + 1}: ${scoresX[i].toFixed(2)}<br>PC${pc2 + 1}: ${scoresY[i].toFixed(2)}<br>PC${pc3 + 1}: ${scoresZ[i].toFixed(2)}`;
+            // Escaped: Plotly parses hover text as markup, and this is the one
+            // place the untruncated value is guaranteed readable (#999).
+            return `<b>${escapeHoverText(label)}</b><br>Group: ${escapeHoverText(group)}<br>PC${pc1 + 1}: ${scoresX[i].toFixed(2)}<br>PC${pc2 + 1}: ${scoresY[i].toFixed(2)}<br>PC${pc3 + 1}: ${scoresZ[i].toFixed(2)}`;
           });
 
           // Prepare text labels if enabled (limit per group)
@@ -278,7 +282,8 @@ export class Plotly3DBiplot {
           traces.push({
             type: 'scatter3d',
             mode: showText ? 'markers+text' as any : 'markers',
-            name: group,
+            // Legend only; hovertext carries the full value (#999).
+            name: truncateLegendLabel(group),
             x: groupX,
             y: groupY,
             z: groupZ,
@@ -552,6 +557,18 @@ export class Plotly3DBiplot {
 
   getLayout(): Partial<Layout> {
     const { explainedVariance } = this.data;
+
+    // More groups than the palette can distinguish (#999). Recomputed here so
+    // the layout does not depend on getTraces having run first. Skipped for a
+    // continuous coloring: there colorScheme is a sequential colorscale whose
+    // stop count says nothing about repeated swatches, and there are none.
+    const overflowNote = this.data.groupType === 'continuous'
+      ? null
+      : paletteOverflowNote(
+          new Set(this.data.groups ?? []).size,
+          this.config.colorScheme?.length ?? 0
+        );
+
     const pc1 = this.data.pc1 ?? 0;
     const pc2 = this.data.pc2 ?? 1;
     const pc3 = this.data.pc3 ?? 2;
@@ -622,6 +639,9 @@ export class Plotly3DBiplot {
       legend: {
         borderwidth: 1,
         font: { size: Math.round(12 * (this.config.fontScale || 1.0)) },
+        // Present only when the palette has run out, above the swatches it
+        // qualifies (#999).
+        ...(overflowNote ? { title: { text: overflowNote } } : {}),
         x: 1.02,
         y: 1,
         xanchor: 'left',

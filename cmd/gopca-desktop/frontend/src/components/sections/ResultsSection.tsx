@@ -30,6 +30,8 @@ import { usePCAContext } from '../../contexts/PCAContext';
 import { useFileDataContext } from '../../contexts/FileDataContext';
 import { useVisualizationContext } from '../../contexts/VisualizationContext';
 import { usePalette } from '../../contexts/PaletteContext';
+import { getQualitativePalette } from '../../utils/colorPalettes';
+import { paletteOverflow } from '../../utils/paletteOverflow';
 import { PlotType } from '../../hooks/useVisualization';
 import { config as wailsConfig } from '../../../wailsjs/go/models';
 import { logger } from '../../utils/logger';
@@ -84,7 +86,7 @@ export function ResultsSection({ guiConfig }: ResultsSectionProps) {
         plotFontScale, setPlotFontScale,
         getColumnData, handlePlotSelectionChange
     } = useVisualizationContext();
-    const { setMode } = usePalette();
+    const { setMode, qualitativePalette } = usePalette();
 
     // Memoize the available plot options — depends on PCA method and whether
     // preprocessing and eigencorrelations are present in the result.
@@ -115,6 +117,19 @@ export function ResultsSection({ guiConfig }: ResultsSectionProps) {
             ] : [])
         ];
     }, [pcaResponse?.result]);
+
+    // Beyond the palette's colors, color stops identifying a group: the plots take
+    // it modulo the palette length, so groups share a swatch and the legend claims
+    // a mapping it cannot support. Said here, where the column is chosen, as well
+    // as in the legend's own title (#999).
+    const overflow = useMemo(() => {
+        const column = selectedGroupColumn ? getColumnData(selectedGroupColumn) : {};
+        return paletteOverflow(
+            column.type,
+            column.values,
+            getQualitativePalette(qualitativePalette).length
+        );
+    }, [selectedGroupColumn, getColumnData, qualitativePalette]);
 
     // Memoize the Color-by column options — depends on fileData column metadata.
     const groupColumnOptions = useMemo(() => [
@@ -254,6 +269,14 @@ export function ResultsSection({ guiConfig }: ResultsSectionProps) {
                                                 className="min-w-[150px]"
                                             />
                                         </HelpWrapper>
+                                        {overflow && (
+                                            <span
+                                                role="status"
+                                                className="text-xs text-amber-700 dark:text-amber-400 max-w-[22rem]"
+                                            >
+                                                {overflow.levels} categories but {overflow.colors} colors — colors repeat, so they no longer identify a group. Hover a point to read its value.
+                                            </span>
+                                        )}
                                     </div>
                                 )}
 
