@@ -59,6 +59,15 @@ func TestSortCategoryValues(t *testing.T) {
 		{"padded codes",
 			[]string{"03", "1", "20"},
 			[]string{"1", "03", "20"}},
+		{"NaN is not treated as a number, because it cannot be ordered",
+			[]string{"10", "2", "NaN", "1", "3"},
+			[]string{"1", "10", "2", "3", "NaN"}},
+		{"nor in any other spelling",
+			[]string{"10", "2", "nan"},
+			[]string{"10", "2", "nan"}},
+		{"infinities do order, and are kept numeric",
+			[]string{"10", "-Inf", "2", "Inf"},
+			[]string{"-Inf", "2", "10", "Inf"}},
 		{"empty", nil, nil},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -141,6 +150,55 @@ func TestSuggestCategoryOrder_NumericLevels(t *testing.T) {
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("got %v, want %v", got, want)
+		}
+	}
+}
+
+// Before NaN was excluded, this was not merely non-deterministic: the plain
+// numbers came out unsorted. NaN compares false against everything including
+// itself, so {"10", "2", "NaN", "1", "3"} has no strict ordering and
+// sort.SliceStable returned {"2", "10", "NaN", "1", "3"}.
+//
+// Ordering is asserted from several starting permutations rather than one,
+// because a comparator that violates strict weak ordering can still look correct
+// on whichever arrangement it was first tried with.
+func TestSortCategoryValues_OrderingHoldsFromAnyStartingPermutation(t *testing.T) {
+	for _, start := range [][]string{
+		{"10", "2", "NaN", "1", "3"},
+		{"NaN", "10", "2", "1", "3"},
+		{"1", "2", "3", "10", "NaN"},
+		{"3", "NaN", "1", "10", "2"},
+		{"2", "3", "NaN", "10", "1"},
+	} {
+		got := append([]string(nil), start...)
+		sortCategoryValues(got)
+
+		// Text order, since "NaN" is not a number: "1" < "10" < "2" < "3" < "NaN".
+		want := []string{"1", "10", "2", "3", "NaN"}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("from %v: got %v, want %v", start, got, want)
+			}
+		}
+	}
+}
+
+// The numeric path must be equally indifferent to where it starts.
+func TestSortCategoryValues_NumericOrderIndependentOfInputOrder(t *testing.T) {
+	for _, start := range [][]string{
+		{"10", "2", "1", "11", "9"},
+		{"1", "2", "9", "10", "11"},
+		{"11", "10", "9", "2", "1"},
+		{"9", "11", "1", "2", "10"},
+	} {
+		got := append([]string(nil), start...)
+		sortCategoryValues(got)
+
+		want := []string{"1", "2", "9", "10", "11"}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("from %v: got %v, want %v", start, got, want)
+			}
 		}
 	}
 }

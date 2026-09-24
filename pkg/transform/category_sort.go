@@ -24,6 +24,7 @@
 package transform
 
 import (
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,6 +46,16 @@ import (
 // Equal numeric values keep a deterministic order by falling back to a text
 // comparison, so "1" and "1.0" do not swap between runs.
 //
+// "NaN" is excluded from the numeric path even though strconv.ParseFloat accepts
+// it, because NaN compares false against every value including itself. A set
+// containing one therefore has no strict ordering at all, and sort.SliceStable is
+// entitled to return anything: {"10", "2", "NaN", "1", "3"} came back as
+// {"2", "10", "NaN", "1", "3"}, with the plain numbers out of order. "NaN" is a
+// common missing-data marker in an exported CSV, and this function decides the
+// assigned ordinal code, so that is real. It falls to the text sort, which is what
+// the all-or-nothing rule already prescribes for a value that is not a number.
+// +Inf and -Inf are kept: they order consistently against everything.
+//
 // This is the transform-package counterpart of the row-name fix in #963, where
 // identifiers ran 1, 10, 100, 1000 rather than 1, 2, 3.
 //
@@ -57,25 +68,33 @@ import (
 // type to record that they were numbers; matching a text sort here would be
 // faithful to sklearn and wrong for the user.
 func sortCategoryValues(values []string) {
-	numbers := make([]float64, len(values))
+	// The label and its numeric value travel together, so each value is parsed
+	// once and the comparator reads the pair by index. Sorting the strings alone
+	// and re-parsing inside the comparator also works, but only because the
+	// parse is repeated on every comparison.
+	type level struct {
+		label  string
+		number float64
+	}
+
+	levels := make([]level, len(values))
 	for i, v := range values {
 		n, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
-		if err != nil {
+		if err != nil || math.IsNaN(n) {
 			sort.Strings(values)
 			return
 		}
-		numbers[i] = n
+		levels[i] = level{label: v, number: n}
 	}
 
-	sort.SliceStable(values, func(a, b int) bool {
-		// values and numbers are permuted together, so compare by re-parsing
-		// rather than by index: the closure sees indices into the slice being
-		// sorted, and numbers[] would go stale after the first swap.
-		x, _ := strconv.ParseFloat(strings.TrimSpace(values[a]), 64)
-		y, _ := strconv.ParseFloat(strings.TrimSpace(values[b]), 64)
-		if x != y {
-			return x < y
+	sort.SliceStable(levels, func(a, b int) bool {
+		if levels[a].number != levels[b].number {
+			return levels[a].number < levels[b].number
 		}
-		return values[a] < values[b]
+		return levels[a].label < levels[b].label
 	})
+
+	for i, l := range levels {
+		values[i] = l.label
+	}
 }
