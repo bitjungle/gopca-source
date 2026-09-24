@@ -320,13 +320,18 @@ jobs:
     # pull requests, which is the same failure as a package missing from
     # scripts/ci/test-core.sh -- green for a reason unrelated to the tests.
     #
-    # gocsv-frontend has no test script yet and is deliberately not listed;
-    # adding it here before it has tests would only add a step that cannot fail.
+    # gocsv-frontend joined this list in #1002. Until then it had no test setup
+    # at all, which is how its transform dialog came to report "Transformation
+    # Results" for a transform that had refused to act: the rule deciding what
+    # the dialog says was only ever read, never run.
     - name: Test shared UI components
       run: npm run test -w @gopca/ui-components
 
     - name: Test GoPCA Desktop frontend
       run: npm run test -w frontend
+
+    - name: Test GoCSV frontend
+      run: npm run test -w gocsv-frontend
 
   build-cli:
     name: Build pca CLI

@@ -25,6 +25,11 @@ import { Dialog } from '@gopca/ui-components';
 import React, { useState, useEffect } from 'react';
 import { ApplyTransformation, GetTransformableColumns, SuggestCategoryOrder } from '../../wailsjs/go/main/App';
 import { main } from '../../wailsjs/go/models';
+import {
+    summarizeTransformOutcome,
+    transformOutcomeHeading,
+    type TransformOutcome
+} from '../utils/transformOutcome';
 
 type FileData = main.FileData;
 type TransformationResult = main.TransformationResult;
@@ -179,6 +184,10 @@ export const DataTransformDialog: React.FC<DataTransformDialogProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [result, setResult] = useState<TransformationResult | null>(null);
+    // What the run actually did, summarized against the selection that produced
+    // it rather than recomputed at render time from a selection the user may have
+    // changed since (#1002).
+    const [outcome, setOutcome] = useState<TransformOutcome | null>(null);
 
     // Transform-specific options
     const [binCount, setBinCount] = useState(5);
@@ -231,6 +240,7 @@ export const DataTransformDialog: React.FC<DataTransformDialogProps> = ({
             setZeroReplacement('');
             setLambda('');
             setResult(null);
+            setOutcome(null);
             setError(null);
         }
     }, [isOpen]);
@@ -335,6 +345,7 @@ export const DataTransformDialog: React.FC<DataTransformDialogProps> = ({
         setIsLoading(true);
         setError(null);
         setResult(null);
+        setOutcome(null);
 
         try {
             const options = {
@@ -366,6 +377,10 @@ export const DataTransformDialog: React.FC<DataTransformDialogProps> = ({
 
             if (transformResult.success && transformResult.data) {
                 setResult(transformResult);
+                setOutcome(summarizeTransformOutcome(
+                    selectedColumns,
+                    transformResult.transformedColumns
+                ));
                 onTransformComplete(transformResult.data);
             } else {
                 setError('Transformation failed');
@@ -833,15 +848,33 @@ export const DataTransformDialog: React.FC<DataTransformDialogProps> = ({
                             </div>
                         )}
 
-                        {/* Result messages */}
-                        {result && result.messages && result.messages.length > 0 && (
-                            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg">
-                                <div className="text-sm font-medium mb-1">Transformation Results:</div>
-                                <ul className="list-disc list-inside text-sm space-y-1">
-                                    {result.messages.map((msg, index) => (
-                                        <li key={index}>{msg}</li>
-                                    ))}
-                                </ul>
+                        {/* Outcome of the run.
+
+                            A transform that declines to act returns success with
+                            an explanatory message, so reporting on messages alone
+                            put "nothing was changed" under a heading that said
+                            transformations had happened. The outcome now decides
+                            both the wording and the styling, and an untouched or
+                            partial run is shown even when the engine said nothing
+                            at all, because an unchanged grid is otherwise
+                            indistinguishable from a grid that changed (#1002). */}
+                        {result && outcome && (outcome.kind !== 'all' || (result.messages && result.messages.length > 0)) && (
+                            <div
+                                role="status"
+                                className={`mb-4 p-3 rounded-lg ${outcome.kind === 'all'
+                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                                    : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'}`}
+                            >
+                                <div className="text-sm font-medium mb-1">
+                                    {transformOutcomeHeading(outcome)}
+                                </div>
+                                {result.messages && result.messages.length > 0 && (
+                                    <ul className="list-disc list-inside text-sm space-y-1">
+                                        {result.messages.map((msg, index) => (
+                                            <li key={index}>{msg}</li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                         )}
                     </div>
