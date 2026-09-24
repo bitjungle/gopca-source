@@ -23,6 +23,7 @@
 
 import { describe, it, expect } from 'vitest';
 import helpContent from './help-content.json';
+import { QUALITATIVE_PALETTES, getQualitativePalette } from '../utils/colorPalettes';
 
 // Vite's own glob rather than node's fs: the frontend has no @types/node, so a
 // filesystem walk here would run fine under vitest and then fail the tsc pass
@@ -107,5 +108,22 @@ describe('help content', () => {
             .filter(([, len]) => len > LONGEST_SHIPPED)
             .map(([key, len]) => `${key} (${len})`);
         expect(tooLong).toEqual([]);
+    });
+
+    // The group-coloring entry states the palette size as a number, and that number
+    // is the user's basis for trusting that color identifies a group (#999). Prose
+    // and palette are edited in different files, so nothing but this keeps them
+    // honest: adding a color to the palettes would leave the help text asserting a
+    // limit that is no longer the real one.
+    it('states the palette size the qualitative palettes actually have', () => {
+        const stated = helpContent.help['group-coloring'].text.match(/palette holds (\d+) colors/);
+        expect(stated, 'group-coloring no longer states a palette size').not.toBeNull();
+
+        const sizes = Object.keys(QUALITATIVE_PALETTES).map(
+            name => getQualitativePalette(name as keyof typeof QUALITATIVE_PALETTES).length
+        );
+        // One number can describe every palette only while they all agree.
+        expect(new Set(sizes).size, `palettes differ in size: ${sizes.join(', ')}`).toBe(1);
+        expect(Number(stated![1])).toBe(sizes[0]);
     });
 });

@@ -31,6 +31,7 @@ import { PLOT_CONFIG, getScaledMarkerSize } from '../config/plotConfig';
 import { PlotlyWithFullscreen } from '../utils/plotlyFullscreen';
 import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { PlotlyVisualizationConfig } from '../core/PlotlyVisualization';
+import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
 
 export interface DiagnosticPlotData {
   mahalanobisDistances: number[];
@@ -90,6 +91,18 @@ export class PlotlyDiagnosticPlot {
     }
   }
 
+  /**
+   * The palette the categorical group traces actually cycle through. Kept in one
+   * place so the legend's palette-overflow note (#999) quotes the same count the
+   * colors are taken modulo.
+   */
+  private categoricalPalette(): string[] {
+    return this.config.colorScheme ?? [
+      '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
+      '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'
+    ];
+  }
+
   private identifyOutliers() {
     const { mahalanobisDistances, residualSumOfSquares } = this.data;
     const outliers: number[] = [];
@@ -127,11 +140,7 @@ export class PlotlyDiagnosticPlot {
     const { mahalanobisDistances, residualSumOfSquares, sampleNames, groups, groupValues, groupType } = this.data;
     const { outliers, goodLeverage, orthogonal, regular } = this.identifyOutliers();
 
-    // Use colorScheme from config, fallback to defaults if not provided
-    const colors = this.config.colorScheme || [
-      '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
-      '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'
-    ];
+    const colors = this.categoricalPalette();
 
     // Determine if we have groups to color by
     const hasGroups = groups && groups.length > 0;
@@ -165,7 +174,9 @@ return;
             mode: 'markers',
             x: filteredIndices.map(i => mahalanobisDistances[i]),
             y: filteredIndices.map(i => residualSumOfSquares[i]),
-            name: group + categoryName,
+            // Group shortened for the legend only; the hover text below names it in
+            // full. The outlier-category suffix is kept intact (#999).
+            name: truncateLegendLabel(group) + categoryName,
             customdata: filteredIndices.map(i => [i]),
             marker: {
               color: colors[groupIdx % colors.length],
@@ -332,6 +343,16 @@ return;
   getLayout(): Partial<Layout> {
     const { mahalanobisDistances, residualSumOfSquares } = this.data;
 
+    // More groups than the palette can distinguish (#999). Skipped for a
+    // continuous coloring: there colorScheme is a sequential colorscale whose
+    // stop count says nothing about repeated swatches, and there are none.
+    const overflowNote = this.data.groupType === 'continuous'
+      ? null
+      : paletteOverflowNote(
+          new Set(this.data.groups ?? []).size,
+          this.categoricalPalette().length
+        );
+
     const layout: Partial<Layout> = {
       title: {
         text: 'PCA Diagnostic Plot'
@@ -361,7 +382,10 @@ return;
         y: 1,
         xanchor: 'left',
         yanchor: 'top',
-        borderwidth: 1
+        borderwidth: 1,
+        // Present only when the palette has run out, above the swatches it
+        // qualifies (#999).
+        ...(overflowNote ? { title: { text: overflowNote } } : {})
       },
       shapes: [],
       annotations: []

@@ -36,6 +36,7 @@ import {
 } from '../utils/plotlyMath';
 import { optimizeTraceType, getOptimalConfig } from '../utils/plotlyPerformance';
 import { sampleLabel } from '../utils/sampleLabel';
+import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
 import { getExportMenuItems } from '../utils/plotlyExport';
 import { getScaledMarkerSize } from '../config/plotConfig';
 
@@ -144,7 +145,9 @@ export class PlotlyScoresPlot extends PlotlyVisualization<ScoresPlotData> {
       traces.push({
         type: traceType as any,
         mode: 'markers',
-        name: group,
+        // Shortened for the legend only. The full value is in hovertext above,
+        // so nothing is lost by not printing it twice (#999).
+        name: truncateLegendLabel(group),
         x: groupScores.map(s => s[pc1]),
         y: groupScores.map(s => s[pc2]),
         customdata: groupIndices, // Add global indices as customdata
@@ -403,6 +406,17 @@ return;
   protected getLayout(): Partial<Layout> {
     const { explainedVariance, pc1 = 0, pc2 = 1 } = this.data;
 
+    // More groups than the palette can distinguish (#999). Recomputed here so
+    // the layout does not depend on getTraces having run first. Skipped for a
+    // continuous coloring: there colorScheme is a sequential colorscale whose
+    // stop count says nothing about repeated swatches, and there are none.
+    const overflowNote = this.data.groupType === 'continuous'
+      ? null
+      : paletteOverflowNote(
+          new Set(this.data.groups ?? []).size,
+          this.scoresConfig.colorScheme?.length ?? 0
+        );
+
     return {
       title: {
         text: 'PCA Scores Plot'
@@ -427,7 +441,12 @@ return;
       },
       hovermode: 'closest',
       dragmode: this.config.enableLasso !== false ? 'lasso' : 'zoom',
-      selectdirection: 'any' as any
+      selectdirection: 'any' as any,
+      // Said in the legend's own title, above the swatches it qualifies, when
+      // there are more groups than the palette can distinguish (#999).
+      // A `legend: undefined` key would survive mergeLayouts' shallow spread and
+      // wipe the theme's legend styling, so omit the key entirely instead.
+      ...(overflowNote ? { legend: { title: { text: overflowNote } } } : {})
     };
   }
 

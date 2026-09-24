@@ -287,7 +287,7 @@
     },
     "group-coloring": {
       "title": "Color by Column",
-      "text": "Color samples by categorical columns (discrete colors), continuous #target columns (gradient), or Row Index (gradient showing sample order, useful for time series).",
+      "text": "Color samples by categorical columns (discrete colors), continuous #target columns (gradient), or Row Index (gradient showing sample order, useful for time series). A palette holds 25 colors; a column with more levels reuses them, so color stops identifying a group.",
       "category": "visualization"
     },
     "confidence-ellipses": {

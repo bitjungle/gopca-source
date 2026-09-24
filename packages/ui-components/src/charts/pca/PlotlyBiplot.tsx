@@ -38,6 +38,7 @@ import { PlotlyWithFullscreen } from '../utils/plotlyFullscreen';
 import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { optimizeTraceType } from '../utils/plotlyPerformance';
 import { sampleLabel } from '../utils/sampleLabel';
+import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
 
 export interface BiplotData {
   scores: number[][];  // [n_samples][n_components]
@@ -94,6 +95,15 @@ export class PlotlyBiplot {
       maxVariables: 100,
       ...config
     };
+  }
+
+  /**
+   * The palette the categorical group traces actually cycle through. Kept in one
+   * place so the legend's palette-overflow note (#999) quotes the same count the
+   * colors are taken modulo.
+   */
+  private categoricalPalette(): string[] {
+    return this.config.colorScheme ?? ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'];
   }
 
   private prepareData() {
@@ -199,6 +209,7 @@ export class PlotlyBiplot {
       } else if (groups) {
         // Group by categories
         const uniqueGroups = Array.from(new Set(groups));
+        const palette = this.categoricalPalette();
         uniqueGroups.forEach((group, i) => {
           const indices = groups.map((g, idx) => g === group ? idx : -1).filter(idx => idx >= 0);
 
@@ -213,18 +224,18 @@ export class PlotlyBiplot {
             mode: 'markers',
             x: groupX,
             y: groupY,
-            name: group,
+            // Legend only; the hover text below carries the full value (#999).
+            name: truncateLegendLabel(group),
             customdata: indices.map(idx => [idx]), // Add global indices for selection
             marker: {
-              color: this.config.colorScheme
-                ? this.config.colorScheme[i % this.config.colorScheme.length]
-                : ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'][i % 5],
+              color: palette[i % palette.length],
               size: getScaledMarkerSize(this.config.pointSize || 8, this.config.fontScale || 1.0),
               opacity: 0.7
             },
             text: sampleNames ? indices.map((idx: number) => sampleNames[idx]) : undefined,
-            hovertemplate: '<b>%{text}</b><br>PC' + (pcX + 1) + ': %{x:.2f}<br>PC' +
-                          (pcY + 1) + ': %{y:.2f}<extra></extra>'
+            // Group named here because the legend entry may be truncated (#999).
+            hovertemplate: '<b>%{text}</b><br>Group: ' + group + '<br>PC' + (pcX + 1) +
+                          ': %{x:.2f}<br>PC' + (pcY + 1) + ': %{y:.2f}<extra></extra>'
           });
 
           // Add confidence ellipse if enabled
@@ -240,9 +251,7 @@ export class PlotlyBiplot {
                 x: ellipsePath.map(p => p.x),
                 y: ellipsePath.map(p => p.y),
                 line: {
-                  color: this.config.colorScheme
-                    ? this.config.colorScheme[i % this.config.colorScheme.length]
-                    : ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'][i % 5],
+                  color: palette[i % palette.length],
                   width: 2,
                   dash: 'dash'
                 },
@@ -445,6 +454,16 @@ return { x: 0, y: 0 };
     const { pcX, pcY, scoresX, scoresY, loadingsX, loadingsY } = this.prepareData();
     const { explainedVariance } = this.data;
 
+    // More groups than the palette can distinguish (#999). Skipped for a
+    // continuous coloring: there colorScheme is a sequential colorscale whose
+    // stop count says nothing about repeated swatches, and there are none.
+    const overflowNote = this.data.groupType === 'continuous'
+      ? null
+      : paletteOverflowNote(
+          new Set(this.data.groups ?? []).size,
+          this.categoricalPalette().length
+        );
+
     // Calculate axis ranges to accommodate both scores and loadings
     const allX = [...scoresX, ...loadingsX, 0];
     const allY = [...scoresY, ...loadingsY, 0];
@@ -492,7 +511,10 @@ return { x: 0, y: 0 };
         y: 1,
         xanchor: 'left',
         yanchor: 'top',
-        borderwidth: 1
+        borderwidth: 1,
+        // Present only when the palette has run out, above the swatches it
+        // qualifies (#999).
+        ...(overflowNote ? { title: { text: overflowNote } } : {})
       },
       annotations: []
     };
