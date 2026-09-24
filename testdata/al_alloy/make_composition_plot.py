@@ -91,7 +91,11 @@ ax_present.barh(list(y), stats['present_pct'], color='#2c7fb8', alpha=0.85)
 ax_present.set_yticks(list(y))
 ax_present.set_yticklabels([])
 ax_present.invert_yaxis()
-ax_present.set_xlim(0, 100)
+# Headroom past 100, so the label for an element present in every alloy -- Al --
+# sits inside the axes like every other one. Text is not clipped by default, so it
+# did render against the right spine; it simply looked like the odd one out.
+ax_present.set_xlim(0, 112)
+ax_present.set_xticks(range(0, 101, 20))
 ax_present.set_xlabel('alloys containing the element (%)')
 ax_present.set_title('Most elements are absent from most alloys',
                      fontsize=11, pad=10)

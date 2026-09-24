@@ -311,7 +311,7 @@ them takes the first character of a text field. So there is no way to build a
 
 What you *can* do is verify the claim point by point:
 
-**Color by `Name#category`, then ignore the legend and hover instead.** The
+**Color by `Name`, then ignore the legend and hover instead.** The
 tooltip names the alloy for whichever point you are asking about, and that is
 what lets you check the claim: the most negative PC1 points are high-silicon
 casting alloys, the most positive are 1xxx purities.
