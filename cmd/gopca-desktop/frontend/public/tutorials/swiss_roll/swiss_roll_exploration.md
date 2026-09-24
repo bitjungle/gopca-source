@@ -38,7 +38,7 @@ The previous datasets each introduced a new kind of challenge:
 |---------|-----------|-----------|
 | Iris | 4 | Visualizing 4 dimensions at once |
 | Wine | 13 | Mixed scales; 78 pairplot panels |
-| Corn NIR | 700 | 244,650 panels; extreme collinearity; physical scatter artefacts |
+| Corn NIR | 700 | 244,650 panels; extreme collinearity; physical scatter artifacts |
 | Swiss Roll | **3** | **None of the above** |
 
 The Swiss Roll has only **three variables**. There is no dimensionality problem — you can plot the data directly in 3D and see the entire structure at once. The variables are simple coordinates, measured in identical units, with no scale differences requiring correction.
@@ -47,7 +47,7 @@ And yet linear PCA — which handled 700 highly correlated spectral variables wi
 
 This is the Swiss Roll's lesson. The failure of PCA is not always a matter of having too many variables. It is a matter of the **shape** of the data.
 
-For Corn, the dominant variation was a physical baseline artefact: a monotone tilt that PCA picked up instead of chemistry. The fix was SNV preprocessing — applied before PCA. For Swiss Roll, the problem is more fundamental. The structure you want to find is **curved in 3D space**, and no amount of preprocessing can fix that. So we will try a different kind of PCA — and find out whether it helps.
+For Corn, the dominant variation was a physical baseline artifact: a monotone tilt that PCA picked up instead of chemistry. The fix was SNV preprocessing — applied before PCA. For Swiss Roll, the problem is more fundamental. The structure you want to find is **curved in 3D space**, and no amount of preprocessing can fix that. So we will try a different kind of PCA — and find out whether it helps.
 
 > The Swiss Roll confronts you with a 3-variable dataset where you can see the problem with your own eyes — and forces you to think clearly about what "structure" means and how to find it.
 
@@ -167,7 +167,7 @@ But the deeper point is this: 71% of the variance is a perfectly respectable num
 
 That is an uncomfortable lesson, and a genuinely useful one. On your own data you will not have a `color #target` column holding the right answer. You will have a scores plot that looks reasonable and a scree plot that looks fine, and you will have to ask what the structure *ought* to be before deciding whether you have found it.
 
-Compare this to Corn: there, PC1 explained 99% of variance, and the loading curve (monotone, never crossing zero) immediately revealed it was capturing a physical baseline artefact. Here, the scree plot looks unremarkable — no single dramatic number, no obvious red flag. The failure is entirely invisible until you look at the scores plot with a meaningful color variable.
+Compare this to Corn: there, PC1 explained 99% of variance, and the loading curve (monotone, never crossing zero) immediately revealed it was capturing a physical baseline artifact. Here, the scree plot looks unremarkable — no single dramatic number, no obvious red flag. The failure is entirely invisible until you look at the scores plot with a meaningful color variable.
 
 > The Swiss Roll teaches a habit that applies to every dataset: always inspect the scores plot with a meaningful grouping variable before concluding that PCA has succeeded.
 

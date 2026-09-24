@@ -116,13 +116,13 @@ Now open the **Loadings Plot** for PC1.
 * Does it rise smoothly from left to right, or does it show peaks and valleys?
 * Does this curve look like it is describing the chemistry of corn?
 
-👉 You should see that PC1 explains an extremely large fraction of the total variance — **above 99%**. And here is the diagnostic that matters: the loading curve is **entirely positive** — it never crosses zero. It also trends upward across the range, from about 0.007 at 1100 nm to 0.050 at 2498 nm, though not smoothly: you will see distinct shoulders near 1200, 1450 and 1900 nm, because the artefact scales the real absorption features along with everything else.
+👉 You should see that PC1 explains an extremely large fraction of the total variance — **above 99%**. And here is the diagnostic that matters: the loading curve is **entirely positive** — it never crosses zero. It also trends upward across the range, from about 0.007 at 1100 nm to 0.050 at 2498 nm, though not smoothly: you will see distinct shoulders near 1200, 1450 and 1900 nm, because the artifact scales the real absorption features along with everything else.
 
-The sign is the giveaway. A component whose loadings are all the same sign says "every wavelength moves up and down together" — that is a description of the whole spectrum shifting bodily, not of one chemical constituent trading off against another. **This is not chemistry; it is a baseline artefact.**
+The sign is the giveaway. A component whose loadings are all the same sign says "every wavelength moves up and down together" — that is a description of the whole spectrum shifting bodily, not of one chemical constituent trading off against another. **This is not chemistry; it is a baseline artifact.**
 
 > **The orange dashed lines** are a reference level, not a significance test. Loadings are scaled so the squares across all variables sum to one, so if all 700 wavelengths contributed equally each would sit at 1/√700 ≈ 0.038. The line simply marks that equal share. Here the curve stays below it for most of the spectrum and rises above it from about 1890 nm — telling you the long-wavelength half of the spectrum carries more than its share of PC1.
 
-NIR spectra are affected by **multiplicative scatter**: differences in particle size, sample packing density, and optical path length between samples cause the entire baseline to shift up or down and tilt from left to right — even when the chemistry is identical. Without correcting for this, PCA finds the direction of maximum variance, which turns out to be the direction in which the baseline slopes vary most. PC1 at 99% is telling you how tilted each sample's baseline is. It is doing exactly what it is designed to do — but the dominant variation is a physical artefact, not a chemical signal.
+NIR spectra are affected by **multiplicative scatter**: differences in particle size, sample packing density, and optical path length between samples cause the entire baseline to shift up or down and tilt from left to right — even when the chemistry is identical. Without correcting for this, PCA finds the direction of maximum variance, which turns out to be the direction in which the baseline slopes vary most. PC1 at 99% is telling you how tilted each sample's baseline is. It is doing exactly what it is designed to do — but the dominant variation is a physical artifact, not a chemical signal.
 
 > Compare this to the Wine tutorial: without standardization, proline's large numerical range dominated PC1. Here, baseline slope dominates for the same reason — it is the largest source of variance in the raw data. The fix follows the same logic.
 
@@ -245,7 +245,7 @@ That is worth remembering: **the scores plot did not discover something invisibl
 
 Possible causes of spectral outliers:
 
-* Measurement artefact (instrument problem during that scan)
+* Measurement artifact (instrument problem during that scan)
 * Sample contamination or unusual physical properties (e.g. very different particle size)
 * A genuinely unusual corn sample
 
@@ -259,7 +259,7 @@ Outlier detection is one of the most practical uses of PCA in spectroscopy. A sa
 
 Four explorations, in increasing order of effort. The first three vary the preprocessing; the fourth changes which data goes into the model at all.
 
-* **Compare preprocessing choices directly.** Run the analysis three ways — Mean Center Only, then Standard Scale without SNV, then SNV + Mean Center Only — and note PC1's variance each time. Which correction actually addresses the artefact, and which one barely moves it? (The "Why SNV rather than standard scaling?" section below gives the reasoning; this lets you see it.)
+* **Compare preprocessing choices directly.** Run the analysis three ways — Mean Center Only, then Standard Scale without SNV, then SNV + Mean Center Only — and note PC1's variance each time. Which correction actually addresses the artifact, and which one barely moves it? (The "Why SNV rather than standard scaling?" section below gives the reasoning; this lets you see it.)
 
 * **Explore the 3D Scores Plot.** With three components covering 95% of the variance, does the third add structure you could not see in 2D, or is it mostly noise?
 
@@ -271,7 +271,7 @@ Four explorations, in increasing order of effort. The first three vary the prepr
   | L2 Vector Normalization | 90.4% | 97.5% |
   | SNV | 84.0% | 95.1% |
 
-  Vector normalization lands between the two: it removes part of the scatter but leaves more of it than SNV does. Correlate PC1 with what you know of the artefact and you will find the same ordering. Two corrections can both be defensible and still not be equally good for your data — which is exactly why the comparison is worth making rather than reaching for a default.
+  Vector normalization lands between the two: it removes part of the scatter but leaves more of it than SNV does. Correlate PC1 with what you know of the artifact and you will find the same ordering. Two corrections can both be defensible and still not be equally good for your data — which is exactly why the comparison is worth making rather than reaching for a default.
 
 ### What a spectroscopist would do next: exclude the water bands
 
@@ -342,9 +342,9 @@ This question is worth answering directly, because it is the one most people get
 
 That is not this problem. Every one of the 700 wavelengths here is an absorbance, measured on the same instrument in the same units, and their standard deviations differ by only about **6×** across the whole spectrum. There is no unit mismatch to fix. Esbensen et al. (2002, Ch. 4) warn specifically that when variables already share a scale — spectroscopic data being their example — autoscaling mostly amplifies noise in the quiet channels.
 
-**The artefact here runs the other way: between samples, not between wavelengths.** Two spectra of chemically identical corn can sit at different heights because of particle size or packing density. No amount of column scaling repairs that, because the problem is a property of each *row*. SNV normalizes each spectrum within itself, which is exactly the right shape of correction.
+**The artifact here runs the other way: between samples, not between wavelengths.** Two spectra of chemically identical corn can sit at different heights because of particle size or packing density. No amount of column scaling repairs that, because the problem is a property of each *row*. SNV normalizes each spectrum within itself, which is exactly the right shape of correction.
 
-You can verify this yourself: run the analysis with **Column-wise → Standard Scale** and no SNV. PC1 barely moves, from 99% to about 97% — still the same artefact, still dominating. Then switch to SNV and watch it fall to 84%.
+You can verify this yourself: run the analysis with **Column-wise → Standard Scale** and no SNV. PC1 barely moves, from 99% to about 97% — still the same artifact, still dominating. Then switch to SNV and watch it fall to 84%.
 
 ---
 
@@ -353,11 +353,11 @@ You can verify this yourself: run the analysis with **Column-wise → Standard S
 Think about this:
 
 > You started with 700 variables forming a spectrum — far more variables than samples.
-> With PCA you compressed them into three components holding 95% of the variance, and found chemistry in the second one. Along the way you saw that the largest component was mostly a physical artefact both before *and* after correction — a reminder that the size of a component says nothing about its meaning.
+> With PCA you compressed them into three components holding 95% of the variance, and found chemistry in the second one. Along the way you saw that the largest component was mostly a physical artifact both before *and* after correction — a reminder that the size of a component says nothing about its meaning.
 
 * How is PCA on spectral data different from PCA on independent measurements like Iris or Wine?
 * Why do the loadings appear as smooth curves rather than isolated vectors?
-* Why is SNV more appropriate here than column-wise standard scaling? *(Think about which direction the artefact runs in: does the scatter effect differ between wavelengths, or between samples?)*
+* Why is SNV more appropriate here than column-wise standard scaling? *(Think about which direction the artifact runs in: does the scatter effect differ between wavelengths, or between samples?)*
 * The original purpose of this dataset was to build a calibration model predicting composition from spectra. Could you use the PCA scores as input to such a model? What might be the advantage of using scores instead of raw spectra? Hint: search for **principal component regression** on the internet.
 
 ---

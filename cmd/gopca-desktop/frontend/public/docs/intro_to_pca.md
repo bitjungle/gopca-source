@@ -667,6 +667,20 @@ GoPCA Suite provides comprehensive interactive visualizations:
 
 All visualizations are interactive with zoom, pan, hover details, and high-quality export.
 
+> **A note on coloring by a category with many levels.** A qualitative palette
+> holds a few dozen distinct colors. Color a scores plot by a column with more
+> groups than that — a provenance field, a free-text label, an identifier — and
+> the colors begin to repeat, so one color no longer identifies one group. The
+> legend grows longer than the plot while saying less.
+>
+> This is a property of color as an encoding, not a shortcoming of any particular
+> tool: the eye can separate perhaps a dozen hues reliably, far fewer than a
+> typical metadata column contains. When you have more groups than colors, treat
+> the legend as decoration and use **hover** instead, which names the group for
+> the one point you are asking about. Or reduce the number of groups first —
+> bin them, or filter to the few you care about — which is usually what you
+> wanted anyway.
+
 ---
 
 ## 10. Beyond Linear PCA: Kernel PCA for Nonlinear Patterns
@@ -784,7 +798,7 @@ pca regress --response "Moisture#target" --scale standard \
 
 That is a finding about the data, not a quirk of the method: almost all the variation between these spectra is *something other than moisture*, and the moisture signal sits in a component any sensible scree plot would have discarded. Ian Jolliffe warned about exactly this in 1982.
 
-**A second lesson from the same data.** Section 4 recommends **SNV** for the corn spectra, and that advice is sound for exploration: it removes the scatter that otherwise dominates PC1. But add `--snv` to the command above and the best cross-validated R² for moisture falls from 0.99 to **0.81**. The likely reason is instructive — SNV normalizes each spectrum to a common mean and spread, while water absorbs strongly in the near-infrared and so raises a spectrum's overall level. Some of what SNV removes as a scatter artefact is signal you wanted.
+**A second lesson from the same data.** Section 4 recommends **SNV** for the corn spectra, and that advice is sound for exploration: it removes the scatter that otherwise dominates PC1. But add `--snv` to the command above and the best cross-validated R² for moisture falls from 0.99 to **0.81**. The likely reason is instructive — SNV normalizes each spectrum to a common mean and spread, while water absorbs strongly in the near-infrared and so raises a spectrum's overall level. Some of what SNV removes as a scatter artifact is signal you wanted.
 
 Neither choice is wrong; they answer different questions. Until you fit a model, you have no way to notice they disagree.
 
