@@ -37,6 +37,22 @@ describe('summarizeTransformOutcome', () => {
         const outcome = summarizeTransformOutcome(['Zn'], ['somethingElse']);
         expect(outcome.kind).toBe('partial');
         expect(outcome.skipped).toEqual(['Zn']);
+        expect(outcome.transformedFromSelection).toEqual([]);
+    });
+
+    it('splits the selection into transformed and skipped, always', () => {
+        // The two counts have to add up to what was asked for, or the heading
+        // built from them states something that cannot be true.
+        for (const [requested, transformed] of [
+            [['a', 'b', 'c'], ['a']],
+            [['Zn'], ['somethingElse']],
+            [['Zn'], []],
+            [['a', 'b'], ['a', 'b', 'extra']]
+        ] as [string[], string[]][]) {
+            const outcome = summarizeTransformOutcome(requested, transformed);
+            expect(outcome.transformedFromSelection.length + outcome.skipped.length)
+                .toBe(outcome.requestedCount);
+        }
     });
 
     it('counts what was requested, not what came back', () => {
@@ -61,6 +77,13 @@ describe('transformOutcomeHeading', () => {
         // Both numbers, so a partial outcome cannot be read as a complete one.
         expect(heading(['Zn', 'Cu', 'Fe'], ['Cu', 'Fe']))
             .toBe('2 of 3 columns transformed, 1 left unchanged:');
+    });
+
+    it('counts only the columns that were asked for', () => {
+        // Counting everything the engine reported would read "1 of 1 columns
+        // transformed, 1 left unchanged" here, which cannot both be true.
+        expect(heading(['Zn'], ['somethingElse']))
+            .toBe('0 of 1 column transformed, 1 left unchanged:');
     });
 
     it('keeps the existing heading when everything was transformed', () => {

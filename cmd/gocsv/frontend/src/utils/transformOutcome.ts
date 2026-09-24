@@ -31,8 +31,16 @@ export type TransformOutcomeKind =
 
 export interface TransformOutcome {
     kind: TransformOutcomeKind;
-    /** Columns the engine reports it changed. */
+    /** Columns the engine reports it changed, whether or not they were asked for. */
     transformed: string[];
+    /**
+     * The asked-for columns that were changed. Counted separately from
+     * `transformed` because the two can differ: a transform reporting a column
+     * outside the selection would otherwise let the heading say "1 of 1 columns
+     * transformed, 1 left unchanged", which cannot both be true. This and
+     * `skipped` always partition the selection.
+     */
+    transformedFromSelection: string[];
     /** Columns that were asked for and are not among them. */
     skipped: string[];
     requestedCount: number;
@@ -54,6 +62,7 @@ export function summarizeTransformOutcome(
 ): TransformOutcome {
     const transformed = [...(transformedColumns ?? [])];
     const changed = new Set(transformed);
+    const transformedFromSelection = requestedColumns.filter(column => changed.has(column));
     const skipped = requestedColumns.filter(column => !changed.has(column));
 
     // Keyed off what actually changed rather than off the skipped count, so a
@@ -62,7 +71,13 @@ export function summarizeTransformOutcome(
     const kind: TransformOutcomeKind =
         transformed.length === 0 ? 'none' : skipped.length === 0 ? 'all' : 'partial';
 
-    return { kind, transformed, skipped, requestedCount: requestedColumns.length };
+    return {
+        kind,
+        transformed,
+        transformedFromSelection,
+        skipped,
+        requestedCount: requestedColumns.length
+    };
 }
 
 /**
@@ -75,8 +90,14 @@ export function transformOutcomeHeading(outcome: TransformOutcome): string {
             return outcome.requestedCount === 1
                 ? 'No column was transformed. Your data is unchanged.'
                 : 'No columns were transformed. Your data is unchanged.';
-        case 'partial':
-            return `${outcome.transformed.length} of ${outcome.requestedCount} columns transformed, ${outcome.skipped.length} left unchanged:`;
+        case 'partial': {
+            // Counted from the selection, so the two numbers always add up to the
+            // total: anything the engine changed outside it is not claimed here.
+            const total = outcome.requestedCount;
+            return `${outcome.transformedFromSelection.length} of ${total} `
+                + `column${total === 1 ? '' : 's'} transformed, `
+                + `${outcome.skipped.length} left unchanged:`;
+        }
         case 'all':
             return 'Transformation Results:';
     }
