@@ -573,8 +573,12 @@ Titanium never appears anywhere in our components. It is not close:
 | Si | 0.0282 | 2nd | 3rd |
 | **Ti** | **0.0005** | **15th** | **11th** |
 
-Silicon varies fifty-six times more than titanium across this dataset. A method
-that ranks variables by variance cannot select titanium, and ours does not.
+Silicon varies fifty-six times more than titanium across this dataset. PCA does
+not rank variables and does not select any — it finds the directions along which
+the *data* varies most, and each variable's influence on those directions is in
+proportion to how much it varies. Titanium is not rejected; it is simply too small
+a contributor to move a component. Silicon, varying fifty-six times more, moves
+several.
 
 **So is the paper wrong, or is PCA?** Neither. They are answering different
 questions with differently-shaped tools:
