@@ -121,6 +121,32 @@ func TestMismatchedLabelsAreNotUsed(t *testing.T) {
 	}
 }
 
+// The mismatch guard has to hold on every branch, not just the one the first
+// test happened to reach. With a dense smallest column the advice falls to the
+// default wording; with a sparse one it takes the presence/absence branch, which
+// quoted the name unconditionally and printed "But ” is zero in 99% of rows".
+func TestMismatchedLabelsAreNotUsedOnTheSparseBranch(t *testing.T) {
+	data := make([][]float64, 200)
+	for i := range data {
+		trace := 0.0
+		if i < 4 {
+			trace = 0.001
+		}
+		data[i] = []float64{float64(i%50) + 10, trace, float64(i%7) + 1}
+	}
+	_, msg := describeScale(data, []string{"only", "two"}, false, false)
+
+	if strings.Contains(msg, "''") {
+		t.Errorf("emitted an empty quoted name:\n  %s", msg)
+	}
+	if strings.Contains(msg, "'only'") || strings.Contains(msg, "'two'") {
+		t.Errorf("used labels describing a different set of columns:\n  %s", msg)
+	}
+	if !strings.Contains(msg, "zero in 98% of rows") {
+		t.Errorf("should still report the sparsity, just unnamed:\n  %s", msg)
+	}
+}
+
 func TestStandardizedRunsSayNothing(t *testing.T) {
 	for _, tc := range []struct{ std, robust bool }{{true, false}, {false, true}} {
 		if _, msg := describeScale(composition(200), []string{"Al", "Mg", "Si", "Be"}, tc.std, tc.robust); msg != "" {

@@ -119,10 +119,17 @@ func describeScale(data [][]float64, labels []string, standardized, robust bool)
 	}
 
 	if lo.zeroFraction >= mostlyZeroFraction {
+		// Named only when the labels describe the analysed columns. Naming the
+		// wrong variable is worse than naming none, and an empty quoted name
+		// would be worse than either.
+		subject := "the least-varying variable"
+		if named {
+			subject = fmt.Sprintf("'%s'", lo.name)
+		}
 		detail := fmt.Sprintf(
-			" But '%s' is zero in %.0f%% of rows, so the difference is about how often it is"+
-				" present rather than about units.", lo.name, lo.zeroFraction*100)
-		if named && lo.maxZ > 0 {
+			" But %s is zero in %.0f%% of rows, so the difference is about how often it is"+
+				" present rather than about units.", subject, lo.zeroFraction*100)
+		if lo.maxZ > 0 {
 			detail += fmt.Sprintf(" Standardizing would move its largest value to z = %.0f.", lo.maxZ)
 		}
 		return ratio, lead + detail + " Consider whether it belongs in the analysis."
