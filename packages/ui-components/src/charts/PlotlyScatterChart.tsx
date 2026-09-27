@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import Plotly from 'plotly.js-dist-min';
+import Plotly from './plotly-bundle';
 import { ScatterChartProps } from './types';
 import { getPlotlyTheme, mergeLayouts, calculatePlotlyLabels, getPlotlyTextPosition } from './utils';
 import { identityLineEnds } from './utils/identityLine';

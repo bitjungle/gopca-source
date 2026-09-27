@@ -23,7 +23,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import Plot from 'react-plotly.js';
+import Plot from '../plotly-component';
 
 /**
  * Fullscreen overlay container for Plotly visualizations

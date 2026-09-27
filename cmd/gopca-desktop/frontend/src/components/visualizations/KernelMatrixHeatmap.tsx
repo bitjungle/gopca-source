@@ -24,7 +24,7 @@
 // Kernel Matrix Heatmap - Visualizes pairwise similarities in kernel space
 
 import React from 'react';
-import Plot from 'react-plotly.js';
+import { Plot } from '@gopca/ui-components';
 import { useTheme, sampleLabel } from '@gopca/ui-components';
 import { PCAResult } from '../../types';
 
