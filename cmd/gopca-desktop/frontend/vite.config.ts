@@ -30,11 +30,25 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    // Pre-bundle plotly so Vite doesn't re-optimize it mid-session when the
-    // first lazy-loaded plot component is mounted. Without this, Vite discovers
-    // plotly.js-dist-min at runtime, forces a reload, and the Wails dev-server
-    // proxy panics on the cancelled request.
-    include: ['plotly.js-dist-min'],
+    // Pre-bundle the custom Plotly build's entry points. Vite otherwise
+    // discovers them when the first plot mounts, re-optimizes mid-session and
+    // forces a reload, which cancels the requests the Wails dev server is
+    // proxying — the terminal then fills with Go's
+    // "suppressing panic for copyResponse error" from net/http/httputil.
+    //
+    // This list must name every module plotly-bundle.ts imports; scripts/ci/
+    // check-frontend-invariants.mjs enforces that, because a stale entry here
+    // reads as a mitigation while mitigating nothing (#898).
+    include: [
+      'react-plotly.js/factory',
+      'plotly.js/lib/core',
+      'plotly.js/lib/bar',
+      'plotly.js/lib/contour',
+      'plotly.js/lib/heatmap',
+      'plotly.js/lib/scatter',
+      'plotly.js/lib/scatter3d',
+      'plotly.js/lib/scattergl',
+    ],
   },
   test: {
     environment: 'jsdom',

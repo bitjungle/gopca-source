@@ -286,6 +286,52 @@ if (!foldsSelect) {
     }
 }
 
+// --- 5. Vite pre-bundles exactly what the custom Plotly build imports ---------
+//
+// The apps import a custom Plotly assembled from plotly.js/lib/* (#898). Vite
+// otherwise discovers those entry points when the first plot mounts, re-optimizes
+// mid-session and forces a reload, which cancels whatever the Wails dev server is
+// proxying; the terminal then fills with Go's "suppressing panic for copyResponse
+// error" out of net/http/httputil. Each vite.config.ts lists them under
+// optimizeDeps.include to pre-bundle them at startup instead.
+//
+// That list is a copy of an import list, and it has already gone stale once: the
+// switch to the custom bundle left `include: ['plotly.js-dist-min']` behind,
+// naming a package nothing imported any more while missing every package that
+// mattered. Nothing failed — the mitigation simply stopped mitigating, and only
+// `make csv-dev` showed it. This compares the two directly.
+{
+    const BUNDLE = 'packages/ui-components/src/charts/plotly-bundle.ts';
+    const COMPONENT = 'packages/ui-components/src/charts/plotly-component.tsx';
+    const CONFIGS = [
+        'cmd/gopca-desktop/frontend/vite.config.ts',
+        'cmd/gocsv/frontend/vite.config.ts'
+    ];
+
+    const importsOf = (file) => [
+        ...readFileSync(file, 'utf8').matchAll(/from\s+['"]((?:plotly\.js|react-plotly\.js)\/[^'"]+)['"]/g)
+    ].map(m => m[1]);
+
+    const needed = [...new Set([...importsOf(BUNDLE), ...importsOf(COMPONENT)])];
+
+    if (needed.length === 0) {
+        failures.push(
+            `${BUNDLE} and ${COMPONENT} declare no plotly subpath imports: either the ` +
+            `custom bundle is gone or this check has stopped matching (#898)`);
+    }
+
+    for (const config of CONFIGS) {
+        const text = readFileSync(config, 'utf8');
+        const missing = needed.filter(mod => !text.includes(`'${mod}'`));
+        if (missing.length > 0) {
+            failures.push(
+                `${config} does not pre-bundle ${missing.join(', ')}: Vite will discover ` +
+                `${missing.length === 1 ? 'it' : 'them'} when the first plot mounts, reload, ` +
+                `and the Wails dev proxy will log a cancelled request per in-flight asset (#898)`);
+        }
+    }
+}
+
 if (failures.length > 0) {
     console.error('\nFrontend invariant checks FAILED:\n');
     for (const f of failures) console.error(`  - ${f}`);
@@ -294,5 +340,6 @@ if (failures.length > 0) {
 }
 
 console.log(`Frontend invariants hold: ${labels.length} menu entries all with icons, ` +
-            `one sample-label helper, a grid that honours label columns, and a Folds ` +
-            `menu matching its Go copy.`);
+            `one sample-label helper, a grid that honours label columns, a Folds ` +
+            `menu matching its Go copy, and both Vite configs pre-bundling every ` +
+            `module the custom Plotly build imports.`);
