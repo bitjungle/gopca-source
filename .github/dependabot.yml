@@ -1,0 +1,65 @@
+# Dependabot policy: security pull requests only.
+#
+# Until #1008 there was no configuration here at all and the repository setting
+# for automated security fixes was off, so advisories notified but nothing ever
+# opened a pull request. The lockfile drifted for months and twenty-three
+# advisories accumulated behind a single stale resolution (#758, #1007).
+#
+# `open-pull-requests-limit: 0` switches off routine version-bump pull requests.
+# Security update pull requests are explicitly exempt from that limit, so they
+# still arrive — which is the whole point of this file. Each pull request here
+# fires Test on macOS, Ubuntu and Windows plus CodeQL, and the macOS multiplier
+# is 10x once the repository is private, so keeping the volume proportional to
+# actual advisories rather than to upstream release cadence is deliberate.
+#
+# The groups exist so a cluster arrives as one pull request rather than many:
+# eleven of the twenty-three advisories cleared in #1007 were a single package.
+version: 2
+
+updates:
+  # npm — one lockfile at the root covers all three workspaces.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # Go — cmd/gocsv is a separate module and is not reached from the root one.
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      go-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/cmd/gocsv"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      go-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # Workflow actions are pinned by tag and carry advisories of their own.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
