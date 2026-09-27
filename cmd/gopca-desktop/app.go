@@ -1441,83 +1441,18 @@ func (a *App) CalculateModelMetrics(request ModelMetricsRequest) ModelMetricsRes
 		}
 	}
 
-	// Calculate scale heterogeneity if original data is provided
-	scaleRatio := 1.0
-	scaleWarning := ""
-
-	if len(request.OriginalData) > 0 && len(request.OriginalData[0]) > 0 {
-		// Calculate variance for each column (variable)
-		numRows := len(request.OriginalData)
-		numCols := len(request.OriginalData[0])
-
-		if numRows > 1 && numCols > 0 {
-			minVar := math.MaxFloat64
-			maxVar := 0.0
-
-			for j := 0; j < numCols; j++ {
-				// Calculate mean
-				mean := 0.0
-				validCount := 0
-				for i := 0; i < numRows; i++ {
-					if !math.IsNaN(request.OriginalData[i][j]) {
-						mean += request.OriginalData[i][j]
-						validCount++
-					}
-				}
-				if validCount > 0 {
-					mean /= float64(validCount)
-
-					// Calculate variance
-					variance := 0.0
-					for i := 0; i < numRows; i++ {
-						if !math.IsNaN(request.OriginalData[i][j]) {
-							diff := request.OriginalData[i][j] - mean
-							variance += diff * diff
-						}
-					}
-					if validCount > 1 {
-						variance /= float64(validCount - 1)
-
-						if variance > 0 {
-							if variance < minVar {
-								minVar = variance
-							}
-							if variance > maxVar {
-								maxVar = variance
-							}
-						}
-					}
-				}
-			}
-
-			// Calculate scale ratio.
-			//
-			// Reported as a ratio of standard deviations, not of variances. The
-			// sentence below says "scales", and a scale is a magnitude, so
-			// quoting the squared quantity overstated it by the ratio itself:
-			// 24 element columns whose standard deviations span 21,494x were
-			// described as differing by 462,008,282x (#957).
-			//
-			// The thresholds are square-rooted alongside it -- 100 -> 10 and
-			// 10000 -> 100 -- so the warning fires on exactly the datasets it
-			// fired on before. Only the number shown changes.
-			if minVar > 0 && minVar < math.MaxFloat64 {
-				// Divided after the square roots, not before: maxVar/minVar can
-				// overflow to +Inf while the ratio of standard deviations is
-				// still finite and representable.
-				scaleRatio = math.Sqrt(maxVar) / math.Sqrt(minVar)
-
-				// Generate warning if scales are heterogeneous and not standardized
-				if scaleRatio > 10 && !request.StandardScale && !request.RobustScale {
-					if scaleRatio > 100 {
-						scaleWarning = fmt.Sprintf("Variables have very different scales (%.0fx difference). Consider standardization unless this is intentional.", scaleRatio)
-					} else {
-						scaleWarning = fmt.Sprintf("Variables have different scales (%.0fx difference). Consider if standardization is needed.", scaleRatio)
-					}
-				}
-			}
-		}
-	}
+	// Scale heterogeneity, and what it is worth concluding from it.
+	//
+	// The ratio alone cannot decide whether to standardize -- that turns on
+	// whether the units are arbitrary, which is a different question. See
+	// scale_advice.go (#1014).
+	//
+	// OriginalData must be the columns that were analysed, and VariableLabels
+	// their names. describeScale falls back to unnamed wording if the two
+	// disagree in width rather than naming the wrong variable.
+	scaleRatio, scaleWarning := describeScale(
+		request.OriginalData, request.VariableLabels,
+		request.StandardScale, request.RobustScale)
 
 	return ModelMetricsResponse{
 		MostInfluentialVariable: mostInfluentialVar,

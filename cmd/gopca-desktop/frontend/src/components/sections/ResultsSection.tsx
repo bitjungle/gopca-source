@@ -32,6 +32,7 @@ import { useVisualizationContext } from '../../contexts/VisualizationContext';
 import { usePalette } from '../../contexts/PaletteContext';
 import { getQualitativePalette } from '../../utils/colorPalettes';
 import { paletteOverflow } from '../../utils/paletteOverflow';
+import { analyzedMatrix } from '../../utils/analyzedMatrix';
 import { PlotType } from '../../hooks/useVisualization';
 import { config as wailsConfig } from '../../../wailsjs/go/models';
 import { logger } from '../../utils/logger';
@@ -67,7 +68,7 @@ interface ResultsSectionProps {
 export function ResultsSection({ guiConfig }: ResultsSectionProps) {
     const {
         pcaResponse, pcaError, pcaResultsRef, pcaErrorRef,
-        pcaHasExclusions, excludedRows, config,
+        pcaHasExclusions, excludedRows, excludedColumns, config,
         selectedGroupColumn, setSelectedGroupColumn,
         clearPcaError, handleExportModel
     } = usePCAContext();
@@ -209,7 +210,7 @@ export function ResultsSection({ guiConfig }: ResultsSectionProps) {
                             selectedPC={selectedXComponent}
                             standardScale={config.standardScale}
                             robustScale={config.robustScale}
-                            originalData={fileData?.data}
+                            originalData={analyzedMatrix(fileData?.data, excludedRows, excludedColumns)}
                         />
                     </div>
 
