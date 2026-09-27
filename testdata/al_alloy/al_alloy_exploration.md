@@ -110,6 +110,7 @@ Step 3 returns to this, and it is a real limitation rather than a curiosity.
 | Held out for coloring | processing type, plus alloy name, source and temper |
 | Rows sum to | 1.000 (closed composition) |
 | Zero cells | 74.1% |
+| Distinct composition vectors | 398 (so 1057 rows draw at 398 points) |
 | Concentration span | 6 orders of magnitude (0.0001% to 99.99%) |
 
 ---
@@ -327,6 +328,14 @@ eye can separate perhaps a dozen hues reliably, and a metadata column routinely
 holds hundreds of values. **When there are more groups than colors, the legend
 becomes decoration and hover becomes the instrument.**
 
+GoPCA says so rather than leaving you to work it out. Coloring by a column with
+more levels than the palette has colors puts a note in the legend's own title —
+`420 groups, 25 colors`, above `colors repeat — hover to identify` — and an amber
+caution beside the **Color by** selector. Long names are shortened in the legend
+with an ellipsis; the hover text always carries the full value. Color by
+`proc_num#category` instead, with its ten levels, and no such note appears: the
+palette is sufficient and nothing pretends otherwise.
+
 > **A caution about what this does and does not show.** The alloy series *is*
 > defined by principal alloying element, so finding that a composition-based
 > method recovers it is confirmation that the method works, not a discovery about
@@ -386,6 +395,36 @@ identical 24 numbers. Turn on **Show labels** and find them.
 
 A PCA of composition cannot distinguish them, and no amount of tuning will change
 that. The information simply is not in the columns it was given.
+
+### You are looking at fewer points than you think
+
+6061 is not a special case. Across the whole file:
+
+| | |
+|---|---|
+| Rows | 1057 |
+| **Distinct composition vectors** | **398** |
+| Rows sharing a composition with another row | **894 (85%)** |
+| Rows at the single busiest position | **25** |
+
+The scores plot draws 1057 markers at **398 locations**. The busiest of them is an
+alloy of 98.90% aluminium that appears twenty-five times, as tempers O, T1, T4,
+T5, T6, T83, T831 and T832 among others.
+
+These are not errors, and they are not the exact duplicates that a careful
+preparation step would remove — those are identical in *every* column, metadata
+included. These rows are genuinely different records: same chemistry, different
+processing, different source. They are legitimately in the file. But the PCA was
+given only the 24 element columns, so every one of them lands on the same point.
+
+This matters for how you read the plot. **A visible marker may be one sample or
+twenty-five**, and a color that appears to sit alone in a region may be the only
+one of its group that happens to be drawn last. Overplotting is invisible by
+construction: the plot has no way to show you what is underneath.
+
+It also sharpens the previous paragraph. The reason processing type cannot
+separate here is not subtle — for 85% of rows, processing type is *the only thing
+that distinguishes them*, and it is precisely the thing PCA was not given.
 
 ### What actually changes, if not the composition
 
@@ -517,6 +556,60 @@ Si are the elements that are both **abundant** (percent-level, not trace) and
 finds structure in this table has to find it in those columns, because that is
 where the structure is.
 
+### Where the two methods disagree — and why the disagreement is the lesson
+
+The agreement is not total, and the exception is more instructive than the rule.
+
+The paper did not stop at the decision tree. It also ran **recursive feature
+elimination**, which asks how few features the classification actually needs. That
+procedure kept eleven: eight processing types, and the concentrations of **Cu, Zn
+and Ti** — *titanium in place of silicon*. The paper notes the substitution
+explicitly, and reports no loss of performance from it.
+
+Titanium never appears anywhere in our components. It is not close:
+
+| | Std. dev. | Rank among the 24 | Rank on PC1 |
+|---|---|---|---|
+| Si | 0.0282 | 2nd | 3rd |
+| **Ti** | **0.0005** | **15th** | **11th** |
+
+Silicon varies fifty-six times more than titanium across this dataset. A method
+that ranks variables by variance cannot select titanium, and ours does not.
+
+**So is the paper wrong, or is PCA?** Neither. They are answering different
+questions with differently-shaped tools:
+
+* A **decision tree is scale-invariant**. It splits on thresholds — *is Ti above
+  0.0002?* — and that question is exactly as answerable for a variable that spans
+  0.05% as for one that spans 20%. The tree can use titanium because the size of
+  titanium's numbers is irrelevant to it.
+* **PCA is not scale-invariant**, and under mean centering that is the whole
+  point: Step 1 established that these variables share a unit and that their
+  relative sizes are real information. Keeping that information is what makes PC1
+  interpretable — and it is the same decision that makes titanium invisible.
+
+Now go back and standardize, which Step 1 told you not to do, and look at PC1:
+
+```
+Standardized    PC1 (10.2%)    Al +0.514    Ti −0.448    Si −0.417    Fe −0.325
+```
+
+**Titanium is second only to aluminium.** The variable that mean centering could
+not see is, once every column is forced to equal variance, one of the two that
+define the leading component — and it arrives alongside iron, another minor
+constituent.
+
+This is the clearest statement in the whole tutorial of what preprocessing does.
+Mean centering and standardization did not give you a better and a worse answer.
+They gave you **two different questions**:
+
+> *Which elements account for the most material?* → Al, Si, Zn, Cu
+> *Which elements most distinguish one alloy from another, counting each equally?* → Al, Ti, Si, Fe
+
+The paper's tree, needing neither question, picked titanium on its usefulness for
+classification alone. When a method disagrees with yours about which variables
+matter, the first thing to check is whether it was weighting them the same way.
+
 **Where PCA falls short of the paper.** It finds no eight classes. Those classes
 depend on processing type, which our PCA deliberately held out — and which no
 amount of composition data can supply. PCA has recovered the *chemical* half of
@@ -625,9 +718,13 @@ different things**, and recognizing the second is the harder skill.
   what a component built from elements absent in 97% of samples can possibly
   mean.
 
-* **Look at the duplicated points.** Samples 1 and 2 have identical scores. They
-  are different literature records of the same composition, differing only in the
-  metadata. How would you decide whether to keep both?
+* **Look at the duplicated points.** Samples 1 and 2 have identical scores — and
+  they are far from alone: 85% of the rows share a composition with some other
+  row, and the 1057 samples occupy just **398 distinct positions**. They are
+  different literature records of the same chemistry, differing only in the
+  metadata. How would you decide whether to keep both? Note that the answer
+  differs for *this* analysis and for the paper's: records identical in the 24
+  columns PCA was given are distinguishable in the processing column it was not.
 
 * **Drop aluminium and re-run.** With the dominant variable gone, what do the
   components become? Is the result more or less interpretable? (This is close to
@@ -650,6 +747,14 @@ different things**, and recognizing the second is the harder skill.
 * Know when a **categorical has too many levels to color by** — a palette holds a
   few dozen colors, so beyond that a legend stops identifying anything and hover
   becomes the only reliable way to name a point
+* Remember that **a marker is not a sample**: where rows share the values PCA was
+  given, they occupy one point, and nothing in the plot reveals how many are
+  stacked there
+* Understand that **which variables "matter" is a consequence of how you weighted
+  them** — mean centering and standardization gave different leading elements
+  here, and a scale-invariant method such as a decision tree gives a third answer
+  again. Disagreement between methods about important variables is usually a
+  disagreement about weighting, not about the data
 * Appreciate that PCA can **rediscover an established classification** (the alloy
   series) from raw measurements — and that agreement between two very different
   methods on the same three variables is stronger evidence than either alone
