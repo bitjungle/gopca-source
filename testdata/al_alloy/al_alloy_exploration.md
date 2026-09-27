@@ -56,13 +56,13 @@ Every tutorial in this series has had a lesson attached to the data's shape. Thi
 one has three, and the first will overturn a rule you have been taught.
 
 **The variables are parts of one whole.** Each row is a composition: the 24
-fractions sum to 1. They are all the same physical quantity, measured in the same
-unit, and a rise in one forces the others down as arithmetic rather than
-chemistry. This is called **closed compositional data**, and it changes what
-preprocessing is appropriate.
+fractions sum to 1 — exactly, on all but eight rows, for a reason worth knowing.
+They are all the same physical quantity, measured in the same unit, and a rise in
+one forces the others down as arithmetic rather than chemistry. This is called
+**closed compositional data**, and it changes what preprocessing is appropriate.
 
-> **Almost exactly 1, and the exception is instructive.** 1049 of the 1057 rows
-> sum to 1.000000. Seven of the remaining eight are the rows that contained
+> **The eight exceptions.** 1049 of the 1057 rows sum to exactly 1. Seven of the
+> remaining eight are the rows that contained
 > **lead** — a column dropped during preparation because it was identical to
 > bismuth in every row, and two columns carrying one variable would have given it
 > double weight. The shortfall in each of those rows is exactly the lead value
@@ -121,7 +121,7 @@ Step 3 returns to this, and it is a real limitation rather than a curiosity.
 | Samples | 1057 distinct alloys |
 | Variables | 24 element concentrations (weight fractions) |
 | Held out for coloring | processing type, plus alloy name, source and temper |
-| Rows sum to | 1.000 for 1049 of 1057 rows (closed composition; see above) |
+| Rows sum to | exactly 1, on 1049 of 1057 rows (closed composition; see above) |
 | Zero cells | 74.1% |
 | Distinct composition vectors | 398 (so 1057 rows draw at 398 points) |
 | Concentration span | 6 orders of magnitude (0.0001% to 99.99%) |
