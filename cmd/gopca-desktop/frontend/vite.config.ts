@@ -29,6 +29,14 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // plotly.js/lib/* is CommonJS source, not a browserified dist: has-hover and
+  // friends reference `global`, which exists in Node and in a browserify bundle
+  // but not in a browser. Without this the app throws
+  // "ReferenceError: global is not defined" while evaluating plotly's plot_api
+  // and never mounts at all (#898).
+  define: {
+    global: 'globalThis',
+  },
   optimizeDeps: {
     // Pre-bundle the custom Plotly build's entry points. Vite otherwise
     // discovers them when the first plot mounts, re-optimizes mid-session and
