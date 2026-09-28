@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import React, { useEffect, useRef } from 'react';
-import Plotly from 'plotly.js-dist-min';
+import Plotly from './plotly-bundle';
 import { BarChartProps } from './types';
 import { getPlotlyTheme, mergeLayouts } from './utils';
 import { useChartTheme } from '../hooks/useChartTheme';

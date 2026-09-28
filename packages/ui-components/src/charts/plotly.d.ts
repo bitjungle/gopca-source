@@ -21,15 +21,28 @@
 //
 // See LICENSE for the full license terms.
 
-// Type declarations for plotly.js bundles
-declare module 'plotly.js-dist-min' {
-  export * from 'plotly.js';
+// Type declarations for the custom plotly bundle's entry points (#898).
+//
+// plotly.js ships types for its package root but not for the lib/ modules a
+// custom bundle is assembled from, so each is declared here. The trace modules
+// are opaque on purpose: they are only ever handed to Plotly.register, and
+// describing their internals would be inventing detail we do not rely on.
+declare module 'plotly.js/lib/core' {
   import Plotly from 'plotly.js';
   export default Plotly;
 }
 
-declare module 'plotly.js-basic-dist-min' {
-  export * from 'plotly.js';
-  import Plotly from 'plotly.js';
-  export default Plotly;
+declare module 'plotly.js/lib/bar';
+declare module 'plotly.js/lib/contour';
+declare module 'plotly.js/lib/heatmap';
+declare module 'plotly.js/lib/scatter';
+declare module 'plotly.js/lib/scatter3d';
+declare module 'plotly.js/lib/scattergl';
+
+declare module 'react-plotly.js/factory' {
+  import * as React from 'react';
+  import type { PlotParams } from 'react-plotly.js';
+  export default function createPlotlyComponent(
+    plotly: unknown
+  ): React.ComponentType<PlotParams>;
 }

@@ -139,6 +139,11 @@ export { PlotlyLineChart } from './charts/PlotlyLineChart';
 export type { ScatterChartProps, LineChartProps, ChartDataPoint } from './charts/types';
 
 // Plotly Fullscreen Support
+// The single Plotly build and its React wrapper (#898). Applications must use
+// these rather than react-plotly.js or plotly.js-dist-min, or a second full
+// Plotly — map traces included — lands in the bundle.
+export { Plot } from './charts/plotly-component';
+export { default as Plotly, REGISTERED_TRACES } from './charts/plotly-bundle';
 export { PlotlyWithFullscreen, PlotlyFullscreenModal, usePlotlyFullscreen, createFullscreenButton } from './charts/utils/plotlyFullscreen';
 export { sampleLabel } from './charts/utils/sampleLabel';
 

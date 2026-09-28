@@ -26,5 +26,34 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // plotly.js/lib/* is CommonJS source, not a browserified dist: has-hover and
+  // friends reference `global`, which exists in Node and in a browserify bundle
+  // but not in a browser. Without this the app throws
+  // "ReferenceError: global is not defined" while evaluating plotly's plot_api
+  // and never mounts at all (#898).
+  define: {
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    // Pre-bundle the custom Plotly build's entry points. Vite otherwise
+    // discovers them when the first plot mounts, re-optimizes mid-session and
+    // forces a reload, which cancels the requests the Wails dev server is
+    // proxying — the terminal then fills with Go's
+    // "suppressing panic for copyResponse error" from net/http/httputil.
+    //
+    // This list must name every module plotly-bundle.ts imports; scripts/ci/
+    // check-frontend-invariants.mjs enforces that, because a stale entry here
+    // reads as a mitigation while mitigating nothing (#898).
+    include: [
+      'react-plotly.js/factory',
+      'plotly.js/lib/core',
+      'plotly.js/lib/bar',
+      'plotly.js/lib/contour',
+      'plotly.js/lib/heatmap',
+      'plotly.js/lib/scatter',
+      'plotly.js/lib/scatter3d',
+      'plotly.js/lib/scattergl',
+    ],
+  },
   plugins: [react()]
 });

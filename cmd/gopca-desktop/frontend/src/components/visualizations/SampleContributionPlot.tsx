@@ -24,7 +24,7 @@
 // Sample Contribution Plot - Shows which samples contribute most to each PC
 
 import React, { useState, useMemo } from 'react';
-import Plot from 'react-plotly.js';
+import { Plot } from '@gopca/ui-components';
 import { useTheme, sampleLabel } from '@gopca/ui-components';
 import { PCAResult } from '../../types';
 import { usePalette } from '../../contexts/PaletteContext';
