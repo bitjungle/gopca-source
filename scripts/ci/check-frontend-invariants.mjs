@@ -286,6 +286,140 @@ if (!foldsSelect) {
     }
 }
 
+// --- 5. Vite pre-bundles exactly what the custom Plotly build imports ---------
+//
+// The apps import a custom Plotly assembled from plotly.js/lib/* (#898). Vite
+// otherwise discovers those entry points when the first plot mounts, re-optimizes
+// mid-session and forces a reload, which cancels whatever the Wails dev server is
+// proxying; the terminal then fills with Go's "suppressing panic for copyResponse
+// error" out of net/http/httputil. Each vite.config.ts lists them under
+// optimizeDeps.include to pre-bundle them at startup instead.
+//
+// That list is a copy of an import list, and it has already gone stale once: the
+// switch to the custom bundle left `include: ['plotly.js-dist-min']` behind,
+// naming a package nothing imported any more while missing every package that
+// mattered. Nothing failed — the mitigation simply stopped mitigating, and only
+// `make csv-dev` showed it. This compares the two directly.
+{
+    const BUNDLE = 'packages/ui-components/src/charts/plotly-bundle.ts';
+    const COMPONENT = 'packages/ui-components/src/charts/plotly-component.tsx';
+    const CONFIGS = [
+        'cmd/gopca-desktop/frontend/vite.config.ts',
+        'cmd/gocsv/frontend/vite.config.ts'
+    ];
+
+    const importsOf = (file) => [
+        ...readFileSync(file, 'utf8').matchAll(/from\s+['"]((?:plotly\.js|react-plotly\.js)\/[^'"]+)['"]/g)
+    ].map(m => m[1]);
+
+    const needed = [...new Set([...importsOf(BUNDLE), ...importsOf(COMPONENT)])];
+
+    if (needed.length === 0) {
+        failures.push(
+            `${BUNDLE} and ${COMPONENT} declare no plotly subpath imports: either the ` +
+            `custom bundle is gone or this check has stopped matching (#898)`);
+    }
+
+    for (const config of CONFIGS) {
+        const text = readFileSync(config, 'utf8');
+        // Quote-agnostic: a config formatted with double quotes lists the same
+        // modules, and failing CI over that would be a formatting complaint
+        // dressed as a correctness one.
+        const listed = new Set(
+            [...text.matchAll(/['"]((?:plotly\.js|react-plotly\.js)\/[^'"]+)['"]/g)].map(m => m[1])
+        );
+        const missing = needed.filter(mod => !listed.has(mod));
+        if (missing.length > 0) {
+            failures.push(
+                `${config} does not pre-bundle ${missing.join(', ')}: Vite will discover ` +
+                `${missing.length === 1 ? 'it' : 'them'} when the first plot mounts, reload, ` +
+                `and the Wails dev proxy will log a cancelled request per in-flight asset (#898)`);
+        }
+    }
+}
+
+// --- 6. Every Plotly trace the source draws is registered in the bundle -------
+//
+// The custom bundle registers only the traces the suite uses, which is what
+// keeps the map code out of the artifact (#898). The cost is a failure with no
+// compile-time signal: an unregistered trace does not throw, it draws an empty
+// plot, and only someone opening that chart sees it.
+//
+// This check lived in packages/ui-components/src/charts/plotly-bundle.test.ts
+// first, where `import.meta.glob` is rooted at that package -- so it could not
+// see the app frontends, and PreprocessingPreview, SampleContributionPlot and
+// KernelMatrixHeatmap all build traces of their own. A guard blind to the place
+// a new plot is most likely to be added is worth little, so it moved here, where
+// reading across trees is what the file already does.
+{
+    const TRACE_LIST = 'packages/ui-components/src/charts/plotly-traces.ts';
+    const TREES = [
+        'packages/ui-components/src',
+        'cmd/gopca-desktop/frontend/src',
+        'cmd/gocsv/frontend/src'
+    ];
+
+    // Trace names Plotly ships. Only values in this set are treated as trace
+    // types, so unrelated `type:` fields -- 'log', 'onehot', 'categorical', the
+    // layout shapes' 'line' -- are not mistaken for one.
+    const PLOTLY_TRACES = new Set([
+        'bar', 'barpolar', 'box', 'candlestick', 'carpet', 'choropleth',
+        'choroplethmap', 'choroplethmapbox', 'cone', 'contour', 'contourcarpet',
+        'densitymap', 'densitymapbox', 'funnel', 'funnelarea', 'heatmap',
+        'heatmapgl', 'histogram', 'histogram2d', 'histogram2dcontour', 'icicle',
+        'image', 'indicator', 'isosurface', 'mesh3d', 'ohlc', 'parcats',
+        'parcoords', 'pie', 'pointcloud', 'sankey', 'scatter', 'scatter3d',
+        'scattercarpet', 'scattergeo', 'scattergl', 'scattermap', 'scattermapbox',
+        'scatterpolar', 'scatterpolargl', 'scattersmith', 'scatterternary',
+        'splom', 'streamtube', 'sunburst', 'surface', 'table', 'treemap',
+        'violin', 'volume', 'waterfall'
+    ]);
+
+    const registered = new Set(
+        [...readFileSync(TRACE_LIST, 'utf8').matchAll(/^\s*'([a-z0-9]+)'/gm)].map(m => m[1])
+    );
+    if (registered.size === 0) {
+        failures.push(`${TRACE_LIST} lists no registered traces, or this check has stopped matching it`);
+    }
+
+    const sources = [];
+    const walk = (dir) => {
+        for (const entry of readdirSync(dir)) {
+            const full = join(dir, entry);
+            if (statSync(full).isDirectory()) {
+                walk(full);
+            } else if (/\.(ts|tsx)$/.test(entry) && !entry.includes('.test.')) {
+                sources.push(full);
+            }
+        }
+    };
+    for (const tree of TREES) {
+        walk(tree);
+    }
+
+    const used = new Map();
+    for (const file of sources) {
+        for (const m of readFileSync(file, 'utf8').matchAll(/type:\s*['"]([a-z0-9]+)['"]/g)) {
+            if (PLOTLY_TRACES.has(m[1])) {
+                used.set(m[1], file);
+            }
+        }
+    }
+    // Guards the guard: a pattern that matched nothing would pass silently.
+    if (used.size < 3) {
+        failures.push(
+            `only ${used.size} Plotly trace types were found across ${sources.length} files, ` +
+            `which is too few to be right -- the scan has probably stopped matching (#898)`);
+    }
+    for (const [trace, file] of used) {
+        if (!registered.has(trace)) {
+            failures.push(
+                `'${trace}' is drawn in ${file} but is not registered in ${TRACE_LIST}: ` +
+                `the custom Plotly build will render an empty plot rather than raise an error (#898)`);
+        }
+    }
+}
+
 if (failures.length > 0) {
     console.error('\nFrontend invariant checks FAILED:\n');
     for (const f of failures) console.error(`  - ${f}`);
@@ -294,5 +428,7 @@ if (failures.length > 0) {
 }
 
 console.log(`Frontend invariants hold: ${labels.length} menu entries all with icons, ` +
-            `one sample-label helper, a grid that honours label columns, and a Folds ` +
-            `menu matching its Go copy.`);
+            `one sample-label helper, a grid that honours label columns, a Folds ` +
+            `menu matching its Go copy, both Vite configs pre-bundling every ` +
+            `module the custom Plotly build imports, and every Plotly trace the ` +
+            `three frontends draw registered in that build.`);

@@ -14,11 +14,9 @@ import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DocumentationViewer } from './DocumentationViewer';
 import { extractHeadings } from '../utils/tocUtils';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error - Vite resolves ?raw imports; there is no ambient type for them here.
+// Typed by vite/client, declared in src/vite-env.d.ts. These imports needed a
+// suppression directive until that file existed.
 import introToPca from '../../../../docs/intro_to_pca.md?raw';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error - as above
 import introToDataPrep from '../../../../docs/intro_to_data_prep.md?raw';
 
 /**

@@ -24,7 +24,7 @@
 // PlotlyVisualization Base Class - Foundation for all Plotly visualizations
 
 import React from 'react';
-import Plot from 'react-plotly.js';
+import Plot from '../plotly-component';
 import { Data, Layout, Config, PlotlyHTMLElement } from 'plotly.js';
 import { getPlotlyTheme, mergeLayouts, ThemeMode } from '../utils/plotlyTheme';
 import { PLOT_CONFIG } from '../config/plotConfig';
