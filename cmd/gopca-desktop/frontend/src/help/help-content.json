@@ -262,7 +262,7 @@
     },
     "scores3d-plot": {
       "title": "3D Scores Plot",
-      "text": "3D visualization of samples in PC space. Rotate with mouse to explore patterns from different angles. The three axes share one scale, so a distance on screen is a distance in score space: a component that carries little variance is drawn flat rather than stretched to fill the box.",
+      "text": "3D visualization of samples in PC space. Rotate with mouse to explore patterns from different angles. The axes share one scale, so a distance on screen is a distance in score space: a low-variance component is drawn flat rather than stretched to fill the box.",
       "category": "visualization"
     },
     "biplot3d-plot": {
