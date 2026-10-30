@@ -31,6 +31,7 @@ import { PLOT_CONFIG, getScaledMarkerSize } from '../config/plotConfig';
 import { PlotlyWithFullscreen } from '../utils/plotlyFullscreen';
 import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { placeCircleLabels } from '../utils/circleLabelPlacement';
+import { escapeHoverText } from '../utils/hoverText';
 import { PlotlyVisualizationConfig } from '../core/PlotlyVisualization';
 
 export interface CircleOfCorrelationsData {
@@ -193,7 +194,7 @@ export class PlotlyCircleOfCorrelations {
           width: this.config.arrowWidth || 2
         },
         showlegend: false,
-        hovertemplate: `<b>${name}</b><br>` +
+        hovertemplate: `<b>${escapeHoverText(name)}</b><br>` +
                        `PC${(this.config.pcX || 1)}: ${correlationsX[i].toFixed(3)}<br>` +
                        `PC${(this.config.pcY || 2)}: ${correlationsY[i].toFixed(3)}<br>` +
                        `Magnitude: ${magnitudes[i].toFixed(3)}<extra></extra>`
@@ -233,7 +234,7 @@ export class PlotlyCircleOfCorrelations {
         mode: 'text',
         x: placed.map((p) => p.x),
         y: placed.map((p) => p.y),
-        text: filteredNames,
+        text: filteredNames.map(escapeHoverText),
         textposition: 'middle center',
         textfont: {
           size: labelSize,

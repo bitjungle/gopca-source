@@ -29,6 +29,7 @@ import { PlotlyWithFullscreen } from '../utils/plotlyFullscreen';
 import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { PlotlyVisualizationConfig } from '../core/PlotlyVisualization';
 import { PLOT_CONFIG } from '../config/plotConfig';
+import { escapeHoverText } from '../utils/hoverText';
 
 export interface TemporalVariableImportanceData {
   importance: number[][];  // [n_components][n_variables]
@@ -136,7 +137,7 @@ export class PlotlyTemporalVariableImportance {
       row.map((value, j) => {
         const varName = variableNames[j];
         const pcLabel = componentLabels[i];
-        return `Variable: ${varName}<br>Component: ${pcLabel}<br>Importance: ${value.toFixed(4)}`;
+        return `Variable: ${escapeHoverText(varName)}<br>Component: ${pcLabel}<br>Importance: ${value.toFixed(4)}`;
       })
     );
 

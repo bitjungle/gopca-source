@@ -212,13 +212,13 @@ export class Plotly3DBiplot {
           const valueStr = value !== null && value !== undefined && !isNaN(value) && isFinite(value)
             ? value.toFixed(2)
             : 'Missing';
-          return `<b>${label}</b><br>Value: ${valueStr}<br>PC${pc1 + 1}: ${x.toFixed(2)}<br>PC${pc2 + 1}: ${scoresY[i].toFixed(2)}<br>PC${pc3 + 1}: ${scoresZ[i].toFixed(2)}`;
+          return `<b>${escapeHoverText(label)}</b><br>Value: ${valueStr}<br>PC${pc1 + 1}: ${x.toFixed(2)}<br>PC${pc2 + 1}: ${scoresY[i].toFixed(2)}<br>PC${pc3 + 1}: ${scoresZ[i].toFixed(2)}`;
         });
 
         // Prepare text labels if enabled (limit to maxLabels)
         const maxLabels = this.config.maxLabels || 10;
         const textLabels = this.config.showLabels && sampleNames && scoresX.length > 0
-          ? scoresX.map((_, i) => i < maxLabels ? (sampleNames[i] || '') : '')
+          ? scoresX.map((_, i) => i < maxLabels ? escapeHoverText(sampleNames[i] || '') : '')
           : undefined;
         const showText = !!textLabels;
 
@@ -276,7 +276,7 @@ export class Plotly3DBiplot {
           const maxLabelsPerGroup = Math.ceil((this.config.maxLabels || 10) / uniqueGroups.length);
           const groupSampleNames = indices.map(i => sampleLabel(sampleNames, i));
           const textLabels = this.config.showLabels && sampleNames && groupSampleNames.length > 0
-            ? groupSampleNames.map((name, idx) => idx < maxLabelsPerGroup ? name : '')
+            ? groupSampleNames.map((name, idx) => idx < maxLabelsPerGroup ? escapeHoverText(name) : '')
             : undefined;
           const showText = !!textLabels;
 
@@ -307,13 +307,13 @@ export class Plotly3DBiplot {
         // Single group
         const hovertext = scoresX.map((x, i) => {
           const label = sampleLabel(sampleNames, i);
-          return `<b>${label}</b><br>PC${pc1 + 1}: ${x.toFixed(2)}<br>PC${pc2 + 1}: ${scoresY[i].toFixed(2)}<br>PC${pc3 + 1}: ${scoresZ[i].toFixed(2)}`;
+          return `<b>${escapeHoverText(label)}</b><br>PC${pc1 + 1}: ${x.toFixed(2)}<br>PC${pc2 + 1}: ${scoresY[i].toFixed(2)}<br>PC${pc3 + 1}: ${scoresZ[i].toFixed(2)}`;
         });
 
         // Prepare text labels if enabled (limit to maxLabels)
         const maxLabels = this.config.maxLabels || 10;
         const textLabels = this.config.showLabels && sampleNames && scoresX.length > 0
-          ? scoresX.map((_, i) => i < maxLabels ? (sampleNames[i] || '') : '')
+          ? scoresX.map((_, i) => i < maxLabels ? escapeHoverText(sampleNames[i] || '') : '')
           : undefined;
         const showText = !!textLabels;
 
@@ -397,7 +397,7 @@ export class Plotly3DBiplot {
         endpointZ.push(loadingsZ[v.i]);
 
         hovertext.push(
-          `<b>${v.name}</b><br>` +
+          `<b>${escapeHoverText(v.name)}</b><br>` +
           `PC${pc1 + 1}: ${loadingsX[v.i].toFixed(3)}<br>` +
           `PC${pc2 + 1}: ${loadingsY[v.i].toFixed(3)}<br>` +
           `PC${pc3 + 1}: ${loadingsZ[v.i].toFixed(3)}<br>` +
@@ -431,7 +431,7 @@ export class Plotly3DBiplot {
           x: loadingsX[v.i] * scale,
           y: loadingsY[v.i] * scale,
           z: loadingsZ[v.i] * scale,
-          text: v.name
+          text: escapeHoverText(v.name)
         };
       });
 

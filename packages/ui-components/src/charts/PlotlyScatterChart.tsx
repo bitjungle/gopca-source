@@ -26,6 +26,7 @@ import Plotly from './plotly-bundle';
 import { ScatterChartProps } from './types';
 import { getPlotlyTheme, mergeLayouts, calculatePlotlyLabels, getPlotlyTextPosition } from './utils';
 import { identityLineEnds } from './utils/identityLine';
+import { escapeHoverText } from './utils/hoverText';
 import { useChartTheme } from '../hooks/useChartTheme';
 
 export const PlotlyScatterChart: React.FC<ScatterChartProps> = ({
@@ -99,7 +100,7 @@ return;
           width: 1
         } : undefined
       },
-      text: labels,
+      text: labels.map(escapeHoverText),
       textposition: textPositions as any,
       textfont: {
         size: 10,

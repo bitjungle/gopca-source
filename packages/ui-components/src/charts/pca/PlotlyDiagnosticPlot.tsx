@@ -234,7 +234,7 @@ return;
               len: 0.7
             } : undefined
           },
-          text: sampleNames ? cat.indices.map(i => sampleNames[i]) : undefined,
+          text: sampleNames ? cat.indices.map(i => escapeHoverText(sampleNames[i])) : undefined,
           hovertemplate: '<b>%{text}</b><br>' +
                         'Value: %{marker.color:.2f}<br>' +
                         'Mahalanobis: %{x:.2f}<br>' +
@@ -269,7 +269,7 @@ return;
             symbol: cat.symbol,
             opacity: 0.7
           },
-          text: sampleNames ? cat.indices.map(i => sampleNames[i]) : undefined,
+          text: sampleNames ? cat.indices.map(i => escapeHoverText(sampleNames[i])) : undefined,
           hovertemplate: '<b>%{text}</b><br>' +
                         'Mahalanobis: %{x:.2f}<br>' +
                         'RSS: %{y:.2f}<extra></extra>'
@@ -305,7 +305,7 @@ return;
         mode: 'text',
         x: topPoints.map(p => p.x),
         y: topPoints.map(p => p.y),
-        text: topPoints.map(p => sampleNames[p.index]),
+        text: topPoints.map(p => escapeHoverText(sampleNames[p.index])),
         textposition: 'top center',
         textfont: {
           size: Math.round(10 * (this.config.fontScale || 1.0)),
