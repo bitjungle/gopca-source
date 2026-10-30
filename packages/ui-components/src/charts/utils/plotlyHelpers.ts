@@ -46,6 +46,7 @@
 
 import { Data } from 'plotly.js';
 import { EllipseParams } from './plotlyMath';
+import { uniqueCategoryLevels } from './categoryOrder';
 
 export interface PlotlyLabelConfig {
   showLabels: boolean;
@@ -332,7 +333,7 @@ export function createColorMap(
   groups: string[],
   palette: string[]
 ): Map<string, string> {
-  const uniqueGroups = Array.from(new Set(groups));
+  const uniqueGroups = uniqueCategoryLevels(groups);
   const colorMap = new Map<string, string>();
 
   uniqueGroups.forEach((group, index) => {

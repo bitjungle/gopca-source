@@ -33,6 +33,7 @@ import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { sampleLabel } from '../utils/sampleLabel';
 import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
 import { escapeHoverText } from '../utils/hoverText';
+import { uniqueCategoryLevels } from '../utils/categoryOrder';
 
 export interface Scores3DPlotData {
   scores: number[][];
@@ -162,7 +163,7 @@ export class Plotly3DScoresPlot {
     } else {
       // Categorical coloring - existing implementation
       // Get unique groups
-      const uniqueGroups = Array.from(new Set(groups));
+      const uniqueGroups = uniqueCategoryLevels(groups);
 
       // Create 3D scatter trace for each group
       uniqueGroups.forEach((group, groupIndex) => {
@@ -221,7 +222,7 @@ export class Plotly3DScoresPlot {
   private getProjectionTraces(): Data[] {
     const { scores, groups, pc1 = 0, pc2 = 1, pc3 = 2 } = this.data;
     const projectionTraces: Data[] = [];
-    const uniqueGroups = Array.from(new Set(groups));
+    const uniqueGroups = uniqueCategoryLevels(groups);
 
     uniqueGroups.forEach((group, groupIndex) => {
       const groupIndices = groups.map((g, i) => g === group ? i : -1).filter(i => i >= 0);
