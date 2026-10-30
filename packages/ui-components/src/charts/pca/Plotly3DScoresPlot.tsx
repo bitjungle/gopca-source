@@ -376,7 +376,19 @@ export class Plotly3DScoresPlot {
           zerolinecolor: sceneColors.zerolinecolor
         },
         camera: this.config.cameraPosition,
-        aspectmode: 'cube',
+        // One unit of PC3 is drawn the same size as one unit of PC1. Under
+        // 'cube' each axis was stretched to equal visual length, so a component
+        // with a tenth of the score spread was magnified until the cloud looked
+        // round: on al_alloy PC3 was drawn 3.1x its true extent against PC1
+        // and the rank order of inter-point distances on screen agreed with
+        // the real one only 0.83 of the time (#1018). A scores plot is read for
+        // distance -- clusters, outliers, T2 -- so the geometry has to be the
+        // score geometry, even when that makes a low-variance axis flat.
+        //
+        // The 3D biplot keeps 'cube' on purpose: its autorange is set by the
+        // loading arrows, which are unit vectors, so its axes are comparable
+        // already and the issue measured it undistorted.
+        aspectmode: 'data',
         hovermode: 'closest'
       },
       showlegend: true,
