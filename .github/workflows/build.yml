@@ -455,7 +455,9 @@ jobs:
       # on this runner's GTK4/WebKitGTK 6.0 stack runs on distributions that do
       # not ship it. linuxdeploy is itself an AppImage; EXTRACT_AND_RUN lets it
       # run without FUSE on the hosted runner.
-      run: cd cmd/gopca-desktop && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        cd cmd/gopca-desktop && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
     
     - name: Sign GoPCA Desktop (macOS)
       if: matrix.os == 'macos-latest'
@@ -554,7 +556,9 @@ jobs:
       # on this runner's GTK4/WebKitGTK 6.0 stack runs on distributions that do
       # not ship it. linuxdeploy is itself an AppImage; EXTRACT_AND_RUN lets it
       # run without FUSE on the hosted runner.
-      run: cd cmd/gocsv && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        cd cmd/gocsv && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
     
     - name: Sign GoCSV Desktop (macOS)
       if: matrix.os == 'macos-latest'
