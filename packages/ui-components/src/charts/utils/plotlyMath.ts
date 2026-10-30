@@ -165,12 +165,30 @@ export function calculateSmartLabels(
     distance: Math.sqrt(p.x * p.x + p.y * p.y)
   }));
 
-  // Sort by distance and take top N
+  // Sort by distance and take the top N distinct positions.
   distances.sort((a, b) => b.distance - a.distance);
 
-  return distances
-    .slice(0, maxLabels)
-    .map(d => d.index);
+  // One label per coordinate. Rows that repeat another row's values produce
+  // bit-identical scores, and the furthest points from the origin are often
+  // exactly those stacks -- so taking the top N indices drew several labels on
+  // one pixel as an unreadable smear and left the rest of the plot bare. On
+  // al_alloy "Max labels: 10" bought five readable labels (#1017). The key is
+  // exact equality on purpose: thinning *near* neighbours would be a different
+  // feature, and the duplicates this is for are identical, not close.
+  const taken = new Set<string>();
+  const selected: number[] = [];
+  for (const { index } of distances) {
+    if (selected.length >= maxLabels) {
+      break;
+    }
+    const key = `${points[index].x},${points[index].y}`;
+    if (taken.has(key)) {
+      continue;
+    }
+    taken.add(key);
+    selected.push(index);
+  }
+  return selected;
 }
 
 // Alias for consistency
