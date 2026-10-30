@@ -70,7 +70,7 @@ jobs:
     - name: Set up Python for validation
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.12'
         
     - name: Cache Python dependencies
       uses: actions/cache@v4
@@ -278,6 +278,12 @@ jobs:
     # Both apps' frontend/wailsjs/ are gitignored and generated at build time,
     # so the type check below needs Go and the Wails CLI to produce the
     # declarations tsc resolves the `wailsjs` imports against.
+    - name: Install Linux dependencies
+      # `wails3 generate bindings` type-checks the packages in the import
+      # graph, and Wails v3's Linux webview is cgo against GTK4 and WebKitGTK
+      # 6.0, so even the static binding generator needs them installed.
+      run: ./scripts/ci/install-linux-deps.sh
+
     - name: Set up Go (for Wails binding generation)
       uses: actions/setup-go@v5
       with:
