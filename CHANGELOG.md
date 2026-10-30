@@ -7,6 +7,217 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+GoPCA 2.0. Two things make this a major version. **Regression mode**: a Principal Component
+Regression engine with cross-validation, a `pca regress` command, a **Regress** mode in GoPCA
+Desktop, and a saved model that `pca transform` applies to new data and says how far each
+prediction can be trusted. **Wails v3**: both desktop applications were ported to the stable v3
+framework, which raises the macOS floor and changes the Linux runtime. Around them: Savitzky-Golay
+smoothing and derivatives, a GoCSV that can prepare compositional, replicated and badly-shaped data,
+a v2 model file format whose numbers mean what their names say, one custom Plotly build at a third
+of the size, and the fixes from three beta-test passes on real datasets. **Read Breaking changes
+first** if you script against the CLI, parse model files, or run on an older macOS.
+
+### Breaking changes
+- **macOS 13 (Ventura) or later is required.** The Go 1.27 toolchain the applications are built
+  with links against macOS 13 — measured on a trivial binary, not inherited from Wails — and the
+  bundles now declare it. Earlier releases claimed 10.13 and could not have run there since Go
+  dropped it (#531)
+- **On Linux the desktop binaries need GTK4 and WebKitGTK 6.0.** Wails v3 targets them; its GTK3
+  path is being removed upstream. **The AppImages are unaffected**: they bundle WebKitGTK and its
+  helper processes and run on distributions that do not ship 6.0. The plain binaries in the tarball
+  are for systems that have it (#531)
+- **Model files declare `schemas/v2`, and `explained_variance_ratio` and `cumulative_variance` are
+  fractions of 1, not percentages.** The fields were named *ratio* and held percentages, so anyone
+  comparing against scikit-learn's `explained_variance_ratio_` was silently out by a factor of 100
+  — and every model GoPCA had ever written violated the `maximum: 1` its own v1 schema declared.
+  Both interfaces convert for display once, at the boundary. The `$schema` URL now resolves (the v1
+  one was a GitHub web path returning 404), and Temporal PCA's `explained_variance` is now the
+  eigenvalue, as for linear and kernel PCA. **Files written by earlier releases still load**: a model
+  is validated against the version it declares (#848)
+- **`pca regress` refuses `--no-mean-centering` and `--scale-only`.** Without centering the first
+  component absorbs the mean of the data, so one retained component describes where the samples sit
+  rather than how they vary, while the intercept already accounts for the offset — on `tecator` PC1's
+  share went from 98.6% to 99.96%, a component spent on the mean spectrum. The run used to succeed
+  with a quietly different model; it now stops and says why. `pca analyze` still accepts both (#981)
+- **Every GoCSV export carries a column of row identifiers.** `SaveCSV`, `SaveExcel` and the GoPCA
+  handoff each decided for themselves whether to write one, with three different headers, and all
+  three wrote nothing when the file had no row names. They now agree, and a file without identifiers
+  is exported with a `Sample_ID` column numbered from one, and the export says so (#966)
+- **One-hot encoding in GoCSV keeps the source column.** It previously removed the column it
+  encoded, silently and unconditionally. The dialog now offers a **Keep original column** checkbox,
+  ticked by default. This matters beyond GoCSV: GoPCA colours scores plots by categorical columns,
+  so encoding `species` used to cost the ability to colour by it. For anyone using `pkg/transform`
+  directly the new option is `Options.RemoveOriginal`, spelled that way round so the zero value
+  keeps the column (#854, #855)
+- **`regression.validation.folds` now records the folds actually built.** It previously echoed the
+  *configured* fold count, which is `0` for any design meaning "one fold per group" — so a
+  leave-one-out run reported `"folds": 0` regardless of sample count. A leave-one-out sweep over 441
+  labelled rows now reports `"folds": 441`. Anything reading this field to describe the validation
+  design was reading a configuration value that could not be interpreted without also knowing the
+  row count. `design` carries the human-readable form (`leave-one-row-out`) and was never affected
+  (#844)
+
+### Added
+- **Principal Component Regression** (#832). One engine behind both interfaces, validated against
+  scikit-learn references, with a differential test asserting the CLI and the desktop give the same
+  regression from the same settings.
+  - *Cross-validation designs*: K-fold, leave-one-out, grouped K-fold and leave-one-group-out on a
+    categorical column (`--cv-group`), contiguous blocks and forward chaining (`--cv-scheme`), with
+    repeats (`--cv-repeats`) and a recorded seed. Leave-one-out is grouped K-fold with K equal to
+    the group count, so the five share one implementation.
+  - *Component selection rules*: lowest error, one standard error (the default), within a
+    tolerance, Wold's R, and first minimum, on RMSECV or MAE (`--select`, `--metric`). The report
+    names the rule that chose the count, and says when the search ran off the end of the range.
+  - *Rows whose response is unmeasured inform the decomposition but not the regression*, so a
+    calibration set where only some samples went for reference analysis uses every spectrum. On
+    `bronir2` that is 48% of the responses missing. Missing *predictors* are refused rather than
+    imputed, because imputing before cross-validation lets held-out rows shape the fit.
+  - *The report names its three error figures and what each is for*: RMSEC is the training residual
+    and describes the fit, not future performance; RMSECV is held out and is what chose the component
+    count; RMSEP is not reported because it needs a test set kept out of model development entirely.
+    Q², bias and SEP follow, then the cross-validated error curve from k = 0 (the intercept-only
+    baseline, which predicts the training mean), the largest coefficients on the original scale, and
+    predicted against measured with the held-out prediction beside the fitted one.
+  - *`pca regress`* writes `pcr_model.json`, `pcr_predictions.csv`, `pcr_coefficients.csv` and
+    `pcr_selection_curve.csv`; `--list-responses` says which columns can be predicted. A response
+    that takes only a handful of distinct values is flagged as what a class label looks like, since
+    predicting a category is classification (#840)
+  - *GoPCA Desktop* gains an **Explore / Regress** switch in the header. Explore mode is unchanged.
+    The two share preprocessing, the decomposition and the row and column exclusions, so they cannot
+    disagree about what data they are looking at. Regress mode has a Step 3 panel for the response,
+    folds, grouping, rule and metric, and a results view with the error block, the selection curve,
+    predicted against measured, and the coefficients. A fold count the data cannot support is
+    refused in the Folds menu's own words (#973)
+  - Section 12 of `intro_to_pca.md` introduces the method (#842)
+- **`pca transform` says how far each prediction can be trusted** (#978). For every sample it reports
+  Hotelling's T² and the Q residual against the limits the model carries, and marks the sample
+  **outside the model** when either is exceeded. A PCR model also predicts its response; when the
+  file being transformed carries the measured response, an RMSEP section follows, split into the
+  samples within the model's limits and those outside, because the pooled figure describes neither.
+  On the Tecator extrapolation subset all eight samples are flagged, including the two predicted at
+  69% and 72% fat from a calibration that tops out at 49%. The JSON results file carries the
+  prediction too (#1037)
+- **Savitzky-Golay smoothing and derivatives** (#843), as a preprocessing step in the engine, the CLI
+  (`--savgol-window`, `--savgol-order`, `--savgol-deriv`), the model file, `pca transform` and
+  GoPCA Desktop. It chains after scatter correction, which is the standard NIR recipe, and a PCR
+  model keeps its original-scale coefficients through it because the filter is the same linear
+  operator for every sample. Edge handling matches scipy's `mode="interp"`. GoPCA Desktop offers
+  the control only where a derivative means something — the von Neumann ratio decides whether the
+  variables form a continuous axis, so it appears for spectra and not for thirteen unrelated wine
+  measurements (#892) — and shows a live preview of the spectra as the decomposition will see them
+  while the window and order are chosen
+- **GoCSV can prepare data it previously had to send back to Excel.**
+  - *Centred log-ratio transform* for compositional data, where a constant-sum constraint makes the
+    covariance singular and correlations spuriously negative; PCA on raw closed data is a textbook
+    error (#865)
+  - *Box-Cox and Yeo-Johnson* power transforms, which fit the exponent by maximum likelihood instead
+    of asking you to guess it; Yeo-Johnson is the answer for a column with zeros that `log` and
+    `sqrt` correctly refuse (#868, #861)
+  - *Split and combine columns* — `B3_S12_r1` becomes a `B3` column that `--cv-group` can use (#866)
+  - *Filter rows by criterion*, keep or remove, with undo; empty cells match only "is empty" (#863)
+  - *Transpose*, for instrument exports with samples across the top (#862)
+  - *Ordinal encoding* with a category order you arrange, and numeric codes ordered as numbers rather
+    than as text, so level 10 is not encoded between 1 and 2 (#856, #996)
+  - *Average replicates*, and the row-removal gap it shared with deletion: `CategoricalColumns` and
+    `NumericTargetColumns` are now removed alongside the rows (#864, #871)
+  - *Use as Row Names* and *Move Row Names into Table* from the header menu; every entry must be
+    non-empty and distinct, because row names label the points in a scores plot (#859)
+  - *Number the Rows*, with a start and increment of your choosing, for files whose columns all
+    repeat (#923, #967)
+  - *A `#category` marker* for numbers that are labels — processing codes, site numbers, batch
+    identifiers. On the aluminium alloy dataset the processing-code column carried roughly 7,400
+    times the variance of the largest element concentration and took 99.97% of PC1; the marker holds
+    it out of the analysis and offers it for colouring. `#target` and `#category` are mutually
+    exclusive (#914, #922)
+  - *Dragging a column reorders the data*, not just the view; the guide recommended the gesture
+    while the grid discarded it (#878)
+  - *A multi-sheet workbook goes to the import wizard* instead of silently opening the first sheet
+    (#905)
+- **The Data Quality Report names what it finds and what to do about it.** Rows holding far fewer
+  values than the rest are reported, with a way to show them (#908, #931); duplicate rows are listed
+  rather than counted (#932); the skew finding names its columns, and the transform recommendation
+  drops the ones no monotone transform can reshape (#951, #954); a column that would dominate the
+  analysis is named with its share of the variance (#909); constant columns are reported and the
+  variance check is scale-free (#867)
+- **The Model Overview reasons about scale, not just spread** (#957, #1014, #956). The scale
+  warning names the two variables and reports a ratio of standard deviations rather than of
+  variances (21,494× for Al against Be on the alloy data, where it said 462,008,282×). When the
+  variables sum to a constant it argues *against* standardizing and points at the log-ratio
+  transform; when the extreme variable is zero in almost every row it says the difference is about
+  presence, not units; on wine it still recommends standardizing. The Kaiser verdict reads the whole
+  eigenvalue spectrum and says "Kaiser: 10" when ten is its answer, "5+" only when it genuinely ran
+  out of components to count, and never calls a censored count an agreement
+- **The Loaded Data panel says which column became row names and lets you say it is data** (#969).
+  The first column of a CSV was always taken as row names, so a file with no identifier column
+  silently lost its first variable. The CLI has `--no-index` for the same case
+- **Three datasets for beta testing and tutorials**: the Tecator NIT meat spectra, whose
+  extrapolation subsets exist to make a regression fail in a known way (#976); the aluminium alloy
+  compositions from Bhat et al. (2023), with a tutorial (#912, #940, #998); and the paprika PDO
+  authentication data (#938)
+
+### Changed
+- **GoPCA Desktop and GoCSV run on Wails v3** (#531). Each application is a Wails service; events
+  are registered with typed names so a renamed event fails the TypeScript build instead of silently
+  never arriving; dialogs, file drops and the unsaved-changes prompt use the v3 window hooks, and
+  GoPCA's `--open` file is loaded when the window is ready rather than after a fixed delay.
+  Bindings are generated at build time and never committed. The AppImages are built by `wails3
+  generate appimage`. The tutorial window remains a separate process for now
+- **One custom Plotly build instead of two bundled copies** (#898). Every application shipped Plotly
+  twice, and the maplibre code the dependency override claimed to patch was compiled inside the
+  prebuilt distribution, untouched. The build now registers only the six trace types the suite
+  draws, through one component: GoPCA Desktop's main chunk fell from 10.1 MB to 2.9 MB and GoCSV's
+  from 11.0 MB to 3.8 MB, and no map code ships
+- **The reports state the preprocessing that was applied** (#982) — `Preprocessing  SNV, mean
+  centering`, in the order the steps run. Two runs that transformed the data differently used to
+  produce output distinguishable only by its digits. A repeated cross-validation design says so on
+  the Design line (#1036)
+- **Categorical legends are ordered by value, not by first appearance** (#1013). A level's colour
+  came from where it first occurred in the file, so filtering rows recoloured the plot and two plots
+  of the same categories used two colour schemes with nothing saying so. Levels now sort numerically
+  when they are all numbers and as text otherwise, the same rule GoCSV applies to one-hot columns
+- **Long legend labels are shortened, and the plot says when the palette has run out** (#999).
+  Colouring by a column with 124 levels used to take half the plot width for the legend and repeat
+  25 colours in silence. Labels are cut at 28 characters, the full value stays in the hover text, and
+  a note by the colour selector says that colours repeat and no longer identify a group
+- **The 3D scores plot is drawn to the data's aspect, not a cube** (#1018). Under `cube` each axis
+  was stretched to equal visual length, so a component with a tenth of the first's spread looked as
+  wide as it, and distances on screen were not score distances. A low-variance component now draws
+  flat, which is the honest cost; the 3D biplot keeps its cube because its unit-norm loading arrows
+  already give comparable axes
+- **Smart labels spend their budget on distinct positions** (#1017). Rows that repeat another row
+  land on one point, and "Max labels: 10" used to draw ten labels at five positions
+- **The data preview draws a collapsed box's outlier tails as edge marks** (#1016). A column that is
+  zero except in a few rows has IQR = 0, every other value is an outlier, and the dashed tail ran the
+  full height of the panel — fifteen identical full-height lines on the alloy data, reading as "these
+  vary enormously" about columns that are one number in 99% of rows
+- **The loadings threshold label sits inside the plot at a readable precision** (#1000). It used to
+  anchor outside the plot area and print seventeen significant digits; it now reads `Threshold:
+  ±0.204`
+- **GoCSV says when a transform declined to act** (#1002). A refused Box-Cox used to be reported in
+  the same blue panel as a success; an untouched or partial run is now amber and says `No columns
+  were transformed. Your data is unchanged.` or `1 of 2 columns transformed, 1 left unchanged`
+- **Variable labels in the Circle of Correlations are separated angularly** so three arrows within
+  7° — the tightly correlated variables a reader is trying to tell apart — no longer overlap (#830)
+- **User-facing documentation uses American spelling** throughout, and the data preparation guide was
+  rewritten around what the software now does (#991, #880)
+- **Model files are now validated against the JSON schema.** The v1 schemas shipped with the
+  applications but were never parsed; `ValidateModel` ran a set of hand-written structural checks
+  instead. The schema graph is now compiled and enforced, both on `pca transform` and on the Desktop
+  export path. **Models GoPCA writes are unaffected** — every variant was checked (SVD, NIPALS,
+  kernel, robust, SNV, dropped missing values, and both PCR cases) and all validate. The change is
+  visible only for hand-edited or third-party-generated files, which may now be rejected where they
+  previously loaded, and the error names the failing path:
+
+  ```
+  $ pca transform hand_edited_model.json data.csv
+  Error: model validation failed: model does not match the schema:
+    metadata.analysis_id: Does not match pattern '^[0-9a-f]{8}-[0-9a-f]{4}-...'
+  ```
+
+  `analysis_id` has always been documented as a UUID and was simply never checked, so a file
+  carrying `"analysis_id": "model-2024-run-7"` used to load without complaint. This is enforcement
+  catching up with the documentation rather than a new restriction (#846)
+
 ### Fixed
 - **The exported `preprocessing` block now records the transformation that was applied, not the
   flags that were requested** (#987). `Preprocessor.Transform` takes one of three branches in
@@ -29,40 +240,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Existing model files are unaffected and need no migration.** The flags that were wrong are
   exactly the ones the precedence ignores, so a pre-fix file selects the same branch and transforms
   identically — verified, and pinned by a regression test.
-
-### Changed
-- **Model files are now validated against the JSON schema.** The v1 schemas shipped with the
-  applications but were never parsed; `ValidateModel` ran a set of hand-written structural checks
-  instead. The schema graph is now compiled and enforced, both on `pca transform` and on the Desktop
-  export path. **Models GoPCA writes are unaffected** — every variant was checked (SVD, NIPALS,
-  kernel, robust, SNV, dropped missing values, and both PCR cases) and all validate. The change is
-  visible only for hand-edited or third-party-generated files, which may now be rejected where they
-  previously loaded, and the error names the failing path:
-
-  ```
-  $ pca transform hand_edited_model.json data.csv
-  Error: model validation failed: model does not match the schema:
-    metadata.analysis_id: Does not match pattern '^[0-9a-f]{8}-[0-9a-f]{4}-...'
-  ```
-
-  `analysis_id` has always been documented as a UUID and was simply never checked, so a file
-  carrying `"analysis_id": "model-2024-run-7"` used to load without complaint. This is enforcement
-  catching up with the documentation rather than a new restriction (#846)
-- **`regression.validation.folds` now records the folds actually built.** It previously echoed the
-  *configured* fold count, which is `0` for any design meaning "one fold per group" — so a
-  leave-one-out run reported `"folds": 0` regardless of sample count. A leave-one-out sweep over 441
-  labelled rows now reports `"folds": 441`. Anything reading this field to describe the validation
-  design was reading a configuration value that could not be interpreted without also knowing the
-  row count. `design` carries the human-readable form (`leave-one-row-out`) and was never affected
-  (#844)
-- **One-hot encoding in GoCSV keeps the source column.** It previously removed the column it
-  encoded, silently and unconditionally. The dialog now offers a **Keep original column** checkbox,
-  ticked by default. This matters beyond GoCSV: GoPCA colours scores plots by categorical columns,
-  so encoding `species` used to cost the ability to colour by it. For anyone using `pkg/transform`
-  directly the new option is `Options.RemoveOriginal`, spelled that way round so the zero value
-  keeps the column (#854, #855)
-
-### Fixed
 - **Exporting a partially labelled dataset no longer fails.** `PreservedColumns.NumericTarget` was a
   `map[string][]float64`, and `encoding/json` refuses to marshal a NaN under any circumstances. A
   `#target` column with an unmeasured value therefore aborted the entire export, on both
@@ -78,6 +255,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `testdata/bronir2` that is 414 nulls of 855 values. **Consumers parsing `numericTarget` into a
   plain float array will now encounter `null`**, which they never could before, because the file
   simply did not exist. The schema was updated to allow it (#839)
+- **A PCR model file carries its diagnostic limits.** `pca regress -o` exported `"diagnostics": {}`
+  while `pca analyze` filled all four limits for the same data; the computation was never called on
+  the regression path. Without them nothing downstream could say a prediction was an extrapolation
+  (#977)
+- **Sample, group and variable names are escaped before Plotly parses them as markup** (#999,
+  #1004). Plotly renders hover labels and on-plot text through an HTML subset, so `<LOD`, `>99.9`
+  and `R&D` were swallowed or mangled. Every hover and label site in every chart now escapes, and a
+  test builds all seven plot classes with hostile names to prove it
+- **`pca transform` no longer prints `RMSEP 0 on the 0 samples within the model's limits`** when no
+  sample is inside them; a root mean square over no samples is undefined, and the line now says so.
+  `-o` writes the results file whatever the console format, instead of creating an empty directory
+  (#1037, #1038)
+- **Numeric values in GoCSV sort as numbers.** A CSV has no types, every cell arrived as a string,
+  and sorting `Zn` descending put `7e-05` above `0.12`. Data columns no longer claim to be sortable
+  when their header cannot sort them (#963)
+- **A `#category` column is displayed as the labels it holds**, not as `3.0000`; a column of alloy
+  designations such as `6101` is no longer painted as a mixed measurement; columns derived from a
+  marked column no longer inherit its marker; the category menu entry has its icon; and the menu
+  says what *Number the Rows* gives you rather than what it does (#945, #950, #947, #927, #949)
+- **Moving row names into the table keeps them out of the analysis**, and samples are numbered from
+  one. A column of `1..n` moved into the table used to become a variable carrying 100% of the
+  variance (#942)
+- **The import applies the same row-name rule as the manual choice.** A first column that repeats —
+  a source title, a batch name — no longer becomes row names that cannot tell rows apart (#904)
+- **The Data Quality Report no longer tells users that PCA assumes normality**, no longer calls
+  correct data an outlier under a rule that was inverted and then twice wrong, and its row findings
+  can be reached in the grid (#929, #933, #931)
+- **The Parquet import no longer appends `#target` to string columns**, and the embedded sample
+  datasets are synchronised and verifiable; the iris tutorial dataset is generated from scikit-learn
+  (#918, #915, #917)
+- **A CSV with no numeric column opens in GoCSV** instead of being refused (#801)
+- **The data grid shows that it scrolls**, in both directions and in both applications; the
+  scrollbars were invisible (#961)
+- **Table-of-contents entries in the documentation viewer navigate to their section.** The heading
+  numbering mutated state during render, which React's StrictMode double render exposed in both
+  applications (#436)
+- **Temporal PCA refuses row-wise preprocessing instead of silently dropping it** (#889)
+- **The fold-count refusal names a remedy each interface accepts.** It used to advise `0` for
+  leave-one-out, which the CLI then refused; the CLI now says `--cv loo` and the desktop says
+  *Choose 5 folds, or "Leave one out"* (#973)
+- **The Tecator channels are labelled at an even 2 nm spacing**, so the Savitzky-Golay continuity
+  check no longer fires on a dataset whose spectra are evenly sampled (#986)
+
+### Security
+- **Every open Dependabot advisory is cleared, twice over.** The September batch of 23 (#758) was
+  resolved without a major bump, with four obsolete override pins retired and a security-only
+  Dependabot policy added (#1008). The October batch of 35 — fifteen in `excelize`, the rest across
+  `vite`, `undici`, `brace-expansion`, `katex`, `vitest` and others — is resolved in #1024;
+  `excelize` is pinned to a master commit carrying all fifteen fixes, since no tagged release does,
+  and `katex` to 0.18.10, the last release before a deprecated one
+- **The custom Plotly build removes the vulnerable `maplibre` code from both applications** (#898);
+  the override that claimed to patch it never reached the shipped artifact
+
+### Development
+- **Model files are validated against the schema on every load and export** (#846), the schema
+  copies are guarded against drift and untested packages fail the build (#835, #836)
+- **Kernel PCA and Temporal PCA are validated against scikit-learn and a reference generator**, and
+  the four gaps in the existing scikit-learn validation are closed (#845, #832)
+- **One entry point for frontend type-checking**, run by CI, that regenerates the bindings and
+  type-checks all three frontends, after a desktop build broke without anything noticing (#886, #885)
+- **Release tags point at a minimal anchor tree in the public repository**, and docs, schemas and
+  releases are published there from `main` (#992, #993)
 
 ## [1.7.0] - 2026-09-01
 
