@@ -29,8 +29,8 @@ import {
     DownloadAndInspectZip,
     LoadZipEntry,
     CancelZipImport
-} from '../../wailsjs/go/main/App';
-import { main } from '../../wailsjs/go/models';
+} from '../api/backend';
+import { main, required } from '../api/backend';
 
 type FileData = main.FileData;
 type URLPeekResult = main.URLPeekResult;
@@ -125,7 +125,7 @@ setPeekResult({
     const doLoadZipEntry = async (entryName: string) => {
         setIsImporting(true);
         try {
-            const data = await LoadZipEntry(entryName);
+            const data = required(await LoadZipEntry(entryName), 'LoadZipEntry');
             setZipEntries(null);
             setSelectedZipEntry(null);
             onDataLoaded(data);
@@ -148,7 +148,7 @@ setPeekResult({
             // ZIP path: download + inspect, then auto-import or show picker.
             setIsDownloading(true);
             try {
-                const result = await DownloadAndInspectZip(peekResult.url);
+                const result = required(await DownloadAndInspectZip(peekResult.url), 'DownloadAndInspectZip');
                 if (result.error) {
                     setPeekResult(prev => prev ? {
                         ...prev, accessible: false, error: result.error
@@ -174,7 +174,7 @@ setPeekResult({
             // Direct file path (CSV, Parquet, Excel, etc.)
             setIsDownloading(true);
             try {
-                const data = await LoadCSV(peekResult.url);
+                const data = required(await LoadCSV(peekResult.url), 'LoadCSV');
                 onDataLoaded(data);
                 resetState();
                 onClose();

@@ -23,7 +23,7 @@
 
 import React, { useMemo } from 'react';
 import { PlotlyBarChart } from '@gopca/ui-components';
-import { dataquality } from '../../wailsjs/go/models';
+import { dataquality } from '../api/backend';
 
 interface PlotlyDistributionChartProps {
     distribution: dataquality.DistributionInfo;

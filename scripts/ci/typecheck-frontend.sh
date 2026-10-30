@@ -59,35 +59,30 @@ if ! command -v node &> /dev/null; then
     exit 1
 fi
 
-# Locate the Wails CLI, following the same convention as build-desktop.sh.
-if ! command -v wails &> /dev/null; then
-    if [ -x "$(go env GOPATH)/bin/wails" ]; then
+# Locate the Wails v3 CLI, following the same convention as build-desktop.sh.
+if ! command -v wails3 &> /dev/null; then
+    if [ -x "$(go env GOPATH)/bin/wails3" ]; then
         export PATH="$PATH:$(go env GOPATH)/bin"
     else
         echo "ERROR: Wails CLI is not installed, and the frontends cannot be"
         echo "type-checked without the Go bindings it generates."
-        echo "Install with: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0"
+        echo "Install with: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' "$ROOT/go.mod" | awk '{print $2}')"
         exit 1
     fi
 fi
 
-# `wails generate module` runs `go build -tags bindings` on the app and executes
-# the result, and both main.go files carry `//go:embed all:frontend/dist`. That
-# directory is a build artifact absent from a fresh checkout, so the build fails
-# with "pattern all:frontend/dist: no matching files found" before it can emit
-# anything. An empty placeholder satisfies the embed -- the `all:` prefix makes
-# the dotfile a match -- and the bindings derive from the Go source, not from
-# that directory's contents. An existing dist is left alone.
+# `wails3 generate bindings` analyses the Go source statically; nothing is
+# compiled or run, so the `//go:embed all:frontend/dist` in each main.go is
+# never evaluated and no placeholder dist is needed (the v2 CLI built and ran
+# the app to discover bindings, which is why one used to be created here).
 #
-# Building the real dist here is not an option: `npm run build` is
-# `tsc && vite build`, and tsc is precisely what needs the bindings.
+# -ts without -i: class bindings keep Go slices typed as T[] the way v2 did;
+# interface mode types every slice `T[] | null` and the frontends are not
+# written for that. The Taskfiles pass the same flags, so what tsc checks here
+# is what the apps are built against.
 generate_bindings() {
     local app="$1"
-    if [ -z "$(ls -A "$ROOT/cmd/$app/frontend/dist" 2>/dev/null)" ]; then
-        mkdir -p "$ROOT/cmd/$app/frontend/dist"
-        touch "$ROOT/cmd/$app/frontend/dist/.gitkeep"
-    fi
-    (cd "$ROOT/cmd/$app" && wails generate module)
+    (cd "$ROOT/cmd/$app" && wails3 generate bindings -ts -d frontend/bindings)
 }
 
 # The apps import their types from the built shared package, not from its
@@ -97,7 +92,7 @@ generate_bindings() {
 echo "==> Building shared UI components"
 npm run build-ui
 
-# Both apps' frontend/wailsjs/ are gitignored and generated, so neither can go
+# Both apps' frontend/bindings/ are gitignored and generated, so neither can go
 # stale against the Go it describes.
 echo "==> Generating GoPCA Desktop Wails bindings"
 generate_bindings gopca-desktop

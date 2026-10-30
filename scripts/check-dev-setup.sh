@@ -70,10 +70,10 @@ else
 fi
 
 # Check if wails is installed (for GUI development)
-if command -v wails &> /dev/null || [ -f "$HOME/go/bin/wails" ]; then
-    echo -e "${GREEN}✓${NC} Wails installed (for GUI development)"
+if command -v wails3 &> /dev/null || [ -f "$HOME/go/bin/wails3" ]; then
+    echo -e "${GREEN}✓${NC} Wails v3 CLI (wails3) installed (for GUI development)"
 else
-    echo -e "${YELLOW}⚠${NC} Wails not installed (only needed for GUI development)"
+    echo -e "${YELLOW}⚠${NC} wails3 not installed (only needed for GUI development)"
 fi
 
 # Summary

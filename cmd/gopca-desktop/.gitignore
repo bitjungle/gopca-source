@@ -1,0 +1,4 @@
+# Wails v3 build system
+.task/
+*.syso
+build/linux/appimage/build/

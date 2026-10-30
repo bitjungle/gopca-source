@@ -23,7 +23,7 @@
 
 import { Dialog } from '@gopca/ui-components';
 import React from 'react';
-import { dataquality } from '../../wailsjs/go/models';
+import { dataquality } from '../api/backend';
 
 interface MissingValueSummaryProps {
     stats: dataquality.MissingValueStats | null;

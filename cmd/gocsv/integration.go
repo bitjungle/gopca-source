@@ -34,7 +34,6 @@ import (
 	"time"
 
 	"github.com/bitjungle/gopca/pkg/integration"
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // GoPCAStatus represents the installation status of GoPCA
@@ -207,6 +206,5 @@ func writeGoPCAExport(out io.Writer, data *FileData) error {
 // DownloadGoPCA opens the GoPCA download page in the default browser
 func (a *App) DownloadGoPCA() error {
 	url := "https://github.com/bitjungle/gopca/releases"
-	wailsruntime.BrowserOpenURL(a.ctx, url)
-	return nil
+	return a.openURL(url)
 }

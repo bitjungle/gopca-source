@@ -27,7 +27,7 @@ import { ColDef, GridReadyEvent, CellValueChangedEvent, GridApi, ColumnApi, Colu
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 import { useTheme, isCategoryColumn, isTargetColumn, isLabelColumn, compareCellValues } from '@gopca/ui-components';
-import { ExecuteDeleteRows, ExecuteDeleteColumns, ExecuteInsertRow, ExecuteInsertColumn, ExecuteToggleTargetColumn, ExecuteToggleCategoryColumn, ExecuteAddRowNumbers, ExecuteDuplicateRows, ExecuteSetRowNames, ExecuteMoveRowNamesIntoTable, CanUseAsRowNames, ExecuteReorderColumns } from '../../wailsjs/go/main/App';
+import { ExecuteDeleteRows, ExecuteDeleteColumns, ExecuteInsertRow, ExecuteInsertColumn, ExecuteToggleTargetColumn, ExecuteToggleCategoryColumn, ExecuteAddRowNumbers, ExecuteDuplicateRows, ExecuteSetRowNames, ExecuteMoveRowNamesIntoTable, CanUseAsRowNames, ExecuteReorderColumns } from '../api/backend';
 import { RenameDialog } from './RenameDialog';
 import { NumberRowsDialog } from './NumberRowsDialog';
 import { ConfirmDialog } from '@gopca/ui-components';

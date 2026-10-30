@@ -1,0 +1,117 @@
+version: '3'
+
+tasks:
+  go:mod:tidy:
+    summary: Runs `go mod tidy`
+    internal: true
+    # Universal/multi-arch builds invoke this concurrently from parallel deps;
+    # two `go mod tidy` processes racing on go.mod can corrupt it (#4637).
+    run: once
+    cmds:
+      - go mod tidy
+
+  install:frontend:deps:
+    summary: Checks the npm workspace is installed (run `npm ci` at the repository root)
+    run: once
+    preconditions:
+      - sh: test -d ../../node_modules
+        msg: "node_modules is missing. The frontends are npm workspaces: run `npm ci` in the repository root."
+
+  build:frontend:
+    label: build:frontend (DEV={{.DEV}} RUNNER={{.PACKAGE_MANAGER}})
+    summary: Build the frontend project
+    # darwin:build:universal runs its per-arch builds as parallel deps, each of
+    # which depends on this task. Without run:once the two executions race:
+    # one regenerates frontend/bindings (-clean deletes it first) while the
+    # other's bundler is reading it, failing intermittently with
+    # 'Could not resolve "./bindings/<pkg>"' (#4637).
+    run: once
+    dir: frontend
+    sources:
+      - "**/*"
+      - exclude: node_modules/**/*
+    generates:
+      - dist/**/*
+    deps:
+      - task: install:frontend:deps
+      - task: build:ui
+      - task: generate:bindings
+        vars:
+          BUILD_FLAGS:
+            ref: .BUILD_FLAGS
+          OBFUSCATED:
+            ref: .OBFUSCATED
+    cmds:
+      - task: frontend:run
+        vars:
+          SCRIPT: '{{if eq .DEV "true"}}build:dev{{else}}build{{end}}'
+    env:
+      PRODUCTION: '{{if eq .DEV "true"}}false{{else}}true{{end}}'
+
+  build:ui:
+    summary: Builds the shared @gopca/ui-components package the app imports
+    run: once
+    dir: ../..
+    sources:
+      - packages/ui-components/src/**/*
+      - packages/ui-components/package.json
+    generates:
+      - packages/ui-components/dist/**/*
+    cmds:
+      - npm run build-ui
+
+  frontend:run:
+    summary: Run a frontend script with selected runner
+    cmds:
+      - task: frontend:run:{{.PACKAGE_MANAGER}}
+        vars:
+          SCRIPT: "{{.SCRIPT}}"
+    vars:
+      SCRIPT: "{{.SCRIPT}}"
+
+  frontend:run:npm:
+    dir: frontend
+    cmds:
+      - npm run {{.SCRIPT}} -q
+    vars:
+      SCRIPT: "{{.SCRIPT}}"
+
+  generate:bindings:
+    summary: Generates bindings for the frontend
+    run: once
+    deps:
+      - task: go:mod:tidy
+    sources:
+      - "**/*.[jt]s"
+      - exclude: frontend/**/*
+      - frontend/bindings/**/*  # Rerun when switching between dev/production mode causes changes in output
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - frontend/bindings/**/*
+    cmds:
+      # -ts without -i: class bindings keep Go slices typed as T[] the way v2 did;
+      # interface mode types every slice `T[] | null` and the frontends are not
+      # written for that.
+      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true -ts
+
+  dev:frontend:
+    summary: Runs the frontend in development mode
+    deps:
+      - task: install:frontend:deps
+      - task: build:ui
+    cmds:
+      - task: frontend:dev:{{.PACKAGE_MANAGER}}
+
+  frontend:dev:npm:
+    dir: frontend
+    cmds:
+      - npm run dev -- --port {{.VITE_PORT}} --strictPort
+
+  update:build-assets:
+    summary: Updates the build assets
+    dir: build
+    cmds:
+      - wails3 update build-assets -name "{{.APP_NAME}}" -binaryname "{{.APP_NAME}}" -config config.yml -dir .
+

@@ -37,6 +37,11 @@ jobs:
           go-version: '1.26'
           cache: true
 
+      - name: Install Linux dependencies
+        # Wails v3's Linux webview is cgo against GTK4 and WebKitGTK 6.0; the
+        # linter type-checks the desktop apps and cannot without them.
+        run: ./scripts/ci/install-linux-deps.sh
+
       - name: Create frontend dist directories for Wails apps
         run: |
           mkdir -p cmd/gopca-desktop/frontend/dist

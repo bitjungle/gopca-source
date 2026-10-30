@@ -23,8 +23,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomSelect, Dialog } from '@gopca/ui-components';
-import { ExecuteFilterRows, PreviewFilter } from '../../wailsjs/go/main/App';
-import { main } from '../../wailsjs/go/models';
+import { ExecuteFilterRows, PreviewFilter } from '../api/backend';
+import { main, required } from '../api/backend';
 
 type FileData = main.FileData;
 
@@ -132,12 +132,12 @@ export const FilterRowsDialog: React.FC<FilterRowsDialogProps> = ({
     const handleApply = async () => {
         setIsApplying(true);
         try {
-            const updated = await ExecuteFilterRows(fileData, {
+            const updated = required(await ExecuteFilterRows(fileData, {
                 column,
                 operator,
                 value: needsValue ? value : '',
                 mode
-            } as main.FilterCondition);
+            } as main.FilterCondition), 'ExecuteFilterRows');
             onFilterComplete(updated);
             onClose();
         } catch (err) {

@@ -23,7 +23,7 @@
 
 import { toPng, toSvg } from 'html-to-image';
 import { saveAs } from 'file-saver';
-import { SaveFile } from '../../wailsjs/go/main/App';
+import { SaveFile, isWailsEnvironment } from '../api/backend';
 import type { ExportFormat } from '@gopca/ui-components';
 
 export const createChartExportHandler = (
@@ -69,7 +69,7 @@ export const createChartExportHandler = (
       });
     }
 
-    if (window.go && window.go.main && window.go.main.App && window.go.main.App.SaveFile) {
+    if (isWailsEnvironment()) {
       const fullFileName = `${fileName}.${format}`;
       await SaveFile(fullFileName, dataUrl);
     } else {

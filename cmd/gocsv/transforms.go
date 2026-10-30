@@ -28,7 +28,6 @@ import (
 
 	"github.com/bitjungle/gopca/pkg/transform"
 	"github.com/bitjungle/gopca/pkg/types"
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // TransformationType represents the type of transformation
@@ -99,9 +98,7 @@ func (a *App) ApplyTransformation(data *FileData, options TransformOptions) (*Tr
 	}
 	a.currentData = data // Store the current data
 	a.markDirty()
-	if a.ctx != nil {
-		wailsruntime.EventsEmit(a.ctx, "undo-redo-state-changed", a.GetUndoRedoState())
-	}
+	a.emit(eventUndoRedoStateChanged, a.GetUndoRedoState())
 
 	// Return the transformation result
 	return cmd.result, nil

@@ -33,7 +33,6 @@ import (
 	pkgcsv "github.com/bitjungle/gopca/pkg/csv"
 
 	"github.com/bitjungle/gopca/pkg/types"
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -477,7 +476,7 @@ func (a *App) importCSVWithOptions(filePath string, options ImportOptions) (*Fil
 	}
 
 	// Emit file loaded event
-	wailsruntime.EventsEmit(a.ctx, "file-loaded", filepath.Base(filePath))
+	a.emit(eventFileLoaded, filepath.Base(filePath))
 
 	// Clear command history for new file
 	a.ClearHistory()
@@ -602,7 +601,7 @@ func (a *App) importExcelWithOptions(filePath string, options ImportOptions) (*F
 	}
 
 	// Emit file loaded event
-	wailsruntime.EventsEmit(a.ctx, "file-loaded", filepath.Base(filePath))
+	a.emit(eventFileLoaded, filepath.Base(filePath))
 
 	// Clear command history for new file
 	a.ClearHistory()
@@ -612,29 +611,17 @@ func (a *App) importExcelWithOptions(filePath string, options ImportOptions) (*F
 
 // SelectFileForImport opens a file dialog and returns the selected file path
 func (a *App) SelectFileForImport() (string, error) {
-	dialogOptions := wailsruntime.OpenDialogOptions{
-		Title: "Select file to import",
-		Filters: []wailsruntime.FileFilter{
-			{
-				DisplayName: "All Supported Files",
-				Pattern:     "*.csv;*.tsv;*.xlsx;*.xls",
-			},
-			{
-				DisplayName: "CSV Files",
-				Pattern:     "*.csv",
-			},
-			{
-				DisplayName: "TSV Files",
-				Pattern:     "*.tsv",
-			},
-			{
-				DisplayName: "Excel Files",
-				Pattern:     "*.xlsx;*.xls",
-			},
-		},
+	if a.app == nil {
+		return "", errNoUI
 	}
 
-	filePath, err := wailsruntime.OpenFileDialog(a.ctx, dialogOptions)
+	filePath, err := a.app.Dialog.OpenFile().
+		SetTitle("Select file to import").
+		AddFilter("All Supported Files", "*.csv;*.tsv;*.xlsx;*.xls").
+		AddFilter("CSV Files", "*.csv").
+		AddFilter("TSV Files", "*.tsv").
+		AddFilter("Excel Files", "*.xlsx;*.xls").
+		PromptForSingleSelection()
 	if err != nil {
 		return "", err
 	}

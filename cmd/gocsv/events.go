@@ -21,16 +21,26 @@
 //
 // See LICENSE for the full license terms.
 
-declare global {
-  interface Window {
-    go?: {
-      main?: {
-        App?: {
-          SaveFile?: (fileName: string, dataUrl: string) => Promise<void>;
-        };
-      };
-    };
-  }
-}
+package main
 
-export {};
+import "github.com/wailsapp/wails/v3/pkg/application"
+
+// Names of the events GoCSV emits to its frontend. Registering them with a
+// payload type makes 'wails3 generate bindings' emit typed constants for the
+// frontend, so both ends share one definition and a renamed event fails the
+// type check instead of silently never arriving.
+const (
+	eventFileLoaded           = "file-loaded"
+	eventFileSaved            = "file-saved"
+	eventUnsavedStateChanged  = "unsaved-state-changed"
+	eventUndoRedoStateChanged = "undo-redo-state-changed"
+	eventFilesDropped         = "files-dropped"
+)
+
+func init() {
+	application.RegisterEvent[string](eventFileLoaded)
+	application.RegisterEvent[string](eventFileSaved)
+	application.RegisterEvent[bool](eventUnsavedStateChanged)
+	application.RegisterEvent[*UndoRedoState](eventUndoRedoStateChanged)
+	application.RegisterEvent[[]string](eventFilesDropped)
+}

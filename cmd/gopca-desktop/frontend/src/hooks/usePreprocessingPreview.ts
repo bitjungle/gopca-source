@@ -7,7 +7,7 @@
 // See LICENSE for the full license terms.
 
 import { useEffect, useMemo, useState } from 'react';
-import { PreprocessPreview } from '../../wailsjs/go/main/App';
+import { PreprocessPreview } from '../api/backend';
 import { FileData } from '../types';
 import { PCAConfigState } from './usePCAConfig';
 import { previewRowIndices, axisPositions } from '../utils/previewRows';

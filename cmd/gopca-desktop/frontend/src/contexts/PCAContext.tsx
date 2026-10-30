@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { ExportPCAModel } from '../../wailsjs/go/main/App';
+import { ExportPCAModel, main } from '../api/backend';
 import { asFractions } from '../utils/variancePercent';
 import { usePCAConfig, PCAConfigState } from '../hooks/usePCAConfig';
 import { useVariableAxis, VariableAxis } from '../hooks/useVariableAxis';
@@ -166,7 +166,7 @@ export const PCAProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!pcaResponse?.success || !pcaResponse.result || !fileData) return;
 
         try {
-            const { ExportPCAModelRequest } = await import('../../wailsjs/go/models').then(m => m.main);
+            const { ExportPCAModelRequest } = main;
             const request = new ExportPCAModelRequest({
                 data: fileData.data,
                 headers: fileData.headers,

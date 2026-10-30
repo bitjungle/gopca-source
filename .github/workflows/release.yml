@@ -149,15 +149,18 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
-    - name: Install Wails
-      # Pinned to the library version in go.mod. The CLI and the library are
-      # separate things and the CLI rewrites go.mod to match itself, so an
-      # unpinned CLI would build releases against a version nobody chose.
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
-    
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
+      # Before the CLI: the wails3 binary compiles the cgo application package,
+      # so installing it on Linux needs GTK4 and WebKitGTK 6.0 present.
       run: ./scripts/ci/install-linux-deps.sh
+    
+    - name: Install Wails CLI (version from go.mod)
+      # The CLI generates the frontend bindings and drives the build; pinning
+      # it to the library version in go.mod keeps the tool and the library from
+      # diverging silently (#531). bash so the grep works on the Windows runner.
+      shell: bash
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
     
     - name: Install all dependencies (monorepo)
       run: |
@@ -187,11 +190,21 @@ jobs:
       shell: bash
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        wails build -platform ${{ matrix.platform }} -ldflags "-s -w \
-          -X github.com/bitjungle/gopca/internal/version.Version=${VERSION} \
-          -X github.com/bitjungle/gopca/internal/version.GitCommit=$(git rev-parse --short HEAD) \
-          -X github.com/bitjungle/gopca/internal/version.BuildDate=$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")"
+        # The Taskfile compiles VERSION into internal/version (with the commit
+        # and build date read from the checkout); on macOS the package task
+        # also assembles the .app the signing steps below expect.
+        TASK=build; [ "${{ matrix.platform }}" = darwin ] && TASK=darwin:package
+        wails3 task "$TASK" VERSION="${VERSION}"
     
+    - name: Package GoPCA Desktop AppImage
+      if: matrix.os == 'ubuntu-latest'
+      # The AppImage bundles WebKitGTK and its helper processes, so a build made
+      # on this runner's GTK4/WebKitGTK 6.0 stack runs on distributions that do
+      # not ship it. linuxdeploy is itself an AppImage; EXTRACT_AND_RUN lets it
+      # run without FUSE on the hosted runner.
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        cd cmd/gopca-desktop && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
     - name: Sign GoPCA Desktop (macOS)
       if: matrix.os == 'macos-latest'
       env:
@@ -226,6 +239,7 @@ jobs:
           cmd/gopca-desktop/build/bin/GoPCA.app.tar.gz
           cmd/gopca-desktop/build/bin/GoPCA.exe
           cmd/gopca-desktop/build/bin/GoPCA
+          cmd/gopca-desktop/build/bin/*.AppImage
         retention-days: 1
 
   build-gocsv:
@@ -257,15 +271,18 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
-    - name: Install Wails
-      # Pinned to the library version in go.mod. The CLI and the library are
-      # separate things and the CLI rewrites go.mod to match itself, so an
-      # unpinned CLI would build releases against a version nobody chose.
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
-    
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
+      # Before the CLI: the wails3 binary compiles the cgo application package,
+      # so installing it on Linux needs GTK4 and WebKitGTK 6.0 present.
       run: ./scripts/ci/install-linux-deps.sh
+    
+    - name: Install Wails CLI (version from go.mod)
+      # The CLI generates the frontend bindings and drives the build; pinning
+      # it to the library version in go.mod keeps the tool and the library from
+      # diverging silently (#531). bash so the grep works on the Windows runner.
+      shell: bash
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
     
     - name: Install all dependencies (monorepo)
       run: |
@@ -295,11 +312,21 @@ jobs:
       shell: bash
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        wails build -platform ${{ matrix.platform }} -ldflags "-s -w \
-          -X github.com/bitjungle/gopca/internal/version.Version=${VERSION} \
-          -X github.com/bitjungle/gopca/internal/version.GitCommit=$(git rev-parse --short HEAD) \
-          -X github.com/bitjungle/gopca/internal/version.BuildDate=$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")"
+        # The Taskfile compiles VERSION into internal/version (with the commit
+        # and build date read from the checkout); on macOS the package task
+        # also assembles the .app the signing steps below expect.
+        TASK=build; [ "${{ matrix.platform }}" = darwin ] && TASK=darwin:package
+        wails3 task "$TASK" VERSION="${VERSION}"
     
+    - name: Package GoCSV Desktop AppImage
+      if: matrix.os == 'ubuntu-latest'
+      # The AppImage bundles WebKitGTK and its helper processes, so a build made
+      # on this runner's GTK4/WebKitGTK 6.0 stack runs on distributions that do
+      # not ship it. linuxdeploy is itself an AppImage; EXTRACT_AND_RUN lets it
+      # run without FUSE on the hosted runner.
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        cd cmd/gocsv && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
     - name: Sign GoCSV Desktop (macOS)
       if: matrix.os == 'macos-latest'
       env:
@@ -334,138 +361,8 @@ jobs:
           cmd/gocsv/build/bin/GoCSV.app.tar.gz
           cmd/gocsv/build/bin/GoCSV.exe
           cmd/gocsv/build/bin/GoCSV
+          cmd/gocsv/build/bin/*.AppImage
         retention-days: 1
-
-  build-appimages:
-    name: Build AppImages
-    runs-on: self-hosted
-    needs: [build-desktop, build-gocsv]
-    if: always() && !cancelled()
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Download GoPCA Desktop Linux binary
-      uses: actions/download-artifact@v4
-      with:
-        name: gopca-desktop-ubuntu-latest
-        path: gopca-desktop-ubuntu-latest
-    
-    - name: Download GoCSV Desktop Linux binary
-      uses: actions/download-artifact@v4
-      with:
-        name: gocsv-ubuntu-latest
-        path: gocsv-ubuntu-latest
-    
-    - name: Build AppImages
-      run: |
-        echo "Building AppImages on self-hosted runner with FUSE support..."
-        
-        # Download appimagetool
-        curl -L -o appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-        chmod +x appimagetool
-        
-        # Build GoPCA AppImage if binary exists
-        if [ -f "gopca-desktop-ubuntu-latest/GoPCA" ]; then
-          echo "Building GoPCA AppImage..."
-          # Prepare appdir structure
-          mkdir -p appdir-gopca/usr/bin
-          mkdir -p appdir-gopca/usr/share/icons/hicolor/256x256/apps
-          
-          # Copy files from repository
-          cp gopca-desktop-ubuntu-latest/GoPCA appdir-gopca/usr/bin/
-          chmod +x appdir-gopca/usr/bin/GoPCA
-          
-          # Create AppRun script
-          printf '#!/bin/bash\nHERE="$(dirname "$(readlink -f "${0}")")"\nexec "${HERE}/usr/bin/GoPCA" "$@"\n' > appdir-gopca/AppRun
-          chmod +x appdir-gopca/AppRun
-          
-          # Create desktop file using printf
-          printf '%s\n' \
-            '[Desktop Entry]' \
-            'Version=1.0' \
-            'Type=Application' \
-            'Name=GoPCA' \
-            'GenericName=PCA Analysis Tool' \
-            'Comment=Professional Principal Component Analysis Tool' \
-            'Exec=GoPCA %f' \
-            'Icon=gopca' \
-            'Terminal=false' \
-            'Categories=Science;Math;Education;DataVisualization;' \
-            'MimeType=text/csv;text/plain;' \
-            'StartupNotify=true' \
-            > appdir-gopca/gopca.desktop
-          
-          # Download icon from repository
-          curl -L -o appdir-gopca/gopca.png https://raw.githubusercontent.com/${{ github.repository }}/main/cmd/gopca-desktop/build/linux/icon-256.png
-          cp appdir-gopca/gopca.png appdir-gopca/usr/share/icons/hicolor/256x256/apps/
-          
-          # Build AppImage
-          ARCH=x86_64 ./appimagetool appdir-gopca GoPCA-x86_64.AppImage
-          echo "✓ GoPCA AppImage built successfully"
-        else
-          echo "⚠️ GoPCA binary not found, skipping AppImage build"
-        fi
-        
-        # Build GoCSV AppImage if binary exists
-        if [ -f "gocsv-ubuntu-latest/GoCSV" ]; then
-          echo "Building GoCSV AppImage..."
-          # Prepare appdir structure
-          mkdir -p appdir-gocsv/usr/bin
-          mkdir -p appdir-gocsv/usr/share/icons/hicolor/256x256/apps
-          
-          # Copy files from repository
-          cp gocsv-ubuntu-latest/GoCSV appdir-gocsv/usr/bin/
-          chmod +x appdir-gocsv/usr/bin/GoCSV
-          
-          # Create AppRun script
-          printf '#!/bin/bash\nHERE="$(dirname "$(readlink -f "${0}")")"\nexec "${HERE}/usr/bin/GoCSV" "$@"\n' > appdir-gocsv/AppRun
-          chmod +x appdir-gocsv/AppRun
-          
-          # Create desktop file using printf
-          printf '%s\n' \
-            '[Desktop Entry]' \
-            'Version=1.0' \
-            'Type=Application' \
-            'Name=GoCSV' \
-            'GenericName=CSV Editor' \
-            'Comment=Fast and Efficient CSV Data Editor' \
-            'Exec=GoCSV %f' \
-            'Icon=gocsv' \
-            'Terminal=false' \
-            'Categories=Office;Spreadsheet;Science;DataVisualization;' \
-            'MimeType=text/csv;text/plain;text/tab-separated-values;' \
-            'StartupNotify=true' \
-            > appdir-gocsv/gocsv.desktop
-          
-          # Download icon from repository
-          curl -L -o appdir-gocsv/gocsv.png https://raw.githubusercontent.com/${{ github.repository }}/main/cmd/gocsv/build/linux/icon-256.png
-          cp appdir-gocsv/gocsv.png appdir-gocsv/usr/share/icons/hicolor/256x256/apps/
-          
-          # Build AppImage
-          ARCH=x86_64 ./appimagetool appdir-gocsv GoCSV-x86_64.AppImage
-          echo "✓ GoCSV AppImage built successfully"
-        else
-          echo "⚠️ GoCSV binary not found, skipping AppImage build"
-        fi
-        
-        # List created AppImages
-        if ls *.AppImage 1> /dev/null 2>&1; then
-          echo "=== AppImages created ==="
-          ls -lh *.AppImage
-        else
-          echo "⚠️ No AppImages were created"
-        fi
-    
-    - name: Upload AppImage artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux-appimages
-        path: |
-          *.AppImage
-        retention-days: 1
-        if-no-files-found: ignore
 
   build-msix:
     name: Build Bundled MSIX Package
@@ -840,7 +737,7 @@ jobs:
   create-release:
     name: Create Release with Artifacts
     runs-on: ubuntu-latest
-    needs: [build-cli-binaries, build-desktop, build-gocsv, build-appimages, build-windows-installer, build-msix]
+    needs: [build-cli-binaries, build-desktop, build-gocsv, build-windows-installer, build-msix]
     if: always() && !cancelled()
     
     steps:
@@ -975,19 +872,16 @@ jobs:
         tar -czf ../gopca-linux-x64.tar.gz .
         cd ..
         
-        # Download AppImages from build-appimages job if available
-        if [ -d "linux-appimages" ]; then
-          echo "AppImages found from build-appimages job"
-          if ls linux-appimages/*.AppImage 1> /dev/null 2>&1; then
-            cp linux-appimages/*.AppImage .
-            echo "✓ AppImages copied from build artifacts"
-            ls -lh *.AppImage
+        # The AppImages are built in the Linux leg of each desktop job and travel
+        # with that job's artifact; they are published under their own names.
+        for app in gopca-desktop gocsv; do
+          if ls "$app-ubuntu-latest"/*.AppImage 1> /dev/null 2>&1; then
+            cp "$app-ubuntu-latest"/*.AppImage .
           else
-            echo "⚠️ No AppImages found in artifacts"
+            echo "⚠️ No AppImage in $app-ubuntu-latest artifacts"
           fi
-        else
-          echo "⚠️ No AppImages artifacts found (build may have been skipped or failed)"
-        fi
+        done
+        ls -lh *.AppImage 2>/dev/null || true
         
         # Move Windows installer to artifacts root if available
         if [ "${INSTALLER_AVAILABLE}" = "true" ]; then

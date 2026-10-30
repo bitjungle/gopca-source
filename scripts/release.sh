@@ -45,10 +45,10 @@ echo "✓ On main branch"
 echo -e "${YELLOW}Pulling latest changes...${NC}"
 git pull origin main
 
-# 3. Check that the version in wails.json files matches
+# 3. Check that the version in each app's build/config.yml matches
 VERSION_NO_V=${VERSION:1}
-WAILS_VERSION=$(grep '"productVersion"' cmd/gopca-desktop/wails.json | sed 's/.*"productVersion": "\(.*\)".*/\1/')
-GOCSV_VERSION=$(grep '"productVersion"' cmd/gocsv/wails.json | sed 's/.*"productVersion": "\(.*\)".*/\1/')
+WAILS_VERSION=$(grep '^  version:' cmd/gopca-desktop/build/config.yml | sed 's/.*version: "\(.*\)".*/\1/')
+GOCSV_VERSION=$(grep '^  version:' cmd/gocsv/build/config.yml | sed 's/.*version: "\(.*\)".*/\1/')
 
 if [ "$WAILS_VERSION" != "$VERSION_NO_V" ] || [ "$GOCSV_VERSION" != "$VERSION_NO_V" ]; then
     echo -e "${RED}Error: Version mismatch${NC}"
@@ -58,7 +58,7 @@ if [ "$WAILS_VERSION" != "$VERSION_NO_V" ] || [ "$GOCSV_VERSION" != "$VERSION_NO
     echo "Did you forget to merge the release PR?"
     exit 1
 fi
-echo "✓ Version in wails.json files matches"
+echo "✓ Version in build/config.yml files matches"
 
 # 4. Check if tag already exists
 if git rev-parse "$VERSION" >/dev/null 2>&1; then

@@ -70,7 +70,7 @@ jobs:
     - name: Set up Python for validation
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.12'
         
     - name: Cache Python dependencies
       uses: actions/cache@v4
@@ -150,6 +150,12 @@ jobs:
         # rather than for the two that happen to contain such a character today.
         PYTHONIOENCODING: utf-8
     
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      # Wails v3's Linux webview is cgo against GTK4 and WebKitGTK 6.0, and the
+      # test list compiles both desktop apps.
+      run: ./scripts/ci/install-linux-deps.sh
+
     - name: Run tests
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
@@ -272,13 +278,23 @@ jobs:
     # Both apps' frontend/wailsjs/ are gitignored and generated at build time,
     # so the type check below needs Go and the Wails CLI to produce the
     # declarations tsc resolves the `wailsjs` imports against.
+    - name: Install Linux dependencies
+      # `wails3 generate bindings` type-checks the packages in the import
+      # graph, and Wails v3's Linux webview is cgo against GTK4 and WebKitGTK
+      # 6.0, so even the static binding generator needs them installed.
+      run: ./scripts/ci/install-linux-deps.sh
+
     - name: Set up Go (for Wails binding generation)
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
 
-    - name: Install Wails CLI
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
+    - name: Install Wails CLI (version from go.mod)
+      # The CLI generates the frontend bindings and drives the build; pinning
+      # it to the library version in go.mod keeps the tool and the library from
+      # diverging silently (#531). bash so the grep works on the Windows runner.
+      shell: bash
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
 
     # Type-check every frontend.
     #
@@ -409,15 +425,18 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
-    - name: Install Wails
-      # Pinned to the library version in go.mod. The CLI and the library are
-      # separate things and the CLI rewrites go.mod to match itself, so an
-      # unpinned CLI would build releases against a version nobody chose.
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
-    
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
+      # Before the CLI: the wails3 binary compiles the cgo application package,
+      # so installing it on Linux needs GTK4 and WebKitGTK 6.0 present.
       run: ./scripts/ci/install-linux-deps.sh
+    
+    - name: Install Wails CLI (version from go.mod)
+      # The CLI generates the frontend bindings and drives the build; pinning
+      # it to the library version in go.mod keeps the tool and the library from
+      # diverging silently (#531). bash so the grep works on the Windows runner.
+      shell: bash
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
     
     - name: Install all dependencies (monorepo)
       run: |
@@ -432,6 +451,15 @@ jobs:
     - name: Build GoPCA Desktop
       run: PLATFORM=${{ matrix.platform }} ./scripts/ci/build-desktop.sh
       shell: bash
+    - name: Package GoPCA Desktop AppImage
+      if: matrix.os == 'ubuntu-latest'
+      # The AppImage bundles WebKitGTK and its helper processes, so a build made
+      # on this runner's GTK4/WebKitGTK 6.0 stack runs on distributions that do
+      # not ship it. linuxdeploy is itself an AppImage; EXTRACT_AND_RUN lets it
+      # run without FUSE on the hosted runner.
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        cd cmd/gopca-desktop && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
     
     - name: Sign GoPCA Desktop (macOS)
       if: matrix.os == 'macos-latest'
@@ -500,15 +528,18 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
-    - name: Install Wails
-      # Pinned to the library version in go.mod. The CLI and the library are
-      # separate things and the CLI rewrites go.mod to match itself, so an
-      # unpinned CLI would build releases against a version nobody chose.
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
-    
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
+      # Before the CLI: the wails3 binary compiles the cgo application package,
+      # so installing it on Linux needs GTK4 and WebKitGTK 6.0 present.
       run: ./scripts/ci/install-linux-deps.sh
+    
+    - name: Install Wails CLI (version from go.mod)
+      # The CLI generates the frontend bindings and drives the build; pinning
+      # it to the library version in go.mod keeps the tool and the library from
+      # diverging silently (#531). bash so the grep works on the Windows runner.
+      shell: bash
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
     
     - name: Install all dependencies (monorepo)
       run: |
@@ -523,6 +554,15 @@ jobs:
     - name: Build GoCSV Desktop
       run: PLATFORM=${{ matrix.platform }} APPNAME=gocsv ./scripts/ci/build-gocsv.sh
       shell: bash
+    - name: Package GoCSV Desktop AppImage
+      if: matrix.os == 'ubuntu-latest'
+      # The AppImage bundles WebKitGTK and its helper processes, so a build made
+      # on this runner's GTK4/WebKitGTK 6.0 stack runs on distributions that do
+      # not ship it. linuxdeploy is itself an AppImage; EXTRACT_AND_RUN lets it
+      # run without FUSE on the hosted runner.
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        cd cmd/gocsv && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
     
     - name: Sign GoCSV Desktop (macOS)
       if: matrix.os == 'macos-latest'

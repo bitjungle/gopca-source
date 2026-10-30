@@ -28,28 +28,28 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"strings"
 	"testing"
 )
 
-// A transformation type is declared in three places, none of which the compiler
-// checks against the others:
+// A transformation type is declared in three places, and only one pair of them
+// is checked by a compiler:
 //
 //	pkg/transform/types.go        the engine's Type constants
 //	cmd/gocsv/transforms.go       the Wails-facing TransformationType constants
-//	DataTransformDialog.tsx       the TypeScript union, plus the dialog's list
+//	DataTransformDialog.tsx       the dialog's list of offered transformations
 //
-// TypeScript notices a missing member only where the dialog compares against the
-// literal. The other direction is silent: add a transformation to the engine,
-// forget the TSX, and it builds, tests clean, and is simply unreachable -- a
-// capability the software has and never offers. That is the failure this test
-// exists for, so it is written to fail on a type present in Go and absent from
-// the frontend.
+// The dialog's TransformationType union is derived from the enum that
+// `wails3 generate bindings` emits from cmd/gocsv/transforms.go, so a dialog
+// entry naming a type the Wails layer does not declare fails `tsc`. The two
+// other directions are silent: add a transformation to the engine, forget the
+// Wails constant or the dialog entry, and it builds, tests clean, and is simply
+// unreachable -- a capability the software has and never offers. That is the
+// failure this test exists for, so it is written to fail on a type present in
+// the engine and absent from either of the other two.
 
 var (
 	goTypePattern    = regexp.MustCompile(`(?m)^\s*(\w+)\s+Type\s+=\s+"([a-z]+)"`)
 	gocsvTypePattern = regexp.MustCompile(`(?m)^\s*Transform\w+\s+TransformationType\s+=\s+"([a-z]+)"`)
-	tsUnionPattern   = regexp.MustCompile(`type TransformationType = ([^;]+);`)
 	tsEntryPattern   = regexp.MustCompile(`type:\s*'([a-z]+)'`)
 )
 
@@ -62,18 +62,6 @@ func TestTransformationTypesAgreeAcrossLayers(t *testing.T) {
 
 	dialogSource := readRepoFile(t, "frontend", "src", "components", "DataTransformDialog.tsx")
 
-	union := map[string]bool{}
-	unionMatch := tsUnionPattern.FindStringSubmatch(dialogSource)
-	if unionMatch == nil {
-		t.Fatal("could not find the TransformationType union in DataTransformDialog.tsx; " +
-			"this test is passing by not looking, check the pattern against the source")
-	}
-	for _, part := range strings.Split(unionMatch[1], "|") {
-		if value := strings.Trim(strings.TrimSpace(part), "'"); value != "" {
-			union[value] = true
-		}
-	}
-
 	// The union is a type. Being in it does not put a transformation in the
 	// dialog's list, which is what the user actually picks from.
 	offered := matchSet(t, "dialog transform entries", dialogSource, tsEntryPattern, 1)
@@ -82,10 +70,6 @@ func TestTransformationTypesAgreeAcrossLayers(t *testing.T) {
 		if !wails[name] {
 			t.Errorf("pkg/transform declares %q but cmd/gocsv/transforms.go has no "+
 				"TransformationType for it, so the Wails layer cannot name it", name)
-		}
-		if !union[name] {
-			t.Errorf("pkg/transform declares %q but the TransformationType union in "+
-				"DataTransformDialog.tsx omits it", name)
 		}
 		if !offered[name] {
 			t.Errorf("pkg/transform declares %q but no entry in DataTransformDialog.tsx "+

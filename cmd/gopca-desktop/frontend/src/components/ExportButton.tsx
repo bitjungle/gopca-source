@@ -24,7 +24,7 @@
 import React from 'react';
 import { toPng, toSvg } from 'html-to-image';
 import { saveAs } from 'file-saver';
-import { SaveFile } from '../../wailsjs/go/main/App';
+import { SaveFile, isWailsEnvironment } from '../api/backend';
 import { ExportButton as SharedExportButton, useTheme, type ExportConfig } from '@gopca/ui-components';
 
 interface ChartExportButtonProps {
@@ -63,7 +63,7 @@ export const ExportButton: React.FC<ChartExportButtonProps> = ({ chartRef, fileN
     });
 
     // Check if we're in Wails environment
-    if (window.go && window.go.main && window.go.main.App && window.go.main.App.SaveFile) {
+    if (isWailsEnvironment()) {
       // Use Wails backend for saving
       await SaveFile(`${fileName}.png`, dataUrl);
     } else {
@@ -82,7 +82,7 @@ export const ExportButton: React.FC<ChartExportButtonProps> = ({ chartRef, fileN
     });
 
     // Check if we're in Wails environment
-    if (window.go && window.go.main && window.go.main.App && window.go.main.App.SaveFile) {
+    if (isWailsEnvironment()) {
       // Use Wails backend for saving
       await SaveFile(`${fileName}.svg`, dataUrl);
     } else {

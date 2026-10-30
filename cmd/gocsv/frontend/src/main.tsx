@@ -23,6 +23,9 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+// Side-effect import: initialises the Wails runtime bridge before anything
+// that talks to Go runs.
+import '@wailsio/runtime';
 import './style.css';
 import '@gopca/ui-components/dist/ui-components.css';
 import App from './App';

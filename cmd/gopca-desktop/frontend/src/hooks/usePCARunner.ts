@@ -23,7 +23,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { asPercentages } from '../utils/variancePercent';
-import { RunPCA } from '../../wailsjs/go/main/App';
+import { RunPCA, fromWire } from '../api/backend';
 import { FileData, PCARequest, PCAResponse } from '../types';
 import { PCAConfigState } from './usePCAConfig';
 
@@ -87,7 +87,7 @@ export function usePCARunner(
                     (fileData.categoricalColumns && Object.keys(fileData.categoricalColumns).length > 0)
             };
 
-            const result = await RunPCA(request);
+            const result = fromWire<PCAResponse>(await RunPCA(request));
 
             if (result.success) {
                 // Fractions on the wire, percentages in the UI; see

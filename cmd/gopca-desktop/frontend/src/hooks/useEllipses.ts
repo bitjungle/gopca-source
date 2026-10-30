@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import { useState, useEffect, useRef } from 'react';
-import { CalculateEllipses } from '../../wailsjs/go/main/App';
+import { CalculateEllipses } from '../api/backend';
 import { EllipseParams } from '../types';
 
 interface UseEllipsesParams {
@@ -110,9 +110,11 @@ export function useEllipses({
           }
 
           if (response.success) {
-            setEllipses90(response.groupEllipses90);
-            setEllipses95(response.groupEllipses95);
-            setEllipses99(response.groupEllipses99);
+            // The generator types Go maps with optional values; Go never stores
+            // an absent value, so the narrower state type is accurate.
+            setEllipses90(response.groupEllipses90 as Record<string, EllipseParams>);
+            setEllipses95(response.groupEllipses95 as Record<string, EllipseParams>);
+            setEllipses99(response.groupEllipses99 as Record<string, EllipseParams>);
 
             // Check if any ellipses were actually calculated
             const hasAnyEllipses =

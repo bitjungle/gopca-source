@@ -7,7 +7,7 @@
 // See LICENSE for the full license terms.
 
 import { useEffect, useState } from 'react';
-import { AnalyzeVariableAxis } from '../../wailsjs/go/main/App';
+import { AnalyzeVariableAxis } from '../api/backend';
 import { FileData } from '../types';
 import { logger } from '../utils/logger';
 
