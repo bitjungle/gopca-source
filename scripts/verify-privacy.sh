@@ -41,11 +41,15 @@ echo "📋 Starting privacy audit..."
 echo ""
 
 # 1. Check for telemetry-related Go dependencies
+# The Segment analytics SDK is github.com/segmentio/analytics-go. A bare
+# "segment" also matched github.com/segmentio/asm and segmentio/encoding,
+# pure-Go SIMD and JSON libraries in Wails v3's module graph (#531); they
+# collect nothing, so the pattern names the SDK rather than the organisation.
 echo "1. Checking Go dependencies for telemetry..."
 cd "$PROJECT_ROOT"
-if go list -m all 2>/dev/null | grep -iE "telemetry|analytics|tracking|metrics|sentry|rollbar|datadog|newrelic|amplitude|mixpanel|segment" > /dev/null 2>&1; then
+if go list -m all 2>/dev/null | grep -iE "telemetry|analytics|tracking|metrics|sentry|rollbar|datadog|newrelic|amplitude|mixpanel|segmentio/analytics" > /dev/null 2>&1; then
     print_status 1 "Found potential telemetry-related Go dependencies:"
-    go list -m all | grep -iE "telemetry|analytics|tracking|metrics|sentry|rollbar|datadog|newrelic|amplitude|mixpanel|segment"
+    go list -m all | grep -iE "telemetry|analytics|tracking|metrics|sentry|rollbar|datadog|newrelic|amplitude|mixpanel|segmentio/analytics"
 else
     print_status 0 "No telemetry-related Go dependencies found"
 fi

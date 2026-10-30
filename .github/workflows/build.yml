@@ -150,6 +150,12 @@ jobs:
         # rather than for the two that happen to contain such a character today.
         PYTHONIOENCODING: utf-8
     
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      # Wails v3's Linux webview is cgo against GTK4 and WebKitGTK 6.0, and the
+      # test list compiles both desktop apps.
+      run: ./scripts/ci/install-linux-deps.sh
+
     - name: Run tests
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
