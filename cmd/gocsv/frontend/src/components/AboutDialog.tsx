@@ -23,7 +23,7 @@
 
 import React from 'react';
 import { AboutDialog as SharedAboutDialog } from '@gopca/ui-components';
-import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import { Browser } from '../api/backend';
 import logo from '../assets/images/GoCSV-logo-1024-transp.png';
 
 interface AboutDialogProps {
@@ -35,12 +35,12 @@ interface AboutDialogProps {
 export const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose, version }) => {
     const handleHomepageClick = (e: React.MouseEvent) => {
         e.preventDefault();
-        BrowserOpenURL('https://bitjungle.github.io/gopca/');
+        Browser.OpenURL('https://bitjungle.github.io/gopca/');
     };
 
     const handleLicenseClick = (e: React.MouseEvent) => {
         e.preventDefault();
-        BrowserOpenURL('https://github.com/bitjungle/gopca/blob/main/LICENSE');
+        Browser.OpenURL('https://github.com/bitjungle/gopca/blob/main/LICENSE');
     };
 
     return (

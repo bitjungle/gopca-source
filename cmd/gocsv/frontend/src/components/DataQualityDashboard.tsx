@@ -23,7 +23,7 @@
 
 import { Dialog } from '@gopca/ui-components';
 import React, { useState, useEffect } from 'react';
-import { dataquality } from '../../wailsjs/go/models';
+import { dataquality } from '../api/backend';
 import { PlotlyDistributionChart } from './PlotlyDistributionChart';
 // import { CorrelationMatrix } from './CorrelationMatrix'; // Removed: unused import
 import { QualityScoreCard } from './QualityScoreCard';
@@ -528,14 +528,14 @@ const ColumnDetailsModal: React.FC<ColumnDetailsModalProps> = ({ column, onClose
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {Object.entries(column.stats.categories)
-                                            .sort(([,a], [,b]) => b - a)
+                                        {Object.entries(column.stats.categories ?? {})
+                                            .sort(([,a], [,b]) => (b ?? 0) - (a ?? 0))
                                             .map(([value, count]) => (
                                                 <tr key={value} className="border-b border-gray-100 dark:border-gray-800">
                                                     <td className="py-1 text-gray-700 dark:text-gray-300">{value}</td>
                                                     <td className="py-1 text-right text-gray-700 dark:text-gray-300">{count}</td>
                                                     <td className="py-1 text-right text-gray-700 dark:text-gray-300">
-                                                        {((count / column.stats.count) * 100).toFixed(1)}%
+                                                        {(((count ?? 0) / column.stats.count) * 100).toFixed(1)}%
                                                     </td>
                                                 </tr>
                                             ))}

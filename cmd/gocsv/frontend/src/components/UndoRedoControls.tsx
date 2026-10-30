@@ -22,9 +22,9 @@
 // See LICENSE for the full license terms.
 
 import React, { useEffect, useState } from 'react';
-import { main } from '../../wailsjs/go/models';
-import { Undo, Redo, GetUndoRedoState } from '../../wailsjs/go/main/App';
-import { EventsOn } from '../../wailsjs/runtime/runtime';
+import { main } from '../api/backend';
+import { Undo, Redo, GetUndoRedoState } from '../api/backend';
+import { Events, events } from '../api/backend';
 
 interface UndoRedoControlsProps {
     className?: string;
@@ -41,7 +41,7 @@ export const UndoRedoControls: React.FC<UndoRedoControlsProps> = ({ className = 
         updateUndoRedoState();
 
         // Listen for state changes
-        const unsubscribe = EventsOn('undo-redo-state-changed', (state: main.UndoRedoState) => {
+        const unsubscribe = Events.On(events.UndoRedoStateChanged, ({ data: state }) => {
             setUndoRedoState(state);
         });
 

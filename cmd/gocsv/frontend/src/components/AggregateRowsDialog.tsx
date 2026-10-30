@@ -23,8 +23,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomSelect, Dialog } from '@gopca/ui-components';
-import { ExecuteAggregateRows, PreviewAggregate } from '../../wailsjs/go/main/App';
-import { main } from '../../wailsjs/go/models';
+import { ExecuteAggregateRows, PreviewAggregate } from '../api/backend';
+import { main, required } from '../api/backend';
 
 type FileData = main.FileData;
 
@@ -96,7 +96,7 @@ export const AggregateRowsDialog: React.FC<AggregateRowsDialogProps> = ({
     const handleApply = async () => {
         setIsApplying(true);
         try {
-            const updated = await ExecuteAggregateRows(fileData, { groupBy, func } as main.AggregateOptions);
+            const updated = required(await ExecuteAggregateRows(fileData, { groupBy, func } as main.AggregateOptions), 'ExecuteAggregateRows');
             onAggregateComplete(updated);
             onClose();
         } catch (err) {

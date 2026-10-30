@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import React, { useState } from 'react';
-import { main } from '../../wailsjs/go/models';
+import { main } from '../api/backend';
 
 type FilePreview = main.FilePreview;
 type ImportOptions = main.ImportOptions;

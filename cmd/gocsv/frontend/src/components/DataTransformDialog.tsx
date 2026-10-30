@@ -23,8 +23,8 @@
 
 import { Dialog } from '@gopca/ui-components';
 import React, { useState, useEffect } from 'react';
-import { ApplyTransformation, GetTransformableColumns, SuggestCategoryOrder } from '../../wailsjs/go/main/App';
-import { main } from '../../wailsjs/go/models';
+import { ApplyTransformation, GetTransformableColumns, SuggestCategoryOrder } from '../api/backend';
+import { main, required } from '../api/backend';
 import {
     summarizeTransformOutcome,
     transformOutcomeHeading,
@@ -41,10 +41,12 @@ interface DataTransformDialogProps {
     onTransformComplete: (data: FileData) => void;
 }
 
-// Mirrors the TransformationType constants in cmd/gocsv/transforms.go and the
-// Type constants in pkg/transform/types.go. All three are maintained by hand;
-// adding a transformation means adding it to each.
-type TransformationType = 'log' | 'sqrt' | 'square' | 'standardize' | 'minmax' | 'bin' | 'onehot' | 'ordinal' | 'split' | 'combine' | 'clr' | 'boxcox' | 'yeojohnson';
+// The string values of the generated TransformationType enum, which the
+// bindings derive from the constants in cmd/gocsv/transforms.go. Deriving the
+// union from the enum keeps the string literals below valid while leaving one
+// source of truth: adding a transformation in Go adds it here on regeneration.
+// pkg/transform/types.go still has to be updated by hand.
+type TransformationType = `${main.TransformationType}`;
 
 interface TransformationInfo {
     type: TransformationType;
@@ -304,7 +306,7 @@ export const DataTransformDialog: React.FC<DataTransformDialogProps> = ({
 
     const loadAvailableColumns = async () => {
         try {
-            const columns = await GetTransformableColumns(fileData, selectedTransform);
+            const columns = await GetTransformableColumns(fileData, selectedTransform as main.TransformationType);
             setAvailableColumns(columns);
             setSelectedColumns([]);
         } catch (err) {
@@ -373,7 +375,7 @@ export const DataTransformDialog: React.FC<DataTransformDialogProps> = ({
                         : undefined
             };
 
-            const transformResult = await ApplyTransformation(fileData, options);
+            const transformResult = required(await ApplyTransformation(fileData, options as main.TransformOptions), 'ApplyTransformation');
 
             if (transformResult.success && transformResult.data) {
                 setResult(transformResult);

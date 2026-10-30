@@ -27,8 +27,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import { main } from '../../wailsjs/go/models';
-import { LoadCSV, ClearHistory } from '../../wailsjs/go/main/App';
+import { main } from '../api/backend';
+import { LoadCSV, ClearHistory } from '../api/backend';
 import { handleAsync, useLoadingState } from '@gopca/ui-components';
 
 type FileData = main.FileData;

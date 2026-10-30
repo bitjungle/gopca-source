@@ -24,15 +24,19 @@
 package main
 
 import (
-	"context"
+	"errors"
 
 	"github.com/bitjungle/gopca/internal/version"
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// App struct
+// App is the Wails service behind GoCSV: its exported methods are the
+// frontend's API. It holds no runtime context; the Wails application is
+// attached after construction (see main.go), and every method that needs it
+// goes through the helpers below, which tolerate its absence so the struct
+// stays usable in headless tests.
 type App struct {
-	ctx               context.Context
+	app               *application.App
 	history           *CommandHistory
 	currentData       *FileData
 	hasUnsavedChanges bool
@@ -40,23 +44,10 @@ type App struct {
 	lastFailedLoad    string // path of the last file that failed to open, for import suggestions
 }
 
-func (a *App) logInfo(msg string) {
-	if a.ctx != nil {
-		wailsruntime.LogInfo(a.ctx, msg)
-	}
-}
-
-func (a *App) logWarning(msg string) {
-	if a.ctx != nil {
-		wailsruntime.LogWarning(a.ctx, msg)
-	}
-}
-
-func (a *App) logError(msg string) {
-	if a.ctx != nil {
-		wailsruntime.LogError(a.ctx, msg)
-	}
-}
+// errNoUI is returned by methods that need a window -- dialogs, the browser --
+// when no Wails application is attached. Only reachable outside the running
+// app, i.e. from tests; the frontend cannot call a service that has no window.
+var errNoUI = errors.New("no application window attached")
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -65,10 +56,44 @@ func NewApp() *App {
 	}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
-func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
+// attach connects the service to the running Wails application. Called once
+// from main after application.New, before any window exists.
+func (a *App) attach(app *application.App) {
+	a.app = app
+}
+
+// emit sends a custom event to the frontend. A no-op before attach, so
+// commands can run headless.
+func (a *App) emit(name string, data any) {
+	if a.app != nil {
+		a.app.Event.Emit(name, data)
+	}
+}
+
+// openURL opens url in the system browser.
+func (a *App) openURL(url string) error {
+	if a.app == nil {
+		return errNoUI
+	}
+	return a.app.Browser.OpenURL(url)
+}
+
+func (a *App) logInfo(msg string) {
+	if a.app != nil {
+		a.app.Logger.Info(msg)
+	}
+}
+
+func (a *App) logWarning(msg string) {
+	if a.app != nil {
+		a.app.Logger.Warn(msg)
+	}
+}
+
+func (a *App) logError(msg string) {
+	if a.app != nil {
+		a.app.Logger.Error(msg)
+	}
 }
 
 // markDirty marks the app as having unsaved changes and notifies the frontend.
@@ -76,9 +101,7 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) markDirty() {
 	if !a.hasUnsavedChanges {
 		a.hasUnsavedChanges = true
-		if a.ctx != nil {
-			wailsruntime.EventsEmit(a.ctx, "unsaved-state-changed", true)
-		}
+		a.emit(eventUnsavedStateChanged, true)
 	}
 }
 
@@ -87,9 +110,7 @@ func (a *App) markDirty() {
 func (a *App) markClean() {
 	if a.hasUnsavedChanges {
 		a.hasUnsavedChanges = false
-		if a.ctx != nil {
-			wailsruntime.EventsEmit(a.ctx, "unsaved-state-changed", false)
-		}
+		a.emit(eventUnsavedStateChanged, false)
 	}
 }
 

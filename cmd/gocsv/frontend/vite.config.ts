@@ -23,9 +23,17 @@
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import wails from '@wailsio/runtime/plugins/vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // wails3 dev starts Vite itself and expects it on this port (build/config.yml);
+  // strictPort makes a collision fail loudly instead of silently moving.
+  server: {
+    host: '127.0.0.1',
+    port: Number(process.env.WAILS_VITE_PORT) || 9245,
+    strictPort: true,
+  },
   // plotly.js/lib/* is CommonJS source, not a browserified dist: has-hover and
   // friends reference `global`, which exists in Node and in a browserify bundle
   // but not in a browser. Without this the app throws
@@ -55,5 +63,6 @@ export default defineConfig({
       'plotly.js/lib/scattergl',
     ],
   },
-  plugins: [react()]
+  // The wails plugin reloads the typed event bindings when they regenerate.
+  plugins: [react(), wails('./bindings')],
 });

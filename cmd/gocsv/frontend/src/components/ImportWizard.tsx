@@ -22,8 +22,8 @@
 // See LICENSE for the full license terms.
 
 import React, { useState, useEffect } from 'react';
-import { SelectFileForImport, GetFileInfo, PreviewFile, ImportFile } from '../../wailsjs/go/main/App';
-import { main } from '../../wailsjs/go/models';
+import { SelectFileForImport, GetFileInfo, PreviewFile, ImportFile } from '../api/backend';
+import { main, required } from '../api/backend';
 import { FileSelector, ProgressIndicator, Dialog } from '@gopca/ui-components';
 import { FormatOptions } from './FormatOptions';
 import { DataPreview } from './DataPreview';
@@ -94,7 +94,7 @@ export const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onI
         setIsLoading(true);
         setError(null);
         try {
-            const info = await GetFileInfo(filePath);
+            const info = required(await GetFileInfo(filePath), 'GetFileInfo');
             setSelectedFile(filePath);
             setFileInfo(info);
 
@@ -149,7 +149,7 @@ return;
                 setImportProgress(prev => Math.min(prev + 10, 90));
             }, 200);
 
-            const data = await ImportFile(selectedFile, importOptions);
+            const data = required(await ImportFile(selectedFile, importOptions), 'ImportFile');
 
             clearInterval(progressInterval);
             setImportProgress(100);

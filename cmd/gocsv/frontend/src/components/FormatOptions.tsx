@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import React from 'react';
-import { main } from '../../wailsjs/go/models';
+import { main } from '../api/backend';
 import { CustomSelect } from '@gopca/ui-components';
 
 type ImportFileInfo = main.ImportFileInfo;

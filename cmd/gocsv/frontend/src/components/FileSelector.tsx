@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import React, { useState, useCallback } from 'react';
-import { SelectFileForImport } from '../../wailsjs/go/main/App';
+import { SelectFileForImport } from '../api/backend';
 
 interface FileSelectorProps {
     onFileSelect: (filePath: string) => void;

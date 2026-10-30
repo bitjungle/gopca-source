@@ -25,8 +25,6 @@ package main
 
 import (
 	"fmt"
-
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // UndoRedoState represents the current state of undo/redo
@@ -54,9 +52,7 @@ func (a *App) Undo(data *FileData) (*FileData, error) {
 		return nil, err
 	}
 	a.markDirty()
-	if a.ctx != nil {
-		wailsruntime.EventsEmit(a.ctx, "undo-redo-state-changed", a.GetUndoRedoState())
-	}
+	a.emit(eventUndoRedoStateChanged, a.GetUndoRedoState())
 	return data, nil
 }
 
@@ -66,18 +62,14 @@ func (a *App) Redo(data *FileData) (*FileData, error) {
 		return nil, err
 	}
 	a.markDirty()
-	if a.ctx != nil {
-		wailsruntime.EventsEmit(a.ctx, "undo-redo-state-changed", a.GetUndoRedoState())
-	}
+	a.emit(eventUndoRedoStateChanged, a.GetUndoRedoState())
 	return data, nil
 }
 
 // ClearHistory clears the command history
 func (a *App) ClearHistory() {
 	a.history.Clear()
-	if a.ctx != nil {
-		wailsruntime.EventsEmit(a.ctx, "undo-redo-state-changed", a.GetUndoRedoState())
-	}
+	a.emit(eventUndoRedoStateChanged, a.GetUndoRedoState())
 }
 
 // Command Execution Methods
@@ -99,9 +91,7 @@ func (a *App) executeCommand(cmd Command, data *FileData, operation string) (*Fi
 	a.currentData = data // Store the current data
 	a.markDirty()
 
-	if a.ctx != nil {
-		wailsruntime.EventsEmit(a.ctx, "undo-redo-state-changed", a.GetUndoRedoState())
-	}
+	a.emit(eventUndoRedoStateChanged, a.GetUndoRedoState())
 	return data, nil
 }
 

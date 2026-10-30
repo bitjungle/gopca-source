@@ -25,6 +25,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/wailsapp/wails/v3/pkg/application"
 	"io"
 	"os"
 	"path/filepath"
@@ -36,7 +37,6 @@ import (
 	"github.com/bitjungle/gopca/pkg/integration"
 	"github.com/bitjungle/gopca/pkg/types"
 	parquet "github.com/parquet-go/parquet-go"
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -50,35 +50,18 @@ type ValidationResult struct {
 func (a *App) LoadCSV(filePath string) (*FileData, error) {
 	// If no filepath provided, show file dialog
 	if filePath == "" {
-		selection, err := wailsruntime.OpenFileDialog(a.ctx, wailsruntime.OpenDialogOptions{
-			Title: "Select CSV File",
-			Filters: []wailsruntime.FileFilter{
-				{
-					DisplayName: "Supported Files (*.csv,*.xlsx,*.xls,*.tsv,*.parquet)",
-					Pattern:     "*.csv;*.xlsx;*.xls;*.tsv;*.parquet",
-				},
-				{
-					DisplayName: "CSV Files (*.csv)",
-					Pattern:     "*.csv",
-				},
-				{
-					DisplayName: "Excel Files (*.xlsx,*.xls)",
-					Pattern:     "*.xlsx;*.xls",
-				},
-				{
-					DisplayName: "TSV Files (*.tsv)",
-					Pattern:     "*.tsv",
-				},
-				{
-					DisplayName: "Parquet Files (*.parquet)",
-					Pattern:     "*.parquet",
-				},
-				{
-					DisplayName: "All Files (*.*)",
-					Pattern:     "*.*",
-				},
-			},
-		})
+		if a.app == nil {
+			return nil, errNoUI
+		}
+		selection, err := a.app.Dialog.OpenFile().
+			SetTitle("Select CSV File").
+			AddFilter("Supported Files (*.csv,*.xlsx,*.xls,*.tsv,*.parquet)", "*.csv;*.xlsx;*.xls;*.tsv;*.parquet").
+			AddFilter("CSV Files (*.csv)", "*.csv").
+			AddFilter("Excel Files (*.xlsx,*.xls)", "*.xlsx;*.xls").
+			AddFilter("TSV Files (*.tsv)", "*.tsv").
+			AddFilter("Parquet Files (*.parquet)", "*.parquet").
+			AddFilter("All Files (*.*)", "*.*").
+			PromptForSingleSelection()
 		if err != nil {
 			return nil, fmt.Errorf("error showing file dialog: %w", err)
 		}
@@ -145,18 +128,14 @@ func (a *App) LoadCSV(filePath string) (*FileData, error) {
 	}
 
 	// Store the filename for display
-	if a.ctx != nil {
-		wailsruntime.EventsEmit(a.ctx, "file-loaded", filepath.Base(filePath))
-	}
+	a.emit(eventFileLoaded, filepath.Base(filePath))
 
 	// Store the current data reference for undo/redo operations
 	a.currentData = fileData
 	// Clear history when loading new file
 	a.history.Clear()
 	a.markClean()
-	if a.ctx != nil {
-		wailsruntime.EventsEmit(a.ctx, "undo-redo-state-changed", a.GetUndoRedoState())
-	}
+	a.emit(eventUndoRedoStateChanged, a.GetUndoRedoState())
 
 	return fileData, nil
 }
@@ -711,16 +690,16 @@ func (a *App) ValidateForGoPCA(data *FileData) *ValidationResult {
 // SaveCSV saves the data to a CSV file
 func (a *App) SaveCSV(data *FileData) (*ExportResult, error) {
 	// Show save dialog
-	selection, err := wailsruntime.SaveFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
-		Title:           "Save CSV File",
-		DefaultFilename: "exported_data.csv",
-		Filters: []wailsruntime.FileFilter{
-			{
-				DisplayName: "CSV Files (*.csv)",
-				Pattern:     "*.csv",
-			},
+	if a.app == nil {
+		return nil, errNoUI
+	}
+	selection, err := a.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
+		Title:    "Save CSV File",
+		Filename: "exported_data.csv",
+		Filters: []application.FileFilter{
+			{DisplayName: "CSV Files (*.csv)", Pattern: "*.csv"},
 		},
-	})
+	}).PromptForSingleSelection()
 	if err != nil {
 		return nil, fmt.Errorf("error showing save dialog: %w", err)
 	}
@@ -741,7 +720,7 @@ func (a *App) SaveCSV(data *FileData) (*ExportResult, error) {
 		return nil, fmt.Errorf("error writing CSV file: %w", closeErr)
 	}
 
-	wailsruntime.EventsEmit(a.ctx, "file-saved", filepath.Base(selection))
+	a.emit(eventFileSaved, filepath.Base(selection))
 	a.markClean()
 	return result, nil
 }
@@ -783,16 +762,16 @@ func writeCSVExport(w io.Writer, data *FileData) (*ExportResult, error) {
 // SaveExcel saves data to an Excel file
 func (a *App) SaveExcel(data *FileData) (*ExportResult, error) {
 	// Show save dialog
-	selection, err := wailsruntime.SaveFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
-		Title:           "Save Excel File",
-		DefaultFilename: "exported_data.xlsx",
-		Filters: []wailsruntime.FileFilter{
-			{
-				DisplayName: "Excel Files (*.xlsx)",
-				Pattern:     "*.xlsx",
-			},
+	if a.app == nil {
+		return nil, errNoUI
+	}
+	selection, err := a.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
+		Title:    "Save Excel File",
+		Filename: "exported_data.xlsx",
+		Filters: []application.FileFilter{
+			{DisplayName: "Excel Files (*.xlsx)", Pattern: "*.xlsx"},
 		},
-	})
+	}).PromptForSingleSelection()
 	if err != nil {
 		return nil, fmt.Errorf("error showing save dialog: %w", err)
 	}
@@ -811,7 +790,7 @@ func (a *App) SaveExcel(data *FileData) (*ExportResult, error) {
 		return nil, fmt.Errorf("failed to save Excel file: %w", err)
 	}
 
-	wailsruntime.EventsEmit(a.ctx, "file-saved", filepath.Base(selection))
+	a.emit(eventFileSaved, filepath.Base(selection))
 	a.markClean()
 	return result, nil
 }

@@ -27,9 +27,9 @@ import { CSVGrid, ValidationResults, MissingValueSummary, MissingValueDialog, Da
 import { ConfirmDialog, ErrorBoundary, ErrorAlert, ThemeProvider, ThemeToggle, HelpProvider, HelpDisplay, HelpWrapper, useHelp } from '@gopca/ui-components';
 import logo from './assets/images/GoCSV-logo-1024-transp.png';
 import helpContent from './help/help-content.json';
-import { LoadCSV, SuggestImportForFailedLoad, SaveCSV, SaveExcel, ValidateForGoPCA, AnalyzeMissingValues, FillMissingValues, AnalyzeDataQuality, CheckGoPCAStatus, OpenInGoPCA, DownloadGoPCA, ExecuteCellEdit, ExecuteHeaderEdit, ExecuteTranspose, TransposeWarnings, ClearHistory, GetVersion } from '../wailsjs/go/main/App';
-import { EventsOn, OnFileDrop, OnFileDropOff } from '../wailsjs/runtime/runtime';
-import { main, dataquality } from '../wailsjs/go/models';
+import { LoadCSV, SuggestImportForFailedLoad, SaveCSV, SaveExcel, ValidateForGoPCA, AnalyzeMissingValues, FillMissingValues, AnalyzeDataQuality, CheckGoPCAStatus, OpenInGoPCA, DownloadGoPCA, ExecuteCellEdit, ExecuteHeaderEdit, ExecuteTranspose, TransposeWarnings, ClearHistory, GetVersion } from './api/backend';
+import { Events, events } from './api/backend';
+import { main, dataquality } from './api/backend';
 
 type FileData = main.FileData;
 
@@ -96,11 +96,11 @@ function AppContent() {
 
     // Listen for file-loaded events from backend
     useEffect(() => {
-        const unsubscribe = EventsOn('file-loaded', (filename: string) => {
-            setFileName(filename);
+        const unsubscribe = Events.On(events.FileLoaded, (e) => {
+            setFileName(e.data);
         });
-        const unsubscribeUnsaved = EventsOn('unsaved-state-changed', (dirty: boolean) => {
-            setHasUnsavedChanges(dirty);
+        const unsubscribeUnsaved = Events.On(events.UnsavedStateChanged, (e) => {
+            setHasUnsavedChanges(e.data);
         });
 
         // Check GoPCA status on startup
@@ -113,8 +113,10 @@ function AppContent() {
             console.error('Failed to get version:', err);
         });
 
-        // Set up drag and drop listener
-        OnFileDrop(async (x: number, y: number, paths: string[]) => {
+        // Files dropped from the OS reach Go first (v3 delivers them to the
+        // window) and arrive here as the files-dropped event.
+        const unsubscribeDrop = Events.On(events.FilesDropped, async (e) => {
+            const paths = e.data ?? [];
             if (paths.length > 0) {
                 const filePath = paths[0];
                 // Only accept supported file types
@@ -128,12 +130,12 @@ function AppContent() {
                     setErrorMessage('Unsupported file type. Please drop a CSV, TSV, Excel, or Parquet file.');
                 }
             }
-        }, false);
+        });
 
         return () => {
             unsubscribe();
             unsubscribeUnsaved();
-            OnFileDropOff();
+            unsubscribeDrop();
         };
     }, []);
 
@@ -848,7 +850,9 @@ return;
                 onClose={() => setShowMissingValueDialog(false)}
                 onFill={handleFillMissingValues}
                 columns={fileData?.headers || []}
-                columnTypes={fileData?.columnTypes || {}}
+                // The generator types Go maps with optional values; Go never stores
+                // an absent value, so the narrower prop type is accurate.
+                columnTypes={(fileData?.columnTypes ?? {}) as Record<string, string>}
             />
 
             {/* Data Quality Report Dashboard */}
