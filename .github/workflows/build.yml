@@ -425,16 +425,18 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
+    - name: Install Linux dependencies
+      if: matrix.os == 'ubuntu-latest'
+      # Before the CLI: the wails3 binary compiles the cgo application package,
+      # so installing it on Linux needs GTK4 and WebKitGTK 6.0 present.
+      run: ./scripts/ci/install-linux-deps.sh
+    
     - name: Install Wails CLI (version from go.mod)
       # The CLI generates the frontend bindings and drives the build; pinning
       # it to the library version in go.mod keeps the tool and the library from
       # diverging silently (#531). bash so the grep works on the Windows runner.
       shell: bash
       run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
-    
-    - name: Install Linux dependencies
-      if: matrix.os == 'ubuntu-latest'
-      run: ./scripts/ci/install-linux-deps.sh
     
     - name: Install all dependencies (monorepo)
       run: |
@@ -526,16 +528,18 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
+    - name: Install Linux dependencies
+      if: matrix.os == 'ubuntu-latest'
+      # Before the CLI: the wails3 binary compiles the cgo application package,
+      # so installing it on Linux needs GTK4 and WebKitGTK 6.0 present.
+      run: ./scripts/ci/install-linux-deps.sh
+    
     - name: Install Wails CLI (version from go.mod)
       # The CLI generates the frontend bindings and drives the build; pinning
       # it to the library version in go.mod keeps the tool and the library from
       # diverging silently (#531). bash so the grep works on the Windows runner.
       shell: bash
       run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
-    
-    - name: Install Linux dependencies
-      if: matrix.os == 'ubuntu-latest'
-      run: ./scripts/ci/install-linux-deps.sh
     
     - name: Install all dependencies (monorepo)
       run: |
