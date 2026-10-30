@@ -452,6 +452,19 @@ export interface BoxDrawing {
     /** Outlier tails, present only where observations lie past a fence. */
     lowTail: boolean;
     highTail: boolean;
+    /**
+     * The box has no height: the quartiles coincide, so the middle half of the
+     * column is one value. Common in sparse data, where a variable is zero
+     * except in a few rows.
+     *
+     * The tails cannot be read the usual way here. With IQR = 0 both fences sit
+     * on the point mass, every other value is an outlier by Tukey's rule, and
+     * a tail drawn to the extreme spans the whole panel -- a mark that reads as
+     * "this variable varies enormously" for a column that is almost entirely
+     * one number (#1016). Callers draw such a column's tails as edge marks
+     * meaning "values exist beyond this box", not as a line.
+     */
+    pointMass: boolean;
 }
 
 export function boxFractions(stats: BoxStats): BoxDrawing | null {
@@ -463,7 +476,8 @@ export function boxFractions(stats: BoxStats): BoxDrawing | null {
         return {
             q1: 0.5, median: 0.5, q3: 0.5,
             lowerFence: 0.5, upperFence: 0.5,
-            lowTail: false, highTail: false
+            lowTail: false, highTail: false,
+            pointMass: false
         };
     }
     const at = (v: number) => (v - stats.min) / span;
@@ -474,6 +488,7 @@ export function boxFractions(stats: BoxStats): BoxDrawing | null {
         lowerFence: at(stats.lowerFence),
         upperFence: at(stats.upperFence),
         lowTail: stats.hasLowOutliers,
-        highTail: stats.hasHighOutliers
+        highTail: stats.hasHighOutliers,
+        pointMass: stats.q3 === stats.q1
     };
 }

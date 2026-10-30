@@ -341,6 +341,33 @@ describe('boxFractions', () => {
         expect(boxFractions(stats({ empty: true }))).toBeNull();
     });
 
+    // Issue #1016: a sparse column -- zero except in a few rows -- has IQR = 0,
+    // so both fences sit on the point mass and every other value is an
+    // outlier. Drawn as a tail that is the whole panel, which says "wide
+    // spread" about a column that is one number almost everywhere.
+    it('flags a collapsed box so the caller can draw its tails as marks', () => {
+        const f = boxFractions(stats({
+            min: 0, q1: 0, median: 0, q3: 0, max: 5,
+            lowerFence: 0, upperFence: 0,
+            hasHighOutliers: true
+        }))!;
+        expect(f.pointMass).toBe(true);
+        expect(f.highTail).toBe(true);
+        expect(f.lowTail).toBe(false);
+    });
+
+    it('does not flag a box with height, however small', () => {
+        const f = boxFractions(stats({
+            min: 0, q1: 1, median: 1, q3: 1.001, max: 100,
+            lowerFence: 0, upperFence: 2, hasHighOutliers: true
+        }))!;
+        expect(f.pointMass).toBe(false);
+    });
+
+    it('does not flag a constant column, which has no tails to draw', () => {
+        expect(boxFractions(stats({ min: 7, q1: 7, median: 7, q3: 7, max: 7 }))!.pointMass).toBe(false);
+    });
+
     // The regression this change exists for: whiskers drawn to min and max are
     // pinned at 0 and 1 for every column, so they can never differ.
     it('places whiskers at the fences, not at the extremes', () => {

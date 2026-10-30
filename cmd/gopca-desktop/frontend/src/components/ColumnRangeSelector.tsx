@@ -39,6 +39,11 @@ interface ColumnRangeSelectorProps {
 
 const VIEW_W = 1000;
 const VIEW_H = 120;
+/**
+ * Height of the edge mark drawn for a column whose box has collapsed to a
+ * point, in viewBox units. Short enough that it cannot be read as a span.
+ */
+const EDGE_MARK = 4;
 
 /**
  * Range selector for wide datasets.
@@ -145,6 +150,7 @@ export const ColumnRangeSelector: React.FC<ColumnRangeSelectorProps> = ({
 
         const whiskers: string[] = [];
         const tails: string[] = [];
+        const marks: string[] = [];
         const boxes: string[] = [];
         const medians: string[] = [];
         const stats = columnBoxStats(data, n);
@@ -159,8 +165,21 @@ export const ColumnRangeSelector: React.FC<ColumnRangeSelectorProps> = ({
             whiskers.push(`M${x},${yOf(f.lowerFence).toFixed(1)}V${yOf(f.upperFence).toFixed(1)}`);
             // The stretch from a fence out to the extreme exists only where there
             // are outliers, so its presence and length are the outlier signal.
-            if (f.lowTail) tails.push(`M${x},${yOf(0).toFixed(1)}V${yOf(f.lowerFence).toFixed(1)}`);
-            if (f.highTail) tails.push(`M${x},${yOf(f.upperFence).toFixed(1)}V${yOf(1).toFixed(1)}`);
+            //
+            // Not when the box has collapsed. With IQR = 0 every other value is
+            // an outlier and the tail runs the full height of the panel, which
+            // reads as a wide spread for a column that is one number in almost
+            // every row: on al_alloy fifteen of twenty-four elements drew the
+            // same full-height line (#1016). Such a column gets a short mark at
+            // the edge instead -- "values exist beyond this box" -- so the
+            // length of a tail stays something a reader can trust.
+            if (f.pointMass) {
+                if (f.lowTail) marks.push(`M${x},${yOf(0).toFixed(1)}V${(yOf(0) - EDGE_MARK).toFixed(1)}`);
+                if (f.highTail) marks.push(`M${x},${yOf(1).toFixed(1)}V${(yOf(1) + EDGE_MARK).toFixed(1)}`);
+            } else {
+                if (f.lowTail) tails.push(`M${x},${yOf(0).toFixed(1)}V${yOf(f.lowerFence).toFixed(1)}`);
+                if (f.highTail) tails.push(`M${x},${yOf(f.upperFence).toFixed(1)}V${yOf(1).toFixed(1)}`);
+            }
             // A box with zero height would vanish, so it is floored at a hairline
             // to keep a tightly packed column visible as a mark rather than a gap.
             const yTop = yOf(f.q3);
@@ -173,6 +192,7 @@ export const ColumnRangeSelector: React.FC<ColumnRangeSelectorProps> = ({
         return {
             whiskers: whiskers.join(''),
             tails: tails.join(''),
+            marks: marks.join(''),
             boxes: boxes.join(''),
             medians: medians.join('')
         };
@@ -385,6 +405,19 @@ export const ColumnRangeSelector: React.FC<ColumnRangeSelectorProps> = ({
                                 strokeDasharray="2 2"
                                 className="stroke-blue-400/50 dark:stroke-blue-400/40"
                                 strokeWidth={1}
+                            />
+                        )}
+                        {/* Edge marks for collapsed boxes: a column that is one
+                            value in the middle half and something else beyond.
+                            Solid and short, so they cannot be read as a span. */}
+                        {distribution.marks !== '' && (
+                            <path
+                                d={distribution.marks}
+                                fill="none"
+                                vectorEffect="non-scaling-stroke"
+                                className="stroke-blue-500 dark:stroke-blue-400"
+                                strokeWidth={1.5}
+                                data-testid="variable-profile-edge-marks"
                             />
                         )}
                         <path

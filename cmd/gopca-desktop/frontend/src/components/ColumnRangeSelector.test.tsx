@@ -185,3 +185,48 @@ describe('ColumnRangeSelector profile scale', () => {
         expect(container.querySelector('polyline')).toBeTruthy();
     });
 });
+
+describe('ColumnRangeSelector distribution tails (#1016)', () => {
+    // Column 0 is zero in every row but one; column 1 has an ordinary outlier
+    // past a box with height; column 2 is spread evenly.
+    const HEADERS3 = ['sparse', 'outlier', 'even'];
+    const DATA3 = Array.from({ length: 40 }, (_, r) => [
+        r === 7 ? 5 : 0,
+        r === 7 ? 100 : (r % 10),
+        r
+    ]);
+
+    const renderDistribution = () => {
+        render(<ColumnRangeSelector headers={HEADERS3} data={DATA3} excludedColumns={[]} onChange={() => {}} />);
+        fireEvent.click(screen.getByText('Distribution'));
+    };
+
+    const dashed = () => plot().querySelector('path[stroke-dasharray]') as SVGPathElement | null;
+    const marks = () => screen.queryByTestId('variable-profile-edge-marks') as SVGPathElement | null;
+    // A segment "M<x>,<y1>V<y2>" spans |y2 - y1| viewBox units.
+    const spansOf = (d: string) =>
+        [...d.matchAll(/M[\d.]+,([\d.]+)V([\d.]+)/g)].map(m => Math.abs(Number(m[2]) - Number(m[1])));
+
+    it('draws the sparse column as an edge mark, not a full-height tail', () => {
+        renderDistribution();
+        const tails = dashed();
+        // The ordinary outlier column keeps its dashed tail, and that tail is
+        // well short of the panel height, as a real outlier stretch is.
+        expect(tails).toBeTruthy();
+        const tailSpans = spansOf(tails!.getAttribute('d') || '');
+        expect(tailSpans).toHaveLength(1);
+        expect(Math.max(...tailSpans)).toBeLessThan(104);
+        // The sparse column gets one short mark instead.
+        const edge = marks();
+        expect(edge).toBeTruthy();
+        const markSpans = spansOf(edge!.getAttribute('d') || '');
+        expect(markSpans).toHaveLength(1);
+        expect(markSpans[0]).toBeLessThanOrEqual(4);
+    });
+
+    it('draws no marks when no column has collapsed', () => {
+        render(<ColumnRangeSelector headers={HEADERS} data={DATA} excludedColumns={[]} onChange={() => {}} />);
+        fireEvent.click(screen.getByText('Distribution'));
+        expect(marks()).toBeNull();
+    });
+});
