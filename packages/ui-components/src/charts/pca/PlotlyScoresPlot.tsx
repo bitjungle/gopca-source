@@ -183,7 +183,7 @@ export class PlotlyScoresPlot extends PlotlyVisualization<ScoresPlotData> {
       smartLabelIndices.forEach(i => {
         labelX.push(scores[i][pc1]);
         labelY.push(scores[i][pc2]);
-        labelText.push(sampleLabel(sampleNames, i));
+        labelText.push(escapeHoverText(sampleLabel(sampleNames, i)));
       });
 
       traces.push({
@@ -265,7 +265,7 @@ export class PlotlyScoresPlot extends PlotlyVisualization<ScoresPlotData> {
       const valueStr = value !== null && value !== undefined && !isNaN(value) && isFinite(value)
         ? value.toFixed(2)
         : 'Missing';
-      return `<b>${label}</b><br>Value: ${valueStr}<br>PC${pc1 + 1}: ${score[pc1].toFixed(2)}<br>PC${pc2 + 1}: ${score[pc2].toFixed(2)}`;
+      return `<b>${escapeHoverText(label)}</b><br>Value: ${valueStr}<br>PC${pc1 + 1}: ${score[pc1].toFixed(2)}<br>PC${pc2 + 1}: ${score[pc2].toFixed(2)}`;
     });
 
     // Check if we have any actual labels to display
@@ -311,7 +311,7 @@ export class PlotlyScoresPlot extends PlotlyVisualization<ScoresPlotData> {
       smartLabelIndices.forEach(i => {
         labelX.push(scores[i][pc1]);
         labelY.push(scores[i][pc2]);
-        labelText.push(sampleLabel(sampleNames, i));
+        labelText.push(escapeHoverText(sampleLabel(sampleNames, i)));
       });
 
       traces.push({

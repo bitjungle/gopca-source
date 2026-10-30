@@ -175,7 +175,7 @@ export class PlotlyBiplot {
           const valueStr = value !== null && value !== undefined && !isNaN(value) && isFinite(value)
             ? value.toFixed(2)
             : 'Missing';
-          return `<b>${label}</b><br>Value: ${valueStr}<br>PC${pcX + 1}: ${x.toFixed(2)}<br>PC${pcY + 1}: ${scoresY[i].toFixed(2)}`;
+          return `<b>${escapeHoverText(label)}</b><br>Value: ${valueStr}<br>PC${pcX + 1}: ${x.toFixed(2)}<br>PC${pcY + 1}: ${scoresY[i].toFixed(2)}`;
         });
 
         // Use WebGL for better performance with large datasets
@@ -285,7 +285,7 @@ export class PlotlyBiplot {
             size: getScaledMarkerSize(this.config.pointSize || 8, this.config.fontScale || 1.0),
             opacity: 0.7
           },
-          text: sampleNames,
+          text: sampleNames?.map(escapeHoverText),
           hovertemplate: '<b>%{text}</b><br>PC' + (pcX + 1) + ': %{x:.2f}<br>PC' +
                         (pcY + 1) + ': %{y:.2f}<extra></extra>'
         });
@@ -304,7 +304,7 @@ export class PlotlyBiplot {
           mode: 'text',
           x: selectedIndices.map(i => scoresX[i]),
           y: selectedIndices.map(i => scoresY[i]),
-          text: selectedIndices.map(i => sampleNames[i]),
+          text: selectedIndices.map(i => escapeHoverText(sampleNames[i])),
           textposition: 'top center',
           textfont: {
             size: Math.round(10 * (this.config.fontScale || 1.0)),
@@ -390,7 +390,7 @@ return;
           } as any,
           showlegend: false,
           hovertemplate: validVectors.map(v =>
-            `<b>${v?.name}</b><br>Loading X: %{x:.3f}<br>Loading Y: %{y:.3f}<extra></extra>`
+            `<b>${escapeHoverText(v?.name ?? '')}</b><br>Loading X: %{x:.3f}<br>Loading Y: %{y:.3f}<extra></extra>`
           )
         });
 
@@ -412,7 +412,7 @@ return { x: 0, y: 0 };
           mode: 'text',
           x: labelPositions.map(p => p.x),
           y: labelPositions.map(p => p.y),
-          text: validVectors.map(v => v?.name || ''),
+          text: validVectors.map(v => escapeHoverText(v?.name || '')),
           textposition: 'middle center',
           textfont: {
             size: Math.round(10 * (this.config.fontScale || 1.0)),

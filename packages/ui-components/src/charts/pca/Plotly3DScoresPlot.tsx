@@ -117,13 +117,13 @@ export class Plotly3DScoresPlot {
         const valueStr = value !== null && value !== undefined && !isNaN(value) && isFinite(value)
           ? value.toFixed(2)
           : 'Missing';
-        return `<b>${label}</b><br>Value: ${valueStr}<br>PC${pc1 + 1}: ${x.toFixed(2)}<br>PC${pc2 + 1}: ${scoresY[i].toFixed(2)}<br>PC${pc3 + 1}: ${scoresZ[i].toFixed(2)}`;
+        return `<b>${escapeHoverText(label)}</b><br>Value: ${valueStr}<br>PC${pc1 + 1}: ${x.toFixed(2)}<br>PC${pc2 + 1}: ${scoresY[i].toFixed(2)}<br>PC${pc3 + 1}: ${scoresZ[i].toFixed(2)}`;
       });
 
       // Prepare text labels if enabled (limit to maxLabels)
       const maxLabels = this.config.maxLabels || 10;
       const textLabels = this.config.showLabels && sampleNames && scoresX.length > 0
-        ? scoresX.map((_, i) => i < maxLabels ? (sampleNames[i] || '') : '')
+        ? scoresX.map((_, i) => i < maxLabels ? escapeHoverText(sampleNames[i] || '') : '')
         : undefined;
       const showText = !!textLabels;
 
@@ -181,7 +181,7 @@ export class Plotly3DScoresPlot {
         const maxLabelsPerGroup = Math.ceil((this.config.maxLabels || 10) / uniqueGroups.length);
         const groupSampleNames = groupIndices.map(i => sampleLabel(sampleNames, i));
         const textLabels = this.config.showLabels && sampleNames && groupSampleNames.length > 0
-          ? groupSampleNames.map((name, idx) => idx < maxLabelsPerGroup ? name : '')
+          ? groupSampleNames.map((name, idx) => idx < maxLabelsPerGroup ? escapeHoverText(name) : '')
           : undefined;
         const showText = !!textLabels;
 

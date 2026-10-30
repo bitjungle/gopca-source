@@ -27,6 +27,7 @@ import React, { useMemo } from 'react';
 import { Data, Layout } from 'plotly.js';
 import { getPlotlyTheme, mergeLayouts } from '../utils/plotlyTheme';
 import { formatThresholdValue } from '../utils/thresholdLabel';
+import { escapeHoverText } from '../utils/hoverText';
 import { PlotlyVisualizationConfig } from '../core/PlotlyVisualization';
 import { getExportMenuItems } from '../utils/plotlyExport';
 import { PLOT_CONFIG } from '../config/plotConfig';
@@ -135,7 +136,7 @@ export class PlotlyLoadingsPlot {
         mode: this.config.showMarkers ? 'lines+markers' : 'lines',
         x: xValues,
         y: componentLoadings,
-        text: sortedVariableNames,
+        text: sortedVariableNames.map(escapeHoverText),
         name: `PC${componentIndex + 1} Loadings`,
         line: {
           color: colors[0],
