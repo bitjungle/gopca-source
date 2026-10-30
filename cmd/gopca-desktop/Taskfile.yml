@@ -25,6 +25,8 @@ vars:
     -X github.com/bitjungle/gopca/internal/version.GitCommit={{.GIT_COMMIT}}
     -X github.com/bitjungle/gopca/internal/version.BuildDate={{.BUILD_DATE}}
   # The AppImage task reads our own .desktop file rather than generating one.
+  # Its Icon= key names the PNG appimagetool expects inside the AppDir.
+  DESKTOP_ICON_NAME: "gopca"
   DESKTOP_FILE_NAME: "gopca.desktop"
 
 includes:
