@@ -31,12 +31,12 @@ import (
 	"strconv"
 	"strings"
 
+	pkgcsv "github.com/bitjungle/gopca/pkg/csv"
 	"github.com/bitjungle/gopca/pkg/integration"
 	"github.com/bitjungle/gopca/pkg/types"
+	parquet "github.com/parquet-go/parquet-go"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/xuri/excelize/v2"
-	parquet "github.com/parquet-go/parquet-go"
-	pkgcsv "github.com/bitjungle/gopca/pkg/csv"
 )
 
 // ValidationResult represents the result of GoPCA validation
