@@ -46,7 +46,6 @@ export interface PlotlyVisualizationConfig {
   showDensity?: boolean;
   densityType?: 'contour' | 'heatmap' | 'kde';
   exportScale?: number;
-  maintainAspectRatio?: boolean;
   theme?: ThemeMode;
   fontScale?: number; // Scale factor for all font sizes (default: 1.0)
 }
@@ -83,7 +82,6 @@ export abstract class PlotlyVisualization<T = any> {
       showDensity: false,
       densityType: 'contour',
       exportScale: 2,
-      maintainAspectRatio: false,
       theme: 'light',
       ...config
     };

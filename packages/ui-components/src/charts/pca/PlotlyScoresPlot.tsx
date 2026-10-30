@@ -439,9 +439,7 @@ return;
         },
         zeroline: true,
         zerolinecolor: 'rgba(128, 128, 128, 0.5)',
-        gridcolor: 'rgba(128, 128, 128, 0.2)',
-        scaleanchor: this.config.maintainAspectRatio ? 'x' : undefined,
-        scaleratio: this.config.maintainAspectRatio ? 1 : undefined
+        gridcolor: 'rgba(128, 128, 128, 0.2)'
       },
       hovermode: 'closest',
       dragmode: this.config.enableLasso !== false ? 'lasso' : 'zoom',
