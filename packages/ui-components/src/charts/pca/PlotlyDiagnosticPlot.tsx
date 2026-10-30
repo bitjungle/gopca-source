@@ -33,6 +33,7 @@ import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { PlotlyVisualizationConfig } from '../core/PlotlyVisualization';
 import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
 import { escapeHoverText } from '../utils/hoverText';
+import { uniqueCategoryLevels } from '../utils/categoryOrder';
 
 export interface DiagnosticPlotData {
   mahalanobisDistances: number[];
@@ -149,7 +150,7 @@ export class PlotlyDiagnosticPlot {
 
     if (hasGroups && !isContinuous) {
       // Categorical grouping with shapes for outlier categories
-      const uniqueGroups = Array.from(new Set(groups));
+      const uniqueGroups = uniqueCategoryLevels(groups);
       const outlierCategories = [
         { type: 'regular', indices: regular, symbol: 'circle' },
         { type: 'goodLeverage', indices: goodLeverage, symbol: 'square' },

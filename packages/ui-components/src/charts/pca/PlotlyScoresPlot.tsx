@@ -38,6 +38,7 @@ import { optimizeTraceType, getOptimalConfig } from '../utils/plotlyPerformance'
 import { sampleLabel } from '../utils/sampleLabel';
 import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
 import { escapeHoverText } from '../utils/hoverText';
+import { uniqueCategoryLevels } from '../utils/categoryOrder';
 import { getExportMenuItems } from '../utils/plotlyExport';
 import { getScaledMarkerSize } from '../config/plotConfig';
 
@@ -114,7 +115,7 @@ export class PlotlyScoresPlot extends PlotlyVisualization<ScoresPlotData> {
     const effectiveGroups = groups && groups.length > 0 ? groups : scores.map(() => 'All Samples');
 
     // Get unique groups
-    const uniqueGroups = Array.from(new Set(effectiveGroups));
+    const uniqueGroups = uniqueCategoryLevels(effectiveGroups);
 
     // Calculate smart labels globally
     const allPoints: Point2D[] = scores.map(s => ({ x: s[pc1], y: s[pc2] }));
@@ -364,7 +365,7 @@ return null;
 
   private getDensityTraces(groups: string[], pc1: number, pc2: number): Data[] {
     const traces: Data[] = [];
-    const uniqueGroups = Array.from(new Set(groups));
+    const uniqueGroups = uniqueCategoryLevels(groups);
 
     uniqueGroups.forEach((group, groupIndex) => {
       const groupIndices = groups.map((g, i) => g === group ? i : -1).filter(i => i >= 0);

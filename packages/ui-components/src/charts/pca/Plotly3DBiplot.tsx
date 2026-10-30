@@ -33,6 +33,7 @@ import { getWatermarkDataUrlSync } from '../assets/watermark';
 import { sampleLabel } from '../utils/sampleLabel';
 import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
 import { escapeHoverText } from '../utils/hoverText';
+import { uniqueCategoryLevels } from '../utils/categoryOrder';
 
 export interface Biplot3DData {
   scores: number[][];  // [n_samples][n_components]
@@ -255,7 +256,7 @@ export class Plotly3DBiplot {
         });
       } else if (groups) {
         // Group by categories
-        const uniqueGroups = Array.from(new Set(groups));
+        const uniqueGroups = uniqueCategoryLevels(groups);
         uniqueGroups.forEach((group, groupIndex) => {
           const indices = groups.map((g, idx) => g === group ? idx : -1).filter(idx => idx >= 0);
 
@@ -455,7 +456,7 @@ export class Plotly3DBiplot {
 
   private getProjectionTraces(scoresX: number[], scoresY: number[], scoresZ: number[], groups?: string[]): Data[] {
     const projectionTraces: Data[] = [];
-    const uniqueGroups = groups ? Array.from(new Set(groups)) : ['All'];
+    const uniqueGroups = groups ? uniqueCategoryLevels(groups) : ['All'];
 
     uniqueGroups.forEach((group, groupIndex) => {
       let groupX: number[], groupY: number[], groupZ: number[];

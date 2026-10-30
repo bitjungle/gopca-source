@@ -40,6 +40,7 @@ import { optimizeTraceType } from '../utils/plotlyPerformance';
 import { sampleLabel } from '../utils/sampleLabel';
 import { paletteOverflowNote, truncateLegendLabel } from '../utils/legendLabels';
 import { escapeHoverText } from '../utils/hoverText';
+import { uniqueCategoryLevels } from '../utils/categoryOrder';
 
 export interface BiplotData {
   scores: number[][];  // [n_samples][n_components]
@@ -209,7 +210,7 @@ export class PlotlyBiplot {
         });
       } else if (groups) {
         // Group by categories
-        const uniqueGroups = Array.from(new Set(groups));
+        const uniqueGroups = uniqueCategoryLevels(groups);
         const palette = this.categoricalPalette();
         uniqueGroups.forEach((group, i) => {
           const indices = groups.map((g, idx) => g === group ? idx : -1).filter(idx => idx >= 0);

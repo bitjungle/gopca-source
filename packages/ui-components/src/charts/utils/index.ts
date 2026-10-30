@@ -46,6 +46,7 @@
 
 export * from './plotlyTheme';
 export * from './plotlyHelpers';
+export * from './categoryOrder';
 export * from './plotlyMath';
 export * from './plotlyPerformance';
 export * from './plotlyExport';
