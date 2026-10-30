@@ -35,7 +35,7 @@ type Scene = {
 };
 const sceneOf = (layout: Partial<Layout>) => layout.scene as Scene | undefined;
 
-// PC1 spread 10, PC2 spread 5, PC3 spread 1.
+// Twelve points at i - 5.5: PC1 spans 11, PC2 5.5, PC3 1.1 -- PC3 a tenth of PC1.
 const scores = Array.from({ length: 12 }, (_, i) => [i - 5.5, (i - 5.5) / 2, (i - 5.5) / 10]);
 const explainedVariance = [59.4, 22.1, 10.3];
 const groups = scores.map((_, i) => (i % 2 ? 'a' : 'b'));
