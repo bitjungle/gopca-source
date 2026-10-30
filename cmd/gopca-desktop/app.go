@@ -24,9 +24,9 @@
 package main
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/url"
@@ -45,16 +45,25 @@ import (
 	"github.com/bitjungle/gopca/pkg/integration"
 	"github.com/bitjungle/gopca/pkg/types"
 	"github.com/bitjungle/gopca/pkg/validation"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 	"gonum.org/v1/gonum/mat"
 )
 
-// App struct
+// App is the Wails service behind GoPCA Desktop: its exported methods are the
+// frontend's API. It holds no runtime context; the Wails application is
+// attached after construction (see main.go), and every method that needs it
+// goes through the helpers below, which tolerate its absence so the struct
+// stays usable in headless tests.
 type App struct {
-	ctx             context.Context
+	app             *application.App
 	fileToOpen      string
 	tutorialDataset string // non-empty when running as a tutorial window
 }
+
+// errNoUI is returned by methods that need a window -- dialogs, the browser --
+// when no Wails application is attached. Only reachable outside the running
+// app, i.e. from tests; the frontend cannot call a service that has no window.
+var errNoUI = errors.New("no application window attached")
 
 // NewApp creates a new App application struct
 func NewApp() *App {
@@ -67,24 +76,35 @@ func (a *App) SetFileToOpen(path string) {
 }
 
 // SetTutorialDataset marks this instance as a tutorial window for the given dataset.
-// Must be called before Wails starts (i.e. before wails.Run).
+// Must be called before the Wails application starts.
 func (a *App) SetTutorialDataset(dataset string) {
 	a.tutorialDataset = dataset
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
-func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
+// attach connects the service to the running Wails application. Called once
+// from main after application.New, before any window exists.
+func (a *App) attach(app *application.App) {
+	a.app = app
+}
 
-	// If a file was specified via --open, emit an event to load it
-	if a.fileToOpen != "" {
-		// Give the frontend a moment to set up event listeners
-		go func() {
-			time.Sleep(500 * time.Millisecond)
-			runtime.LogInfo(a.ctx, fmt.Sprintf("Emitting load-file-on-startup event with file: %s", a.fileToOpen))
-			runtime.EventsEmit(a.ctx, "load-file-on-startup", a.fileToOpen)
-		}()
+// emit sends a custom event to the frontend. A no-op before attach.
+func (a *App) emit(name string, data any) {
+	if a.app != nil {
+		a.app.Event.Emit(name, data)
+	}
+}
+
+// openURL opens url in the system browser.
+func (a *App) openURL(url string) error {
+	if a.app == nil {
+		return errNoUI
+	}
+	return a.app.Browser.OpenURL(url)
+}
+
+func (a *App) logInfo(msg string) {
+	if a.app != nil {
+		a.app.Logger.Info(msg)
 	}
 }
 
@@ -956,20 +976,16 @@ func contains(slice []int, val int) bool {
 // SaveFile handles saving exported plot data
 func (a *App) SaveFile(fileName string, dataURL string) error {
 	// Show save dialog
-	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		DefaultFilename: fileName,
-		Title:           "Save Plot",
-		Filters: []runtime.FileFilter{
-			{
-				DisplayName: "PNG Image",
-				Pattern:     "*.png",
-			},
-			{
-				DisplayName: "SVG Image",
-				Pattern:     "*.svg",
-			},
+	if a.app == nil {
+		return errNoUI
+	}
+	filePath, err := a.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
+		Title: "Save Plot",
+		Filters: []application.FileFilter{
+			{DisplayName: "PNG Image", Pattern: "*.png"},
+			{DisplayName: "SVG Image", Pattern: "*.svg"},
 		},
-	})
+	}).PromptForSingleSelection()
 
 	if err != nil {
 		return fmt.Errorf("failed to open save dialog: %v", err)
@@ -1197,21 +1213,15 @@ type FileSelectionResult struct {
 
 // SelectCSVFile opens a native file dialog for selecting CSV files and returns parsed data with file path
 func (a *App) SelectCSVFile() (*FileSelectionResult, error) {
-	dialogOptions := runtime.OpenDialogOptions{
-		Title: "Select CSV File",
-		Filters: []runtime.FileFilter{
-			{
-				DisplayName: "CSV Files",
-				Pattern:     "*.csv",
-			},
-			{
-				DisplayName: "All Files",
-				Pattern:     "*.*",
-			},
-		},
+	if a.app == nil {
+		return nil, errNoUI
 	}
 
-	filePath, err := runtime.OpenFileDialog(a.ctx, dialogOptions)
+	filePath, err := a.app.Dialog.OpenFile().
+		SetTitle("Select CSV File").
+		AddFilter("CSV Files", "*.csv").
+		AddFilter("All Files", "*.*").
+		PromptForSingleSelection()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file dialog: %w", err)
 	}
@@ -1513,16 +1523,16 @@ func (r ExportPCAModelRequest) toEngineConfig() types.PCAConfig {
 // ExportPCAModel exports the complete PCA model to a JSON file
 func (a *App) ExportPCAModel(request ExportPCAModelRequest) error {
 	// Show save dialog
-	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		DefaultFilename: "pca_model.json",
-		Title:           "Export PCA Model",
-		Filters: []runtime.FileFilter{
-			{
-				DisplayName: "JSON Files",
-				Pattern:     "*.json",
-			},
+	if a.app == nil {
+		return errNoUI
+	}
+	filePath, err := a.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
+		Title:    "Export PCA Model",
+		Filename: "pca_model.json",
+		Filters: []application.FileFilter{
+			{DisplayName: "JSON Files", Pattern: "*.json"},
 		},
-	})
+	}).PromptForSingleSelection()
 
 	if err != nil {
 		return fmt.Errorf("failed to open save dialog: %v", err)
@@ -1654,7 +1664,7 @@ func (a *App) OpenInGoCSV(data *FileData) error {
 		return fmt.Errorf("failed to launch GoCSV: %w", err)
 	}
 
-	runtime.LogInfo(a.ctx, fmt.Sprintf("Opened data in GoCSV: %s", tempFile))
+	a.logInfo(fmt.Sprintf("Opened data in GoCSV: %s", tempFile))
 	return nil
 }
 
@@ -1744,17 +1754,16 @@ func (a *App) LaunchGoCSV() error {
 	// Detach from the process
 	if err := cmd.Process.Release(); err != nil {
 		// Not critical, just log it
-		runtime.LogInfo(a.ctx, fmt.Sprintf("Process release warning: %v", err))
+		a.logInfo(fmt.Sprintf("Process release warning: %v", err))
 	}
 
-	runtime.LogInfo(a.ctx, "Launched GoCSV")
+	a.logInfo("Launched GoCSV")
 	return nil
 }
 
 // DownloadGoCSV opens the GoCSV download page in the default browser
 func (a *App) DownloadGoCSV() error {
-	runtime.BrowserOpenURL(a.ctx, "https://github.com/bitjungle/gopca/releases")
-	return nil
+	return a.openURL("https://github.com/bitjungle/gopca/releases")
 }
 
 // AppMode describes the operating mode of the current window.
@@ -1796,9 +1805,9 @@ func (a *App) OpenTutorial(dataset string) error {
 
 	// Detach: the tutorial window is independent of the main app.
 	if err := cmd.Process.Release(); err != nil {
-		runtime.LogInfo(a.ctx, fmt.Sprintf("tutorial process release warning: %v", err))
+		a.logInfo(fmt.Sprintf("tutorial process release warning: %v", err))
 	}
 
-	runtime.LogInfo(a.ctx, fmt.Sprintf("Opened tutorial window for dataset: %s", dataset))
+	a.logInfo(fmt.Sprintf("Opened tutorial window for dataset: %s", dataset))
 	return nil
 }

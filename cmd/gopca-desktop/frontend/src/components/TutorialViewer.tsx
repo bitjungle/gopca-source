@@ -23,7 +23,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { MarkdownRenderer } from '@gopca/ui-components';
-import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import { Browser } from '../api/backend';
 
 /**
  * Maps a dataset name to the public path of its tutorial markdown file.
@@ -123,7 +123,7 @@ export const TutorialViewer: React.FC<TutorialViewerProps> = ({ dataset }) => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 overflow-auto">
       <div className="max-w-3xl mx-auto px-8 py-10">
-        <MarkdownRenderer content={content} onExternalLink={BrowserOpenURL} />
+        <MarkdownRenderer content={content} onExternalLink={Browser.OpenURL} />
       </div>
     </div>
   );

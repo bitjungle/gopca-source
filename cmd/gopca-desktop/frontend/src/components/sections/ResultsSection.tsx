@@ -34,7 +34,7 @@ import { getQualitativePalette } from '../../utils/colorPalettes';
 import { paletteOverflow } from '../../utils/paletteOverflow';
 import { analyzedMatrix } from '../../utils/analyzedMatrix';
 import { PlotType } from '../../hooks/useVisualization';
-import { config as wailsConfig } from '../../../wailsjs/go/models';
+import { config as wailsConfig } from '../../api/backend';
 import { logger } from '../../utils/logger';
 
 // Lazy-loaded plot components

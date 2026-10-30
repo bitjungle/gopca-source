@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import { useState, useCallback } from 'react';
-import { LoadDatasetFile, SelectCSVFile, ReloadCSVFile } from '../../wailsjs/go/main/App';
+import { LoadDatasetFile, SelectCSVFile, ReloadCSVFile, required, fromWire } from '../api/backend';
 import { FileData } from '../types';
 import { logger } from '../utils/logger';
 import { describeError } from '../utils/describeError';
@@ -70,7 +70,7 @@ export function useFileData(): FileDataResult {
         setFileError(null);
 
         try {
-            const result = await LoadDatasetFile(filename);
+            const result = fromWire<FileData>(required(await LoadDatasetFile(filename), 'LoadDatasetFile'));
             setFileData(result);
             setFileName(filename);
             setFilePath('');
@@ -103,11 +103,12 @@ export function useFileData(): FileDataResult {
                 throw new Error('No data returned from file selection');
             }
 
+            const fileData = fromWire<FileData>(data);
             setFileName('Selected File');
             setFilePath(selectedFilePath);
-            setFileData(data);
+            setFileData(fileData);
             bumpDatasetId();
-            return data;
+            return fileData;
         } catch (err) {
             logger.error('File selection failed:', err);
             setFileError(`Failed to load file: ${describeError(err)}`);
@@ -143,10 +144,7 @@ export function useFileData(): FileDataResult {
             setLoading(true);
             setFileError(null);
             try {
-                const data = await ReloadCSVFile(filePath, firstColumnIsData);
-                if (!data) {
-                    throw new Error('No data returned when re-reading the file');
-                }
+                const data = fromWire<FileData>(required(await ReloadCSVFile(filePath, firstColumnIsData), 'ReloadCSVFile'));
                 setFileData(data);
                 bumpDatasetId();
                 return data;

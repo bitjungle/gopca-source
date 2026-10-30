@@ -44,7 +44,7 @@ import { AnalysisModeToggle } from './components/AnalysisModeToggle';
 import { PCRProvider, usePCRContext, AnalysisMode } from './contexts/PCRContext';
 import { logger } from './utils/logger';
 import { FileData } from './types';
-import { GetAppMode } from '../wailsjs/go/main/App';
+import { GetAppMode } from './api/backend';
 
 /**
  * AppContent is the layout shell. It:

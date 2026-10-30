@@ -22,7 +22,7 @@
 // See LICENSE for the full license terms.
 
 import { useState, useCallback } from 'react';
-import { CheckGoCSVStatus, OpenInGoCSV, LaunchGoCSV, DownloadGoCSV } from '../../wailsjs/go/main/App';
+import { CheckGoCSVStatus, OpenInGoCSV, LaunchGoCSV, DownloadGoCSV, required } from '../api/backend';
 import { FileData } from '../types';
 import { logger } from '../utils/logger';
 
@@ -54,7 +54,7 @@ export function useGoCSVIntegration(): GoCSVIntegrationResult {
         setIsCheckingGoCSV(true);
 
         try {
-            const status = await CheckGoCSVStatus();
+            const status = required(await CheckGoCSVStatus(), 'CheckGoCSVStatus');
             setGoCSVStatus(status);
 
             if (status.installed) {

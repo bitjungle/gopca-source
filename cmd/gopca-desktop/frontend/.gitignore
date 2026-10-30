@@ -11,7 +11,7 @@ dist/
 # aliases every Wails import to. Those mocks were silently absent from the
 # repository for as long as this pattern was unanchored, which nothing noticed
 # while the frontend tests ran only on developer machines.
-/wailsjs/
+/bindings/
 
 # Logs
 *.log

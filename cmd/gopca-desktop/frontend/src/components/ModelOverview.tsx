@@ -23,7 +23,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { PCAResult } from '../types';
-import { CalculateModelMetrics } from '../../wailsjs/go/main/App';
+import { CalculateModelMetrics } from '../api/backend';
 import { HelpWrapper } from '@gopca/ui-components';
 
 interface ModelOverviewProps {

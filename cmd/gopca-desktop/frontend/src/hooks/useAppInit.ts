@@ -22,10 +22,10 @@
 // See LICENSE for the full license terms.
 
 import { useState, useEffect, useRef } from 'react';
-import { GetVersion, GetGUIConfig, SaveFile, CheckGoCSVStatus, LoadCSVFile } from '../../wailsjs/go/main/App';
-import { EventsOn } from '../../wailsjs/runtime/runtime';
+import { GetVersion, GetGUIConfig, SaveFile, CheckGoCSVStatus, LoadCSVFile, required, fromWire } from '../api/backend';
+import { Events, events } from '../api/backend';
 import { setupPlotlyWailsIntegration } from '@gopca/ui-components';
-import { config } from '../../wailsjs/go/models';
+import { config } from '../api/backend';
 import { FileData } from '../types';
 import { logger } from '../utils/logger';
 
@@ -74,9 +74,9 @@ export function useAppInit(
         );
 
         // A file path may be passed when the app is opened via file association
-        const unsubscribe = EventsOn('load-file-on-startup', async (filePath: string) => {
+        const unsubscribe = Events.On(events.LoadFileOnStartup, async (e) => {
             try {
-                const result = await LoadCSVFile(filePath);
+                const result = fromWire<FileData>(required(await LoadCSVFile(e.data), 'LoadCSVFile'));
                 onStartupFileRef.current(result);
             } catch (err) {
                 logger.error('Failed to load startup file:', err);

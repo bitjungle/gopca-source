@@ -29,7 +29,7 @@ import { useFileDataContext } from '../../contexts/FileDataContext';
 import { usePCAContext } from '../../contexts/PCAContext';
 import { useGoCSVContext } from '../../contexts/GoCSVContext';
 import { logger } from '../../utils/logger';
-import { OpenTutorial } from '../../../wailsjs/go/main/App';
+import { OpenTutorial } from '../../api/backend';
 
 /**
  * Step 1: Load Data — file picker, GoCSV button, matrix illustration, sample

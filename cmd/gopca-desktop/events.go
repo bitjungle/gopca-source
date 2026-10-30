@@ -21,16 +21,20 @@
 //
 // See LICENSE for the full license terms.
 
-declare global {
-  interface Window {
-    go?: {
-      main?: {
-        App?: {
-          SaveFile?: (fileName: string, dataUrl: string) => Promise<void>;
-        };
-      };
-    };
-  }
-}
+package main
 
-export {};
+import "github.com/wailsapp/wails/v3/pkg/application"
+
+// Names of the events GoPCA Desktop emits to its frontend. Registering them
+// with a payload type makes 'wails3 generate bindings' emit typed constants for
+// the frontend, so both ends share one definition and a renamed event fails
+// the type check instead of silently never arriving.
+const (
+	// eventLoadFileOnStartup carries the path given with --open, once the
+	// frontend runtime is ready to receive it.
+	eventLoadFileOnStartup = "load-file-on-startup"
+)
+
+func init() {
+	application.RegisterEvent[string](eventLoadFileOnStartup)
+}

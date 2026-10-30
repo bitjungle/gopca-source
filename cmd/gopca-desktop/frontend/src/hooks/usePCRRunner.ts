@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: See LICENSE file for details.
 
 import { useCallback, useRef, useState } from 'react';
-import { RunPCR } from '../../wailsjs/go/main/App';
-import { main } from '../../wailsjs/go/models';
+import { RunPCR } from '../api/backend';
+import { main } from '../api/backend';
 import { PCRConfigState } from './usePCRConfig';
 import { FileData } from '../types';
 
