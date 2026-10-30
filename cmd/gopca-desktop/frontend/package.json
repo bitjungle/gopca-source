@@ -13,7 +13,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:dev": "tsc && vite build --minify false --mode development"
   },
   "dependencies": {
     "@gopca/ui-components": "file:../../../packages/ui-components",
@@ -21,6 +22,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.12",
     "@types/plotly.js": "^3.0.10",
+    "@wailsio/runtime": "3.0.0",
     "file-saver": "^2.0.5",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.539.0",

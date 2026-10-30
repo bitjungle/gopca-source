@@ -29,7 +29,7 @@ if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     exit 1
 fi
 
-# Get version without 'v' prefix for wails.json
+# Get version without 'v' prefix for build/config.yml
 VERSION_NO_V=${VERSION:1}
 
 echo -e "${GREEN}Preparing release for version ${VERSION}${NC}"
@@ -74,20 +74,24 @@ RELEASE_BRANCH="release-${VERSION}"
 echo -e "${YELLOW}Creating release branch: ${RELEASE_BRANCH}${NC}"
 git checkout -b "$RELEASE_BRANCH"
 
-# 6. Update version in wails.json files
-echo -e "${YELLOW}Updating version to ${VERSION_NO_V} in wails.json files${NC}"
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
-    sed -i '' "s/\"productVersion\": \".*\"/\"productVersion\": \"${VERSION_NO_V}\"/" cmd/gopca-desktop/wails.json
-    sed -i '' "s/\"productVersion\": \".*\"/\"productVersion\": \"${VERSION_NO_V}\"/" cmd/gocsv/wails.json
-else
-    # Linux
-    sed -i "s/\"productVersion\": \".*\"/\"productVersion\": \"${VERSION_NO_V}\"/" cmd/gopca-desktop/wails.json
-    sed -i "s/\"productVersion\": \".*\"/\"productVersion\": \"${VERSION_NO_V}\"/" cmd/gocsv/wails.json
-fi
+# 6. Update version in each app's build/config.yml, then re-render the build
+# assets that carry it (Info.plist, Info.dev.plist, windows/info.json and the
+# Windows manifest). Wails v3 copies those files verbatim at build time, so the
+# version is baked into them here rather than substituted during the build.
+echo -e "${YELLOW}Updating version to ${VERSION_NO_V} in build/config.yml files${NC}"
+for app in cmd/gopca-desktop cmd/gocsv; do
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/^  version: \".*\"/  version: \"${VERSION_NO_V}\"/" "$app/build/config.yml"
+    else
+        sed -i "s/^  version: \".*\"/  version: \"${VERSION_NO_V}\"/" "$app/build/config.yml"
+    fi
+    grep -q "^  version: \"${VERSION_NO_V}\"" "$app/build/config.yml" || { echo -e "${RED}Version not updated in $app/build/config.yml${NC}"; exit 1; }
+    (cd "$app" && wails3 task common:update:build-assets)
+done
 
 # 7. Commit version changes
-git add cmd/gopca-desktop/wails.json cmd/gocsv/wails.json
+git add cmd/gopca-desktop/build/config.yml cmd/gopca-desktop/build/darwin/Info.plist cmd/gopca-desktop/build/darwin/Info.dev.plist cmd/gopca-desktop/build/windows/info.json cmd/gopca-desktop/build/windows/wails.exe.manifest
+git add cmd/gocsv/build/config.yml cmd/gocsv/build/darwin/Info.plist cmd/gocsv/build/darwin/Info.dev.plist cmd/gocsv/build/windows/info.json cmd/gocsv/build/windows/wails.exe.manifest
 git commit -m "chore: bump version to ${VERSION}
 
 Preparing for release ${VERSION}

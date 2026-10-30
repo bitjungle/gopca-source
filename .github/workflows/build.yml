@@ -277,8 +277,12 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
 
-    - name: Install Wails CLI
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
+    - name: Install Wails CLI (version from go.mod)
+      # The CLI generates the frontend bindings and drives the build; pinning
+      # it to the library version in go.mod keeps the tool and the library from
+      # diverging silently (#531). bash so the grep works on the Windows runner.
+      shell: bash
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
 
     # Type-check every frontend.
     #
@@ -409,11 +413,12 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
-    - name: Install Wails
-      # Pinned to the library version in go.mod. The CLI and the library are
-      # separate things and the CLI rewrites go.mod to match itself, so an
-      # unpinned CLI would build releases against a version nobody chose.
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
+    - name: Install Wails CLI (version from go.mod)
+      # The CLI generates the frontend bindings and drives the build; pinning
+      # it to the library version in go.mod keeps the tool and the library from
+      # diverging silently (#531). bash so the grep works on the Windows runner.
+      shell: bash
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
     
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
@@ -432,6 +437,13 @@ jobs:
     - name: Build GoPCA Desktop
       run: PLATFORM=${{ matrix.platform }} ./scripts/ci/build-desktop.sh
       shell: bash
+    - name: Package GoPCA Desktop AppImage
+      if: matrix.os == 'ubuntu-latest'
+      # The AppImage bundles WebKitGTK and its helper processes, so a build made
+      # on this runner's GTK4/WebKitGTK 6.0 stack runs on distributions that do
+      # not ship it. linuxdeploy is itself an AppImage; EXTRACT_AND_RUN lets it
+      # run without FUSE on the hosted runner.
+      run: cd cmd/gopca-desktop && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
     
     - name: Sign GoPCA Desktop (macOS)
       if: matrix.os == 'macos-latest'
@@ -500,11 +512,12 @@ jobs:
         cache: 'npm'
         cache-dependency-path: package-lock.json
     
-    - name: Install Wails
-      # Pinned to the library version in go.mod. The CLI and the library are
-      # separate things and the CLI rewrites go.mod to match itself, so an
-      # unpinned CLI would build releases against a version nobody chose.
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.13.0
+    - name: Install Wails CLI (version from go.mod)
+      # The CLI generates the frontend bindings and drives the build; pinning
+      # it to the library version in go.mod keeps the tool and the library from
+      # diverging silently (#531). bash so the grep works on the Windows runner.
+      shell: bash
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@$(grep 'wailsapp/wails/v3 v' go.mod | awk '{print $2}')
     
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
@@ -523,6 +536,13 @@ jobs:
     - name: Build GoCSV Desktop
       run: PLATFORM=${{ matrix.platform }} APPNAME=gocsv ./scripts/ci/build-gocsv.sh
       shell: bash
+    - name: Package GoCSV Desktop AppImage
+      if: matrix.os == 'ubuntu-latest'
+      # The AppImage bundles WebKitGTK and its helper processes, so a build made
+      # on this runner's GTK4/WebKitGTK 6.0 stack runs on distributions that do
+      # not ship it. linuxdeploy is itself an AppImage; EXTRACT_AND_RUN lets it
+      # run without FUSE on the hosted runner.
+      run: cd cmd/gocsv && APPIMAGE_EXTRACT_AND_RUN=1 wails3 task linux:create:appimage
     
     - name: Sign GoCSV Desktop (macOS)
       if: matrix.os == 'macos-latest'

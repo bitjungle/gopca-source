@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "1.7.0"
+	},
+	"info": {
+		"0409": {
+			"ProductVersion": "1.7.0",
+			"CompanyName": "bitjungle",
+			"FileDescription": "Professional PCA Analysis Tool",
+			"LegalCopyright": "Copyright © 2025 bitjungle",
+			"ProductName": "GoPCA Desktop",
+			"Comments": "Professional PCA Analysis Tool"
+		}
+	}
+}

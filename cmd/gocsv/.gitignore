@@ -9,8 +9,13 @@ frontend/dist
 # noticing: checked-in generated code drifts quietly, because nothing compares
 # it against what generates it.
 #
-# Anchor the pattern with a leading slash. An unanchored `wailsjs/` matches a
+# Anchor the pattern with a leading slash. An unanchored `bindings/` matches a
 # directory of that name at any depth, which would also swallow any
-# src/__mocks__/wailsjs test doubles added later -- exactly the trap GoPCA
+# src/__mocks__/bindings test doubles added later -- exactly the trap GoPCA
 # Desktop's .gitignore had.
-/frontend/wailsjs/
+/frontend/bindings/
+
+# Wails v3 build system
+.task/
+*.syso
+build/linux/appimage/build/

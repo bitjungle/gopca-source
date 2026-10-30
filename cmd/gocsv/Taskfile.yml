@@ -1,0 +1,55 @@
+# GoCSV build orchestration for Wails v3 (run via `wails3 task <name>` or `task`).
+# The platform Taskfiles under build/ are trimmed copies of the ones
+# `wails3 init` generates: no mobile, Docker, server or nfpm targets, and no
+# signing tasks -- CI signs with scripts/ci/sign-macos-ci.sh and the bundled
+# Windows installer lives in scripts/windows/.
+version: '3'
+
+vars:
+  APP_NAME: "GoCSV"
+  # v2 wrote binaries here and the Makefile, CI workflows and signing scripts
+  # all address this path; keeping it avoids touching every one of them.
+  BIN_DIR: "build/bin"
+  PACKAGE_MANAGER: "npm"
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  GOOS: '{{.GOOS | default OS}}'
+  # Version metadata compiled into internal/version. VERSION comes from the
+  # caller (Makefile, release workflow); the rest is read from the checkout.
+  VERSION: '{{.VERSION | default "dev"}}'
+  GIT_COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo unknown
+  BUILD_DATE:
+    sh: date -u +%Y-%m-%dT%H:%M:%SZ
+  VERSION_LDFLAGS: >-
+    -X github.com/bitjungle/gopca/internal/version.Version={{.VERSION}}
+    -X github.com/bitjungle/gopca/internal/version.GitCommit={{.GIT_COMMIT}}
+    -X github.com/bitjungle/gopca/internal/version.BuildDate={{.BUILD_DATE}}
+  # The AppImage task reads our own .desktop file rather than generating one.
+  DESKTOP_FILE_NAME: "gocsv.desktop"
+
+includes:
+  common: ./build/Taskfile.yml
+  windows: ./build/windows/Taskfile.yml
+  darwin: ./build/darwin/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application
+    cmds:
+      - task: "{{.GOOS}}:build"
+
+  package:
+    summary: Packages a production build of the application
+    cmds:
+      - task: "{{.GOOS}}:package"
+
+  run:
+    summary: Runs the application
+    cmds:
+      - task: "{{.GOOS}}:run"
+
+  dev:
+    summary: Runs the application in development mode
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}

@@ -53,21 +53,19 @@ LDFLAGS := -ldflags="-s -w \
 	-X github.com/bitjungle/gopca/internal/version.GitCommit=$(GIT_COMMIT) \
 	-X github.com/bitjungle/gopca/internal/version.BuildDate=$(BUILD_DATE)"
 
-# GoPCA build flags (for Wails)
-DESKTOP_LDFLAGS := -ldflags "-s -w \
-	-X github.com/bitjungle/gopca/internal/version.Version=$(VERSION) \
-	-X github.com/bitjungle/gopca/internal/version.GitCommit=$(GIT_COMMIT) \
-	-X github.com/bitjungle/gopca/internal/version.BuildDate=$(BUILD_DATE)"
-
 # Check if golangci-lint is installed
 GOLINT := $(shell which golangci-lint 2> /dev/null)
 
-# Check if wails is installed - check in PATH and common locations
-WAILS := $(shell which wails 2> /dev/null || echo "$${HOME}/go/bin/wails")
+# Wails v3 CLI (wails3): check PATH, then the default go install location.
+# The Taskfiles invoke `wails3` by name, so the directory it lives in is put on
+# PATH for every target that runs it.
+WAILS3 := $(shell which wails3 2> /dev/null || echo "$${HOME}/go/bin/wails3")
+WAILS3_PATH := PATH="$(dir $(WAILS3)):$$PATH"
 # Derived from go.mod rather than written out, so the CLI a developer is told
 # to install cannot drift from the library the project builds against. That
 # mismatch is what #822 was: the CLI rewrites go.mod to match itself.
-WAILS_VERSION := $(shell grep 'wailsapp/wails/v2 v' go.mod | awk '{print $$2}')
+WAILS_VERSION := $(shell grep 'wailsapp/wails/v3 v' go.mod | awk '{print $$2}')
+WAILS_INSTALL := go install github.com/wailsapp/wails/v3/cmd/wails3@$(WAILS_VERSION)
 
 # Default target
 .DEFAULT_GOAL := all
@@ -148,24 +146,26 @@ build-ui:
 
 ## pca-dev: Run GoPCA Desktop in development mode with hot reload
 pca-dev: build-ui sync-docs sync-datasets
-	@if [ -x "$(WAILS)" ]; then \
+	@if [ -x "$(WAILS3)" ]; then \
 		echo "Starting GoPCA Desktop in development mode..."; \
-		cd $(DESKTOP_PATH) && $(WAILS) dev; \
+		cd $(DESKTOP_PATH) && $(WAILS3_PATH) $(WAILS3) dev; \
 	else \
 		echo "Wails not found. Install it with:"; \
-		echo "  go install github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)"; \
+		echo "  $(WAILS_INSTALL)"; \
 		exit 1; \
 	fi
 
 ## pca-build: Build GoPCA Desktop for production
+# The Taskfile compiles the version into internal/version from VERSION; on
+# macOS the package task also assembles the .app bundle, as `wails build` did.
 pca-build: build-ui sync-docs sync-datasets
-	@if [ -x "$(WAILS)" ]; then \
+	@if [ -x "$(WAILS3)" ]; then \
 		echo "Building GoPCA Desktop..."; \
-		cd $(DESKTOP_PATH) && $(WAILS) build $(DESKTOP_LDFLAGS); \
+		cd $(DESKTOP_PATH) && $(WAILS3_PATH) $(WAILS3) task $$( [ "$$(uname -s)" = Darwin ] && echo darwin:package || echo build ) VERSION=$(VERSION); \
 		echo "GoPCA Desktop build complete. Check $(DESKTOP_PATH)/build/bin/"; \
 	else \
 		echo "Wails not found. Install it with:"; \
-		echo "  go install github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)"; \
+		echo "  $(WAILS_INSTALL)"; \
 		exit 1; \
 	fi
 
@@ -190,24 +190,24 @@ pca-deps:
 
 ## csv-dev: Run GoCSV Desktop in development mode with hot reload
 csv-dev: build-ui sync-docs
-	@if [ -x "$(WAILS)" ]; then \
+	@if [ -x "$(WAILS3)" ]; then \
 		echo "Starting CSV editor in development mode..."; \
-		cd $(CSV_PATH) && $(WAILS) dev; \
+		cd $(CSV_PATH) && $(WAILS3_PATH) $(WAILS3) dev; \
 	else \
 		echo "Wails not found. Install it with:"; \
-		echo "  go install github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)"; \
+		echo "  $(WAILS_INSTALL)"; \
 		exit 1; \
 	fi
 
 ## csv-build: Build GoCSV Desktop for production
 csv-build: build-ui sync-docs
-	@if [ -x "$(WAILS)" ]; then \
+	@if [ -x "$(WAILS3)" ]; then \
 		echo "Building CSV editor application..."; \
-		cd $(CSV_PATH) && $(WAILS) build $(DESKTOP_LDFLAGS); \
+		cd $(CSV_PATH) && $(WAILS3_PATH) $(WAILS3) task $$( [ "$$(uname -s)" = Darwin ] && echo darwin:package || echo build ) VERSION=$(VERSION); \
 		echo "CSV editor build complete. Check $(CSV_PATH)/build/bin/"; \
 	else \
 		echo "Wails not found. Install it with:"; \
-		echo "  go install github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)"; \
+		echo "  $(WAILS_INSTALL)"; \
 		exit 1; \
 	fi
 
@@ -766,29 +766,25 @@ ci-test-all:
 	@echo "Running all tests..."
 	@./scripts/ci/test-all.sh
 
-## pca-build-all: Build GoPCA for all platforms
+# Wails v3 cross-compiles only through its Docker image, which this project
+# does not use: the release workflow builds each platform on its own runner.
+# The one cross target that works natively is the macOS universal binary, so
+# that is what these targets produce on macOS; elsewhere they say so and stop.
+## pca-build-all: Build the GoPCA macOS universal app (other platforms: CI)
 pca-build-all:
-	@if [ -x "$(WAILS)" ]; then \
-		echo "Building GoPCA for all platforms..."; \
-		cd $(DESKTOP_PATH) && $(WAILS) build -platform darwin/amd64,darwin/arm64,windows/amd64,linux/amd64 $(DESKTOP_LDFLAGS); \
-		echo "GoPCA builds complete for all platforms"; \
-	else \
-		echo "Wails not found. Install it with:"; \
-		echo "  go install github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)"; \
-		exit 1; \
-	fi
+	@if [ ! -x "$(WAILS3)" ]; then echo "Wails not found. Install it with:"; echo "  $(WAILS_INSTALL)"; exit 1; fi
+	@if [ "$$(uname -s)" != Darwin ]; then echo "Cross-platform desktop builds are produced by CI (release.yml), one runner per platform."; exit 1; fi
+	@echo "Building GoPCA universal macOS app..."
+	@cd $(DESKTOP_PATH) && $(WAILS3_PATH) $(WAILS3) task darwin:package:universal VERSION=$(VERSION)
+	@echo "GoPCA universal build complete. Check $(DESKTOP_PATH)/build/bin/"
 
-## csv-build-all: Build CSV editor for all platforms
+## csv-build-all: Build the GoCSV macOS universal app (other platforms: CI)
 csv-build-all:
-	@if [ -x "$(WAILS)" ]; then \
-		echo "Building CSV editor for all platforms..."; \
-		cd $(CSV_PATH) && $(WAILS) build -platform darwin/amd64,darwin/arm64,windows/amd64,linux/amd64 $(DESKTOP_LDFLAGS); \
-		echo "CSV editor builds complete for all platforms"; \
-	else \
-		echo "Wails not found. Install it with:"; \
-		echo "  go install github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION)"; \
-		exit 1; \
-	fi
+	@if [ ! -x "$(WAILS3)" ]; then echo "Wails not found. Install it with:"; echo "  $(WAILS_INSTALL)"; exit 1; fi
+	@if [ "$$(uname -s)" != Darwin ]; then echo "Cross-platform desktop builds are produced by CI (release.yml), one runner per platform."; exit 1; fi
+	@echo "Building GoCSV universal macOS app..."
+	@cd $(CSV_PATH) && $(WAILS3_PATH) $(WAILS3) task darwin:package:universal VERSION=$(VERSION)
+	@echo "GoCSV universal build complete. Check $(CSV_PATH)/build/bin/"
 
 ## build-everything: Build all applications for all platforms
 build-everything: sync-docs build-all pca-build-all csv-build-all
