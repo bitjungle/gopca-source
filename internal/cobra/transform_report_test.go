@@ -325,8 +325,11 @@ func fittedPCRModelOnDisk(t *testing.T) (modelFile, inputFile string) {
 	return modelFile, inputFile
 }
 
-// minimalPCRResult is the constructed report the metric-disagreement test uses,
-// shared so the design-line test does not repeat forty lines of fixture.
+// minimalPCRResult is a constructed result in the same shape the
+// metric-disagreement test in regress_endtoend_test.go builds for itself: enough
+// for outputRegressTable to print a full report, with no cross-validation run.
+// That test keeps its own copy because it mutates the report per case; this one
+// exists so the design-line cases do not repeat forty lines of fixture.
 func minimalPCRResult() (*types.PCRResult, *pkgcsv.Data) {
 	report := &types.CVReport{
 		Design:     "10-fold by row (shuffled)",
