@@ -423,8 +423,8 @@ pca transform [OPTIONS] <model.json> <input.csv>
 
 #### Options
 
-- `--output, -o <string>` - Output directory for results
-- `--format, -f <format>` - Output format: `table` or `json` (default: `table`)
+- `--output, -o <string>` - Output directory. The JSON results file is written there whatever the console format
+- `--format, -f <format>` - Console output: `table` or `json` (default: `table`). With `json` the file is written next to the input unless `-o` says otherwise
 - `--no-headers` - First row contains data, not column names
 - `--no-index` - First column contains data, not row names
 - `--delimiter <string>` - CSV field delimiter (default: ",")
@@ -439,20 +439,33 @@ pca transform [OPTIONS] <model.json> <input.csv>
   - Column-wise transforms (centering, scaling) use parameters from the model
 - Currently supports SVD and NIPALS models
 
+#### What is reported
+
+For every sample: its scores, Hotelling's T² and Q residual, and — when the model
+carries the diagnostic limits — whether it falls **outside the model**. A
+regression model (from `pca regress`) also predicts its response for every row,
+and when the input carries the measured response an RMSEP section follows, split
+into the samples within the model's limits and those outside, because the pooled
+figure describes neither.
+
+The JSON results file (`<input>_transformed.json`) carries the same per sample
+(`id`, `scores`, `hotelling_t2`, `rss`, `outside_model`) and, for a regression
+model, `predicted` on each sample with the response named once at the top level.
+
 #### Examples
 
 ```bash
 # Basic transformation
 pca transform model.json new_data.csv
 
-# Save to specific file with JSON format
-pca transform -f json -o results/ model.json new_data.csv
+# Print the table and also save the JSON results file to a directory
+pca transform -o results/ model.json new_data.csv
 
-# Exclude specific rows (using range syntax)
-pca transform --exclude-rows 1,5-10 model.json new_data.csv
+# JSON only, written next to the input
+pca transform -f json model.json new_data.csv
 
-# Include diagnostic metrics
-pca transform --include-metrics model.json new_data.csv
+# Apply a PCR model: predictions, verdicts, and RMSEP if new_data.csv has the response
+pca transform pcr_model.json new_data.csv
 ```
 
 ## Output Formats

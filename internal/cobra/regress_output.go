@@ -94,7 +94,14 @@ func outputRegressTable(result *types.PCRResult, data *pkgcsv.Data, opts *Regres
 			fmt.Printf("  SEP     %12.6g   is a precise model with a systematic offset\n",
 				result.CV.SEP[i])
 		}
-		fmt.Printf("\n  Design  %s, seed %d", result.CV.Design, result.CV.Seed)
+		fmt.Printf("\n  Design  %s", result.CV.Design)
+		// Design names the layout without counting it, so a repeated design
+		// printed exactly like a single run and the two were told apart only by
+		// their digits (#1036). The model file has always recorded the count.
+		if result.CV.Repeats > 1 {
+			fmt.Printf(", %d repeats", result.CV.Repeats)
+		}
+		fmt.Printf(", seed %d", result.CV.Seed)
 		if result.CV.GroupBy != "" {
 			fmt.Printf(", grouped by %s", result.CV.GroupBy)
 		}

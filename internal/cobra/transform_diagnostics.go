@@ -290,8 +290,15 @@ func printPredictionError(predicted, measured []float64, fits []sampleFit, limit
 	if hasLimits && countOutside(fits) > 0 {
 		within := scorePredictions(predicted, measured, inside)
 		beyond := scorePredictions(predicted, measured, outside)
-		fmt.Printf("  RMSEP  %10.6g   on the %d samples within the model's limits\n",
-			within.RMSEP, within.N)
+		// A root mean square over no samples is undefined, not zero. Printing 0
+		// on the one line a reader checks for "how good is the model where it
+		// applies" would say perfect where the truth is no evidence (#1038).
+		if within.N == 0 {
+			fmt.Printf("  RMSEP  %10s   no sample is within the model's limits\n", "n/a")
+		} else {
+			fmt.Printf("  RMSEP  %10.6g   on the %d samples within the model's limits\n",
+				within.RMSEP, within.N)
+		}
 		fmt.Printf("  RMSEP  %10.6g   on the %d outside\n", beyond.RMSEP, beyond.N)
 		fmt.Printf("  RMSEP  %10.6g   over all %d, which describes neither group\n",
 			overall.RMSEP, overall.N)

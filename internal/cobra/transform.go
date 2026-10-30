@@ -243,11 +243,13 @@ func runTransform(opts *TransformOptions, modelFile, inputFile string) error {
 
 	// A model carrying a regression block predicts a response as well as
 	// projecting, so emit the predictions alongside the scores.
+	var prediction *transformPrediction
 	if pcaOutputData.Regression != nil {
 		predictions, err := predictFromModel(pcaOutputData.Regression, scores)
 		if err != nil {
 			return err
 		}
+		prediction = &transformPrediction{Response: pcaOutputData.Regression.Response, Values: predictions}
 		printTransformPredictions(pcaOutputData.Regression, predictions, data, fits, limits)
 
 		// The file being transformed often carries the response already. Until
@@ -262,7 +264,7 @@ func runTransform(opts *TransformOptions, modelFile, inputFile string) error {
 	// Output results based on format
 	switch opts.OutputFormat {
 	case "json":
-		return outputTransformJSON(result, data, inputFile, opts.OutputDir, fits, limits)
+		return outputTransformJSON(result, data, inputFile, opts.OutputDir, fits, limits, prediction)
 	default: // table
 		if err := outputTransformTable(result, data, fits, limits); err != nil {
 			return err
@@ -271,8 +273,23 @@ func runTransform(opts *TransformOptions, modelFile, inputFile string) error {
 		// model with a regression block prints two tables, and the summary
 		// belongs to the run rather than to either of them.
 		printFitSummary(fits, limits)
+		// -o was read by the JSON writer alone, so in the default format it
+		// created the directory and wrote nothing into it, silently, while the
+		// help promised "save results to directory" (#1037). An output
+		// directory now means the file is written whatever is printed.
+		if opts.OutputDir != "" {
+			return outputTransformJSON(result, data, inputFile, opts.OutputDir, fits, limits, prediction)
+		}
 		return nil
 	}
+}
+
+// transformPrediction is the response a regression model predicted for the
+// transformed rows, carried to the JSON writer so the one number the model
+// exists to produce is in the file and not only on the terminal (#1037).
+type transformPrediction struct {
+	Response string
+	Values   []float64
 }
 
 // predictFromModel applies a stored regression to freshly projected scores.
@@ -437,7 +454,8 @@ func outputTransformTable(result *types.PCAResult, data *pkgcsv.Data,
 }
 
 func outputTransformJSON(result *types.PCAResult, data *pkgcsv.Data,
-	inputFile, outputDir string, fits []sampleFit, limits modelLimits) error {
+	inputFile, outputDir string, fits []sampleFit, limits modelLimits,
+	prediction *transformPrediction) error {
 	// Generate output path
 	dir := filepath.Dir(inputFile)
 	base := filepath.Base(inputFile)
@@ -467,14 +485,21 @@ func outputTransformJSON(result *types.PCAResult, data *pkgcsv.Data,
 		HotellingT2  *float64           `json:"hotelling_t2,omitempty"`
 		RSS          *float64           `json:"rss,omitempty"`
 		OutsideModel *bool              `json:"outside_model,omitempty"`
+		// The predicted response, present only for a regression model. The
+		// response is named once at the top level rather than in every key.
+		Predicted *float64 `json:"predicted,omitempty"`
 	}
 	type TransformOutput struct {
-		Samples []sampleOutput `json:"samples"`
+		Response string         `json:"response,omitempty"`
+		Samples  []sampleOutput `json:"samples"`
 	}
 
 	reportFit := limits.HasT2 || limits.HasRSS
 
 	var output TransformOutput
+	if prediction != nil {
+		output.Response = prediction.Response
+	}
 	for i := 0; i < len(result.Scores); i++ {
 		sampleID := fmt.Sprintf("Sample_%d", i+1)
 		if i < len(data.RowNames) {
@@ -498,6 +523,10 @@ func outputTransformJSON(result *types.PCAResult, data *pkgcsv.Data,
 				outside := fits[i].Outside()
 				sample.OutsideModel = &outside
 			}
+		}
+		if prediction != nil && i < len(prediction.Values) {
+			value := prediction.Values[i]
+			sample.Predicted = &value
 		}
 		output.Samples = append(output.Samples, sample)
 	}
