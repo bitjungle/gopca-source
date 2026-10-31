@@ -64,13 +64,15 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ onFileSelect, isLoad
     }, []);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
+        // The page never sees the dropped paths: WebKit withholds them from
+        // the DOM event, and Wails delivers them to Go, which forwards them as
+        // the files-dropped event App.tsx listens for. This handler only ends
+        // the hover state. preventDefault keeps WebKit from navigating to the
+        // file. A v2-era alert here claimed drops were unsupported; it was dead
+        // code then and live under v3 (#1042).
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
-
-        // Note: Due to Wails limitations, we can't directly handle dropped files
-        // Show a message to use the browse button instead
-        alert('Please use the "Choose File" button to select files. Drag and drop is not supported in the file dialog.');
     }, []);
 
     return (

@@ -420,6 +420,32 @@ if (!foldsSelect) {
     }
 }
 
+// --- 7. a window that enables OS file drops has somewhere for them to land ----
+//
+// Wails v3 delivers an OS drop by handing the paths to the page, which looks
+// for the nearest element carrying data-file-drop-target under the cursor and
+// ignores the drop -- silently, no event, no log line -- when there is none.
+// Setting EnableFileDrop on the Go side therefore promises nothing unless the
+// frontend declares a target, and the two are edited in different languages in
+// different directories. The migration shipped the first half without the
+// second, and the first human to drag a file onto GoCSV found out (#1042).
+
+for (const app of ['gocsv', 'gopca-desktop']) {
+    const main = readFileSync(`cmd/${app}/main.go`, 'utf8');
+    if (!/EnableFileDrop:\s*true/.test(main)) continue;
+    // An attribute on a JSX element, not the words in a comment: the first
+    // version of this check matched its own explanatory comment and stayed
+    // green with the attribute removed. [^<>]* cannot cross a closing bracket,
+    // so the match is confined to one tag's attribute list.
+    const declared = sourceFiles(`cmd/${app}/frontend/src`)
+        .some(path => /<[A-Za-z][\w.]*[^<>]*\sdata-file-drop-target\b/.test(readFileSync(path, 'utf8')));
+    if (!declared) {
+        failures.push(
+            `cmd/${app}/main.go sets EnableFileDrop but nothing under cmd/${app}/frontend/src ` +
+            `carries data-file-drop-target, so an OS file drop is ignored without a trace (#1042)`);
+    }
+}
+
 if (failures.length > 0) {
     console.error('\nFrontend invariant checks FAILED:\n');
     for (const f of failures) console.error(`  - ${f}`);
@@ -431,4 +457,5 @@ console.log(`Frontend invariants hold: ${labels.length} menu entries all with ic
             `one sample-label helper, a grid that honours label columns, a Folds ` +
             `menu matching its Go copy, both Vite configs pre-bundling every ` +
             `module the custom Plotly build imports, and every Plotly trace the ` +
-            `three frontends draw registered in that build.`);
+            `three frontends draw registered in that build, and a drop target wherever ` +
+            `a window enables OS file drops.`);
