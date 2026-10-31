@@ -88,11 +88,16 @@ export const FileSelector: React.FC<FileSelectorProps> = ({
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
+    // The page never receives the dropped paths: WebKit withholds them from
+    // the DOM event, and the host application gets them from Wails on the Go
+    // side (GoCSV listens for its files-dropped event and loads the file). So
+    // this handler only ends the hover state. preventDefault keeps the
+    // webview from navigating to the file. A v2-era alert here claimed drops
+    // were unsupported; the runtime used to intercept the event before it
+    // arrived, and under Wails v3 it fired on every drop (#1042).
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-
-    alert('Please use the "Browse Files" button to select files. Drag and drop is not supported in the file dialog due to platform limitations.');
   }, []);
 
   const filteredFormats = defaultFormats.filter(f =>
