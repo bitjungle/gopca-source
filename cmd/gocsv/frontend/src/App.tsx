@@ -372,7 +372,15 @@ return;
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
+        // data-file-drop-target is what makes an OS file drop land. Wails v3
+        // hands the dropped paths to the page and looks for this attribute on
+        // the element under the cursor or an ancestor of it; without one the
+        // drop is ignored without a trace. On the root, a drop anywhere in the
+        // window counts, as v2's OnFileDrop did (#1042).
+        <div
+            data-file-drop-target
+            className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200"
+        >
             {/* Header - matching GoPCA Desktop exactly */}
             <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-lg backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
                 <div className="flex items-center justify-between max-w-7xl mx-auto px-4 py-3 h-20">
